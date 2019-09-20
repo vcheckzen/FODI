@@ -31,7 +31,7 @@ function initializeOAUTH() {
             oauth.clientSecret = 'h8@B7kFVOmj0+8HKBWeNTgl@pU/z4yLB';
             oauth.oauthUrl = 'https://login.partner.microsoftonline.cn/common/oauth2/v2.0/';
             oauth.apiUrl = 'https://microsoftgraph.chinacloudapi.cn/v1.0/me/drive/root';
-            oauth.scope = 'https://microsoftgraph.chinacloudapi.cn/Files.ReadWrite.All offline_access';
+            oauth.scope = 'https://microsoft.sharepoint-df.com/MyFiles.Read https://microsoft.sharepoint-df.com/MyFiles.Write offline_access';
             break;
         case 2:
             // 2 SharePoint
@@ -49,7 +49,7 @@ function initializeOAUTH() {
             oauth.clientSecret = '7/+ykq2xkfx:.DWjacuIRojIaaWL0QI6';
             oauth.oauthUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/';
             oauth.apiUrl = 'https://graph.microsoft.com/v1.0/me/drive/root';
-            oauth.scope = 'https://microsoft.sharepoint-df.com/MyFiles.Read https://microsoft.sharepoint-df.com/MyFiles.Write offline_access';
+            oauth.scope = 'https://graph.microsoft.com/Files.ReadWrite.All offline_access';
             break;
     }
     const OPTIONS = {
@@ -75,14 +75,19 @@ function initializeOAUTH() {
 
 function fetchFiles(oauth, path) {
     if (!path || path === '/') {
-        if (EXPOSE_PATH === '/') {
+        if (EXPOSE_PATH === '') {
             path = '';
         } else {
             path = ':' + EXPOSE_PATH;
         }
     } else {
-        path = ':' + EXPOSE_PATH + '/' + path;
+        if (EXPOSE_PATH === '') {
+            path = ':' + path;
+        } else {
+            path = ':' + EXPOSE_PATH + '/' + path;
+        }
     }
+
     const URI = oauth.apiUrl + path + '?expand=children(select=name,size,file,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)';
     const OPTIONS = {
         uri: encodeURI(URI),
@@ -148,41 +153,5 @@ exports.main_handler = async (event, context, callback) => {
     }
 };
 
-// const main_handler = async (event, context, callback) => {
-//     const REQUEST_FILE = event.queryString.file;
-//     let REQUEST_PATH;
-//     let FILE_NAME;
-//     if (typeof REQUEST_FILE !== 'undefined') {
-//         FILE_NAME = REQUEST_FILE.split('/').pop();
-//         REQUEST_PATH = REQUEST_FILE.replace('/' + FILE_NAME, '');
-//     } else {
-//         const PARAMS = parseParamsFromBody(event.body);
-//         REQUEST_PATH = PARAMS.path || '';
-//     }
-
-//     const OAUTH = await initializeOAUTH();
-//     const FILES = await fetchFiles(OAUTH, REQUEST_PATH);
-
-//     if (typeof REQUEST_FILE !== 'undefined') {
-//         for (let i = 0; i < FILES.length; i++) {
-//             if (FILES[i].name === FILE_NAME) {
-//                 return {
-//                     isBase64: false,
-//                     statusCode: 302,
-//                     headers: { 'Content-Type': 'text/html', 'Location': FILES[i].url },
-//                     body: ''
-//                 }
-//             }
-//         }
-//     }
-
-//     return {
-//         isBase64: false,
-//         statusCode: 200,
-//         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-//         body: JSON.stringify(FILES)
-//     }
-// };
-
-// { body: 'path=/Index/Android' }
-// main_handler({ queryString: { file: '/Android/Devices/Firmware-Flash-Tool/QPST_2.7.474.7z' } }).then(console.log);
+// main_handler({ body: 'path=/Index/Android', queryString:{} }).then(console.log);
+// main_handler({ queryString: { file: '/Index/Android/Devices/Firmware-Flash-Tool/QPST_2.7.474.7z' } }).then(console.log);
