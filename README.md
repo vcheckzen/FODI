@@ -10,6 +10,7 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 - 接近秒速列表
 - 指定展示路径
+- 特定文件夹加密
 - 无需服务器免费部署
 - 基本文本、图片及音视频预览
 
@@ -22,4 +23,4 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 ## 安装
 
-- [利用腾讯云 SCF 及 Github Pages 免费部署 Onedrive 快速列表程序](https://logi.ml/front-end/scf-fodi.html)
+- [利用腾讯云 SCF 及 Github Pages 免费部署 OneDrive 快速列表程序](https://logi.ml/front-end/scf-fodi.html)
