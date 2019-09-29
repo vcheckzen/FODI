@@ -25,7 +25,6 @@
     <style>
         .password-wrapper {
             display: flex;
-            height: 100%;
             align-items: center;
         }
 
@@ -1010,7 +1009,7 @@
         }
 
         async function preCache(files, level) {
-            if (level > 1) return;
+            if (level > 2) return;
             files.files.forEach(file => {
                 const parent = files.parent === '/' ? '' : files.parent
                 const path = parent + '/' + file.name;
