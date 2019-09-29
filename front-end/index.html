@@ -868,9 +868,8 @@
                         case 'text':
                             let pre = document.createElement('pre');
                             let code = document.createElement('code');
-                            code.className = suffix;
-                            code.style.fontFamily = 'Consolas';
                             pre.append(code);
+                            pre.classList.add(suffix);
                             pre.style.background = 'rgb(245,245,245)';
                             pre.style['overflow-x'] = 'scroll';
                             content.style['text-align'] = 'initial';
