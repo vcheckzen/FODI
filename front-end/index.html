@@ -41,6 +41,7 @@
         }
 
         .password button {
+            background: white;
             height: 2em;
             outline: none;
             border: solid rgb(218, 215, 215) 1px;
@@ -704,7 +705,7 @@
                     return;
                 }
                 input.value = '';
-                input.placeholder = '正在验证...';
+                input.placeholder = '正在验证..';
                 sendRequest(window.api.method,
                     window.api.url,
                     window.api.formatPayload(files.parent, passwd),
@@ -755,7 +756,7 @@
                                 document.execCommand('copy');
                                 window.getSelection().removeAllRanges();
                                 result = true;
-                            } catch (e) {}
+                            } catch (e) { }
                             document.body.removeChild(target);
                             return result;
                         },
@@ -791,7 +792,7 @@
                             if (typeof callback === 'function') {
                                 element.onload = element.onreadystatechange = () => {
                                     if (!loaded && (!element.readyState || /loaded|complete/.test(
-                                            element.readyState))) {
+                                        element.readyState))) {
                                         element.onload = element.onreadystatechange = null;
                                         loaded = true;
                                         callback();
