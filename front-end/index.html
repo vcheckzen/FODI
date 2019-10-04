@@ -698,8 +698,9 @@
             switchRightDisplay('encrypted');
             const password = document.querySelector('.password');
             const button = password.querySelector('button');
+            const input = password.querySelector('input');
+            input.placeholder = '请输入密码';
             button.addEventListener('click', event => {
-                const input = password.querySelector('input');
                 const passwd = input.value;
                 if (!input.value) {
                     return;
@@ -1215,7 +1216,7 @@
                 </div>
                 <div class="password-wrapper">
                     <div class="password">
-                        <input type="password" placeholder="请输入密码">
+                        <input type="password">
                         <button>提交</button>
                     </div>
                 </div>
