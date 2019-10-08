@@ -699,8 +699,11 @@
             const password = document.querySelector('.password');
             const button = password.querySelector('button');
             const input = password.querySelector('input');
+            const buttonParent = button.parentElement;
+            const buttonClone = button.cloneNode(true);
+            buttonParent.replaceChild(buttonClone, button);
             input.placeholder = '请输入密码';
-            button.addEventListener('click', event => {
+            buttonParent.addEventListener('click', event => {
                 const passwd = input.value;
                 if (!input.value) {
                     return;
