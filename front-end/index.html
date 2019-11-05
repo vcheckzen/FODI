@@ -986,7 +986,7 @@
                         let progress = timestamp - start;
                         let last = right.scrollTop;
                         right.scrollTo(0, right.scrollTop + 14);
-                        if (right.scrollTop !== last || progress < 1000 * 2) {
+                        if (right.scrollTop !== last && progress < 1000 * 2) {
                             window.requestAnimationFrame(scrollToBottom);
                         }
                     };
