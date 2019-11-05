@@ -3,16 +3,22 @@
 <head>
     <script>
         /**
-         * SCF_GATEWAY：SCF 云函数网关地址
-         * SITE_NAME：站点名称
-         */
+        * SCF_GATEWAY：SCF 云函数网关地址
+        * SITE_NAME：站点名称
+        */
         window.GLOBAL_CONFIG = {
-            SCF_GATEWAY: '',
-            SITE_NAME: 'FODI'
+            SCF_GATEWAY: "",
+            SITE_NAME: "FODI"
         };
+
+        if (location.protocol === 'http:') {
+            location.href = location.href.replace(/http/, 'https');
+        }
     </script>
     <meta charset="utf-8">
     <meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" name="viewport">
+    <link rel="shortcut icon" href="https://ae02.alicdn.com/kf/H17b87817d98641b7bf182f0108961f9a9.png"
+        type="image/x-icon">
     <script src="https://s0.pstatp.com/cdn/expire-1-M/ionicons/4.5.6/ionicons.js"></script>
     <script src="https://s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
     <script src="https://s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/highlight.min.js"></script>
@@ -193,8 +199,9 @@
         }
 
         .site {
-            margin-left: auto;
-            padding-left: 2em;
+            white-space: nowrap;
+            /* margin-left: auto;
+                padding-left: 2em; */
         }
 
         .nav {
@@ -346,6 +353,10 @@
         }
 
         @media screen and (max-width: 600px) {
+            .name {
+                width: 75%;
+            }
+
             .time {
                 display: none;
             }
@@ -388,29 +399,33 @@
         }
     </style>
     <script>
-        function createCORSRequest(method, url) {
+        function createCORSRequest(method, url, timeout) {
             let xhr = new XMLHttpRequest();
-            if ("withCredentials" in xhr) {
+            if ('withCredentials' in xhr) {
                 xhr.open(method, url, true);
-            } else if (typeof XDomainRequest !== "undefined") {
+            } else if (typeof XDomainRequest !== 'undefined') {
                 xhr = new XDomainRequest();
                 xhr.open(method, url);
             } else {
                 xhr = null;
             }
-            xhr.timeout = 2000;
+            if (xhr) {
+                xhr.timeout = timeout;
+            }
             return xhr;
         }
 
         function sendRequest(method, url, data, headers, callback, error, times) {
-            let xhr = createCORSRequest(method, url);
+            let xhr = createCORSRequest(method, url, 3000);
             xhr.onreadystatechange = () => {
                 if (xhr.readyState == 4 && xhr.status == 200) {
                     callback(xhr.responseText);
                 }
             };
             xhr.timeout = xhr.onerror = () => {
-                times = times || 0;
+                if (!times) {
+                    times = 0;
+                }
                 console.log({
                     url: url,
                     data: data,
@@ -507,7 +522,8 @@
                 const hour = addZero(date.getHours());
                 const minute = addZero(date.getMinutes());
                 const second = addZero(date.getSeconds());
-                return 'yyyy-MM-dd HH:mm:ss'.replace('yyyy', year)
+                return 'yyyy-MM-dd HH:mm:ss'
+                    .replace('yyyy', year)
                     .replace('MM', month)
                     .replace('dd', day)
                     .replace('HH', hour)
@@ -524,17 +540,22 @@
                 size = size.toFixed(2);
                 switch (count) {
                     case 1:
-                        size += ' KB'
+                        size += ' KB';
                         break;
                     case 2:
-                        size += ' MB'
+                        size += ' MB';
                         break;
                     case 3:
-                        size += ' GB'
+                        size += ' GB';
+                        break;
+                    case 4:
+                        size += ' TB';
+                        break;
+                    case 5:
+                        size += ' PB';
                         break;
                     default:
                         size += ' B';
-                        break;
                 }
                 return size;
             };
@@ -675,7 +696,7 @@
                         document.querySelector('.markdown-body').style.display = 'block';
                     }
                 }
-                let cache = window.fileCache.get(path)
+                let cache = window.fileCache.get(path);
                 if (!cache || cache === true) {
                     window.fileCache.set(path, text);
                 }
@@ -771,20 +792,35 @@
                             return result;
                         },
                         fileType: suffix => {
-                            if (['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].indexOf(suffix) >= 0) {
+                            Array.prototype.contains = function (search) {
+                                const object = this;
+                                for (const key in object) {
+                                    if (object.hasOwnProperty(key)) {
+                                        if ((eval('/' + search + '/i')).test(object[key])) {
+                                            return true;
+                                        }
+                                    }
+                                }
+                                return false;
+                            };
+                            if (['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].contains(suffix)) {
                                 return 'image';
-                            } else if (['mp3', 'flac', 'wav'].indexOf(suffix) >= 0) {
+                            } else if (['mp3', 'flac', 'wav'].contains(suffix)) {
                                 return 'audio';
-                            } else if (['mp4', 'avi', 'mkv', 'flv', 'm3u8'].indexOf(suffix) >= 0) {
+                            } else if (['mp4', 'avi', 'mkv', 'flv', 'm3u8'].contains(suffix)) {
                                 return 'video';
                             } else if (
                                 [
                                     'txt', 'js', 'json', 'css', 'html', 'java', 'c', 'cpp', 'php',
                                     'cmd', 'ps1',
                                     'bat', 'sh', 'py', 'go', 'asp',
-                                ].indexOf(suffix) >= 0
+                                ].contains(suffix)
                             ) {
                                 return 'text';
+                            } else if (
+                                ['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'mpp', 'rtf', 'vsd', 'vsdx'].contains(suffix)
+                            ) {
+                                return 'office';
                             }
                         },
                         loadResource: (resource, callback) => {
@@ -895,6 +931,15 @@
                                 }
                             });
                             break;
+                        case 'office':
+                            let iframe = document.createElement('iframe');
+                            iframe.width = '100%';
+                            iframe.style.height = '40em';
+                            iframe.style.border = '0';
+                            iframe.src = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+                            content.innerHTML = '';
+                            content.appendChild(iframe);
+                            break;
                         default:
                             content.style['text-align'] = 'center';
                             content.innerHTML = '该文件不支持预览';
@@ -962,12 +1007,22 @@
                 document.querySelector('.markdown-body').style.display = 'none';
                 document.querySelector('.preview').style.display = 'none';
                 document.querySelector('.password').style.display = 'initial';
+                document.querySelector('#readme').innerHTML = '';
+                let content = document.querySelector('.preview .content');
+                if (content) {
+                    document.querySelector('.preview .content').innerHTML = '';
+                }
             } else {
                 document.querySelector('.list-header').style.display = 'initial';
                 document.querySelector('#file-list').style.display = 'initial';
                 document.querySelector('.markdown-body').style.display = 'none'
                 document.querySelector('.preview').style.display = 'none';
                 document.querySelector('.password').style.display = 'none';
+                document.querySelector('#readme').innerHTML = '';
+                let content = document.querySelector('.preview .content');
+                if (content) {
+                    document.querySelector('.preview .content').innerHTML = '';
+                }
             }
         }
 
@@ -1196,7 +1251,6 @@
             <ion-icon id="main-page" class="logo" name="folder"></ion-icon>
             <div class="nav">
                 <span id="path">
-
                 </span>
             </div>
             <span class="site" id="nav-site">ONEDRIVE</span>
@@ -1206,7 +1260,6 @@
         <div class="main">
             <div class="left">
                 <div id="tree-root">
-
                 </div>
             </div>
             <div class="right">
@@ -1220,11 +1273,9 @@
                     </div>
                 </div>
                 <div id="file-list">
-
                 </div>
                 <div class="markdown-body">
                     <div id="readme">
-
                     </div>
                 </div>
                 <div class="preview">
