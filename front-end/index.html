@@ -932,13 +932,24 @@
                             });
                             break;
                         case 'office':
-                            let iframe = document.createElement('iframe');
-                            iframe.width = '100%';
-                            iframe.style.height = '40em';
-                            iframe.style.border = '0';
-                            iframe.src = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+                            const officeOnline = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+                            let div = document.createElement('div');
+                            div.style.lineHeight = '2em';
+                            div.style.background = 'rgba(218, 215, 215, 0.21)';
+                            div.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+                            div.style.cursor = 'pointer';
+                            div.innerHTML = '新窗口打开';
+                            div.addEventListener('click', () => window.open(officeOnline));
                             content.innerHTML = '';
-                            content.appendChild(iframe);
+                            content.appendChild(div);
+                            if (document.body.clientWidth >= 480) {
+                                let iframe = document.createElement('iframe');
+                                iframe.width = '100%';
+                                iframe.style.height = '41em';
+                                iframe.style.border = '0';
+                                iframe.src = officeOnline;
+                                content.appendChild(iframe);
+                            }
                             break;
                         default:
                             content.style['text-align'] = 'center';
