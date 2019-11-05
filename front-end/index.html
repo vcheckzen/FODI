@@ -943,6 +943,8 @@
                         default:
                             content.style['text-align'] = 'center';
                             content.innerHTML = '该文件不支持预览';
+                            break;
+
                     }
                     document.querySelector('.file-name').innerHTML = path;
                     document.querySelector('.btn.download').addEventListener('click',
@@ -976,6 +978,19 @@
                         }
                     );
                     switchRightDisplay('preview');
+
+                    let start = null;
+                    let right = document.querySelector('.right');
+                    const scrollToBottom = (timestamp) => {
+                        if (!start) start = timestamp;
+                        let progress = timestamp - start;
+                        let last = right.scrollTop;
+                        right.scrollTo(0, right.scrollTop + 14);
+                        if (right.scrollTop !== last || progress < 1000 * 2) {
+                            window.requestAnimationFrame(scrollToBottom);
+                        }
+                    };
+                    window.requestAnimationFrame(scrollToBottom);
                 });
             } else {
                 elem.addEventListener('click', event => {
