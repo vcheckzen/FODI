@@ -416,7 +416,7 @@
         }
 
         function sendRequest(method, url, data, headers, callback, error, times) {
-            let xhr = createCORSRequest(method, url, 3000);
+            let xhr = createCORSRequest(method, url, 2500);
             xhr.onreadystatechange = () => {
                 if (xhr.readyState == 4 && xhr.status == 200) {
                     callback(xhr.responseText);
@@ -431,7 +431,7 @@
                     data: data,
                     times: times
                 })
-                if (times < 2) {
+                if (times < 1) {
                     sendRequest(method, url, data, headers, callback, error, times + 1);
                 } else if (typeof error === 'function') {
                     error();
