@@ -503,12 +503,15 @@
         function renderFileList(files) {
             switchRightDisplay();
 
-            const createFileWrapper = (type, name, time, size, path, url) => {
+            const createFileWrapper = (type, name, time, size, path, url, background) => {
                 let fileWrapper = document.getElementById('file-wrapper-templete').content.cloneNode(true);
                 fileWrapper.querySelector('ion-icon').setAttribute('name', type);
                 fileWrapper.querySelector('.name').innerHTML = name;
                 fileWrapper.querySelector('.time').innerHTML = time;
                 fileWrapper.querySelector('.size').innerHTML = size;
+                if (background) {
+                    fileWrapper.querySelector('.row.file-wrapper').style.background = background;
+                }
                 addFileListLineListener(fileWrapper.querySelector('.row.file-wrapper'), path, url, size);
                 return fileWrapper;
             };
@@ -562,6 +565,7 @@
 
             let fileList = document.getElementById('file-list');
             fileList.innerHTML = '';
+            let rowCount = 1;
             files.files.forEach(file => {
                 if (file.name.split('.').pop() === 'md') {
                     if (file.url) {
@@ -569,13 +573,15 @@
                     }
                 } else {
                     const parent = files.parent === window.api.root ? '' : files.parent;
+                    let background = rowCount++ % 2 == 0 ? 'rgba(234, 233, 241, 0.32)' : null;
                     fileList.appendChild(createFileWrapper(
                         file.url ? 'document' : 'folder',
                         file.name,
                         formatDate(file.time),
                         formatSize(file.size),
                         parent + '/' + file.name,
-                        file.url
+                        file.url,
+                        background
                     ));
                 }
             });
