@@ -61,7 +61,7 @@ def get_songs_info1(id):
             'title': song['name'],
             'artist': artist[:-1],
             'mp3': GATE_WAY + '?id=' + str(song['id']),
-            'cover': song['al']['picUrl'] + '?param=130y130'
+            'cover': song['al']['picUrl'].replace('http:', 'https:') + '?param=130y130'
         })
     return songs
 

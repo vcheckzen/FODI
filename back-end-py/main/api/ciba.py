@@ -20,6 +20,7 @@ def formated_today():
 
 
 TODAY = formated_today()
+print(TODAY)
 
 
 def gen_error(key, content=None):

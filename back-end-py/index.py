@@ -2,7 +2,10 @@
 # -*- coding:utf-8 -*-
 
 import json
-from main.api import ciba, proxy, dnspod, wxstep, lanzous, cloudmusic, aes, qr, fodi
+try:
+    from main.api import ciba, proxy, dnspod, wxstep, lanzous, cloudmusic, aes, qr, fodi
+except Exception:
+    from .main.api import ciba, proxy, dnspod, wxstep, lanzous, cloudmusic, aes, qr, fodi
 
 
 def gen_response(body):
@@ -25,41 +28,48 @@ def gen_response(body):
     return data
 
 
-def path_1in2(path1, path2):
-    return path1 in ['/' + path2, '/' + path2 + '/']
+def check_path(real_path, expected_path):
+    """检查 api 路径
+    """
+    return real_path in ['/' + expected_path, '/' + expected_path + '/']
 
 
 def router(event):
+    """对多个 api 路径分发
+    """
     host = event['headers']['host']
     base = event['requestContext']['path']
     stage = event['requestContext']['stage']
     door = 'https://' + host + '/' + stage
     inner = door + event['path']
+
     queryString = event['queryString']
     path = event['path'].replace(base, '')
     body = None
     if 'body' in event:
         body = event['body']
-    if path_1in2(path, 'ciba'):
+
+    if check_path(path, 'ciba'):
         data = ciba(inner)
-    elif path_1in2(path, 'proxy'):
+    elif check_path(path, 'proxy'):
         data = proxy(inner, queryString)
-    elif path_1in2(path, 'dnspod'):
+    elif check_path(path, 'dnspod'):
         data = dnspod(inner, queryString)
-    elif path_1in2(path, 'wechat-step'):
+    elif check_path(path, 'wechat-step'):
         data = wxstep(inner, queryString)
-    elif path_1in2(path, 'lanzous'):
+    elif check_path(path, 'lanzous'):
         data = lanzous(inner, queryString)
-    elif path_1in2(path, 'cloudmusic'):
+    elif check_path(path, 'cloudmusic'):
         data = cloudmusic(inner, queryString)
-    elif path_1in2(path, 'aes'):
+    elif check_path(path, 'aes'):
         data = aes(inner, queryString)
-    elif path_1in2(path, 'qr'):
+    elif check_path(path, 'qr'):
         data = qr(inner, queryString)
-    elif path_1in2(path, 'fodi'):
+    elif check_path(path, 'fodi'):
         data = fodi(inner, queryString, body)
     else:
-        paths = ['ciba', 'proxy', 'dnspod', 'wechat-step', 'lanzous', 'cloudmusic', 'aes', 'qr', 'fodi']
+        paths = ['ciba', 'proxy', 'dnspod', 'wechat-step',
+                 'lanzous', 'cloudmusic', 'aes', 'qr', 'fodi']
         data = {
             'code': -1,
             'error': 'path error.',
@@ -69,5 +79,6 @@ def router(event):
 
 
 def main_handler(event, context):
-    data = router(event)
-    return gen_response(data)
+    """网关入口函数
+    """
+    return gen_response(router(event))
