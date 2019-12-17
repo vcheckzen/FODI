@@ -82,7 +82,7 @@ def fetch(path=None):
 def fetch_files(path=None, file_name=None, passwd=None):
     body = fetch(path)
     if file_name is not None:
-        for file in body['children']:
+        for file in body['children'] and file_name != '.password':
             if file['name'] == file_name:
                 return file['@microsoft.graph.downloadUrl']
     else:
