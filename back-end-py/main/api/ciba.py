@@ -9,6 +9,7 @@ from ..util import get
 API = 'http://sentence.iciba.com'
 PUB_PARAMS = '?c=dailysentence&m=getdetail'
 GATE_WAY = ''
+TODAY = ''
 
 
 def formated_today():
@@ -17,10 +18,6 @@ def formated_today():
     utc = datetime.datetime.now(from_zone)
     central = utc.astimezone(to_zone)
     return central.strftime("%Y-%m-%d")
-
-
-TODAY = formated_today()
-print(TODAY)
 
 
 def gen_error(key, content=None):
@@ -51,7 +48,10 @@ def gen_error(key, content=None):
 
 def query(gateway):
     global GATE_WAY
+    global TODAY
     GATE_WAY = gateway
+    TODAY = formated_today()
+    print(TODAY)
     try:
         url = API + PUB_PARAMS + '&title=' + TODAY
         content = json.loads(get(url).text)

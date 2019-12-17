@@ -96,7 +96,7 @@ def fetch_files(path=None, file_name=None, passwd=None):
                     encrypted = True
                     break
                 else:
-                    pass
+                    continue
             this_file = {
                 'name': file['name'],
                 'size': file['size'],
