@@ -1231,6 +1231,10 @@
             window.fileCache = new Map();
             const initialPath = new URLSearchParams(window.location.search).get('path') || window.api.root;
             if (window.GLOBAL_CONFIG.IS_CF) {
+                window.api.accessToken = {
+                    encrypted: '',
+                    plain: ''
+                };
                 fetchFileList(initialPath);
                 addBackForwardListener();
             } else {
