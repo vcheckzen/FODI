@@ -4,7 +4,7 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 预览
 
-- [DEMO](https://logi.ml/fodi.html)
+- [DEMO](https://fodi.disk.ml)
 
 #### 功能
 
