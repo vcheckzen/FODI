@@ -6,7 +6,10 @@ from ..util import (urlencode, urldecode, split_url, get, post_urlencoded_data a
                     aes_ecb_pkcs7_b64_encrypt as encrypt,
                     aes_ecb_pkcs7_b64_decrypt as decrypt)
 
-
+"""
+EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
+ONEDRIVE_REFRESHTOKEN: refresh_token
+"""
 EXPOSE_PATH = ""
 ONEDRIVE_REFRESHTOKEN = ""
 

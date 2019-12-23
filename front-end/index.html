@@ -10,24 +10,24 @@
             SCF_GATEWAY: "",
             SITE_NAME: "FODI"
         };
-        window.GLOBAL_CONFIG.SCF_GATEWAY += '/fodi/'
+        if (window.GLOBAL_CONFIG.SCF_GATEWAY.indexOf('workers') === -1) {
+            window.GLOBAL_CONFIG.SCF_GATEWAY += '/fodi/'
+        }
         // if (location.protocol === 'http:') {
         //     location.href = location.href.replace(/http/, 'https');
         // }
     </script>
     <meta charset="utf-8">
     <meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" name="viewport">
-    <link rel="shortcut icon" href="https://ae02.alicdn.com/kf/H17b87817d98641b7bf182f0108961f9a9.png"
-        type="image/x-icon">
-    <script src="https://s0.pstatp.com/cdn/expire-1-M/ionicons/4.5.6/ionicons.js"></script>
-    <script src="https://s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
-    <script src="https://s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/highlight.min.js"></script>
-    <link href="https://s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/styles/github.min.css" rel="stylesheet" />
-    <link href="https://s0.pstatp.com/cdn/expire-1-M/github-markdown-css/3.0.1/github-markdown.min.css"
+    <script src="//s0.pstatp.com/cdn/expire-1-M/ionicons/4.5.6/ionicons.js"></script>
+    <script src="//s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
+    <script src="//s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/highlight.min.js"></script>
+    <link href="//s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/styles/github.min.css" rel="stylesheet" />
+    <link href="//s0.pstatp.com/cdn/expire-1-M/github-markdown-css/3.0.1/github-markdown.min.css"
         rel="stylesheet" />
-    <script src="https://s0.pstatp.com/cdn/expire-1-M/jquery/3.4.0/jquery.min.js"></script>
-    <script src="https://s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.js"></script>
-    <link href="https://s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.css" rel="stylesheet" />
+    <script src="//s0.pstatp.com/cdn/expire-1-M/jquery/3.4.0/jquery.min.js"></script>
+    <script src="//s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+    <link href="//s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.css" rel="stylesheet" />
     <style>
         .password-wrapper {
             display: flex;
@@ -855,7 +855,7 @@
                         },
 
                         createDplayer: (video, type, elem) => {
-                            const host = 'https://s0.pstatp.com/cdn/expire-1-M';
+                            const host = '//s0.pstatp.com/cdn/expire-1-M';
                             const resources = [
                                 '/dplayer/1.25.0/DPlayer.min.css',
                                 '/dplayer/1.25.0/DPlayer.min.js',
@@ -932,7 +932,7 @@
                             });
                             break;
                         case 'office':
-                            const officeOnline = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+                            const officeOnline = '//view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
                             let div = document.createElement('div');
                             div.style.lineHeight = '2em';
                             div.style.background = 'rgba(218, 215, 215, 0.21)';

@@ -4,7 +4,7 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 预览
 
-- [DEMO](https://fodi.disk.ml)
+- [DEMO](https://logi.ml/fodi.html)
 
 #### 功能
 
@@ -22,10 +22,15 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 更新
 
+##### 2019.12.23
+
+- 进一步提升速度
+- 增加 Cloudflare Workers 后端
+
 ##### 2019.12.07
 
 - 进一步提升速度
-- 后端改用 Python3.6
+- 增加 Python3.6 后端
 
 #### 安装
 
