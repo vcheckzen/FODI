@@ -168,6 +168,7 @@ async function fetchFiles(path, fileName, passwd) {
       parent = body.parentReference.path
     }
     parent = parent.split(':').pop().replace(EXPOSE_PATH, '') || '/'
+    parent = decodeURIComponent(parent)
     if (encrypted) {
       return JSON.stringify({ parent: parent, files: [], encrypted: true })
     } else {
