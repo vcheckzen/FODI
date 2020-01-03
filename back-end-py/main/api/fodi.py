@@ -7,22 +7,45 @@ from ..util import (urlencode, urldecode, split_url, get, post_urlencoded_data a
                     aes_ecb_pkcs7_b64_decrypt as decrypt)
 
 """
+IS_CN: 如果为世纪互联版本，请将 0 改为 1
 EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
 ONEDRIVE_REFRESHTOKEN: refresh_token
 """
+IS_CN = 0
 EXPOSE_PATH = ""
 ONEDRIVE_REFRESHTOKEN = ""
 
 
 SECRET = ONEDRIVE_REFRESHTOKEN[:16]
+
+clientId = [
+    '4da3e7f2-bf6d-467c-aaf0-578078f0bf7c',
+    '04c3ca0b-8d07-4773-85ad-98b037d25631'
+
+]
+clientSecret = [
+    '7/+ykq2xkfx:.DWjacuIRojIaaWL0QI6',
+    'h8@B7kFVOmj0+8HKBWeNTgl@pU/z4yLB'
+]
+
+oauthHost = [
+    'https://login.microsoftonline.com',
+    'https://login.partner.microsoftonline.cn'
+]
+
+apiHost = [
+    'https://graph.microsoft.com',
+    'https://microsoftgraph.chinacloudapi.cn'
+]
+
 OAUTH = {
     'redirectUri': 'https://scfonedrive.github.io',
     'refreshToken': ONEDRIVE_REFRESHTOKEN,
-    'clientId': '4da3e7f2-bf6d-467c-aaf0-578078f0bf7c',
-    'clientSecret': '7/+ykq2xkfx:.DWjacuIRojIaaWL0QI6',
-    'oauthUrl': 'https://login.microsoftonline.com/common/oauth2/v2.0/',
-    'apiUrl': 'https://graph.microsoft.com/v1.0/me/drive/root',
-    'scope': 'https://graph.microsoft.com/Files.ReadWrite.All offline_access'
+    'clientId': clientId[IS_CN],
+    'clientSecret': clientSecret[IS_CN],
+    'oauthUrl': oauthHost[IS_CN] + '/common/oauth2/v2.0/',
+    'apiUrl': apiHost[IS_CN] + '/v1.0/me/drive/root',
+    'scope': apiHost[IS_CN] + '/Files.ReadWrite.All offline_access'
 }
 GATE_WAY = ''
 

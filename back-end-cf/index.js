@@ -1,7 +1,9 @@
 /**
+ * IS_CN: 如果为世纪互联版本，请将 0 改为 1
  * EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
  * ONEDRIVE_REFRESHTOKEN: refresh_token
  */
+const IS_CN = 0;
 const EXPOSE_PATH = ""
 const ONEDRIVE_REFRESHTOKEN = ""
 
@@ -45,14 +47,35 @@ addEventListener('fetch', event => {
   return event.respondWith(handleRequest(event.request))
 })
 
+
+const clientId = [
+  '4da3e7f2-bf6d-467c-aaf0-578078f0bf7c',
+  '04c3ca0b-8d07-4773-85ad-98b037d25631'
+
+]
+const clientSecret = [
+  '7/+ykq2xkfx:.DWjacuIRojIaaWL0QI6',
+  'h8@B7kFVOmj0+8HKBWeNTgl@pU/z4yLB'
+]
+
+const oauthHost = [
+  'https://login.microsoftonline.com',
+  'https://login.partner.microsoftonline.cn'
+]
+
+const apiHost = [
+  'https://graph.microsoft.com',
+  'https://microsoftgraph.chinacloudapi.cn'
+]
+
 const OAUTH = {
   'redirectUri': 'https://scfonedrive.github.io',
   'refreshToken': ONEDRIVE_REFRESHTOKEN,
-  'clientId': '4da3e7f2-bf6d-467c-aaf0-578078f0bf7c',
-  'clientSecret': '7/+ykq2xkfx:.DWjacuIRojIaaWL0QI6',
-  'oauthUrl': 'https://login.microsoftonline.com/common/oauth2/v2.0/',
-  'apiUrl': 'https://graph.microsoft.com/v1.0/me/drive/root',
-  'scope': 'https://graph.microsoft.com/Files.ReadWrite.All offline_access'
+  'clientId': clientId[IS_CN],
+  'clientSecret': clientSecret[IS_CN],
+  'oauthUrl': oauthHost[IS_CN] + '/common/oauth2/v2.0/',
+  'apiUrl': apiHost[IS_CN] + '/v1.0/me/drive/root',
+  'scope': apiHost[IS_CN] + '/Files.ReadWrite.All offline_access'
 }
 
 async function gatherResponse(response) {

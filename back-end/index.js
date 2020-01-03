@@ -1,9 +1,12 @@
 /**
+ * IS_CN: 如果为世纪互联版本，请将 0 改为 1
  * EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
  * ONEDRIVE_REFRESHTOKEN: refresh_token
  */
+const IS_CN = 0;
 const EXPOSE_PATH = '';
 const ONEDRIVE_REFRESHTOKEN = '';
+
 const SECRET = ONEDRIVE_REFRESHTOKEN.substr(0, 10);
 const CRYPTOJS = require("crypto-js");
 const REQUEST_PROMISE = require('request-promise');
@@ -22,27 +25,18 @@ function parseParamsFromBody(body) {
 }
 
 function initializeOAUTH() {
-    let oauth = {};
+    let oauth = { version: IS_CN };
     oauth.redirectUri = 'https://scfonedrive.github.io';
     oauth.refreshToken = ONEDRIVE_REFRESHTOKEN;
     switch (oauth.version) {
         case 1:
-            // 1 世纪互联
+            // 世纪互联
             // https://portal.azure.cn
             oauth.clientId = '04c3ca0b-8d07-4773-85ad-98b037d25631';
             oauth.clientSecret = 'h8@B7kFVOmj0+8HKBWeNTgl@pU/z4yLB';
             oauth.oauthUrl = 'https://login.partner.microsoftonline.cn/common/oauth2/v2.0/';
             oauth.apiUrl = 'https://microsoftgraph.chinacloudapi.cn/v1.0/me/drive/root';
-            oauth.scope = 'https://microsoft.sharepoint-df.com/MyFiles.Read https://microsoft.sharepoint-df.com/MyFiles.Write offline_access';
-            break;
-        case 2:
-            // 2 SharePoint
-            // https://portal.azure.com
-            oauth.clientId = '4214169b-2f35-4ffd-95b0-1b05d55448e5';
-            oauth.clientSecret = 'iTsch4W@afSadYo.[VLLR[FdfKEri803';
-            oauth.oauthUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/';
-            oauth.apiUrl = 'https://microsoftgraph.chinacloudapi.cn/v1.0/me/drive/root';
-            oauth.scope = 'https://graph.microsoft.com/Files.ReadWrite.All offline_access';
+            oauth.scope = 'https://microsoftgraph.chinacloudapi.cn/Files.ReadWrite.All offline_access';
             break;
         default:
             // 默认支持商业版与个人版
