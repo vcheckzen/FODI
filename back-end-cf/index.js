@@ -24,10 +24,9 @@ async function handleRequest(request) {
   } else {
     const { headers } = request
     const contentType = headers.get('content-type')
-    let body
+    let body={}
     if (contentType && contentType.includes('form')) {
       const formData = await request.formData()
-      body = {}
       for (let entry of formData.entries()) {
         body[entry[0]] = entry[1]
       }
