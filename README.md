@@ -4,7 +4,7 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 预览
 
-- [DEMO](https://fodi.disk.ml)
+- [DEMO](https://logi.im/fodi.html)
 
 #### 功能
 
@@ -34,4 +34,4 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 安装
 
-- [利用腾讯云 SCF 及 Github Pages 免费部署 OneDrive 快速列表程序](https://logi.ml/front-end/scf-fodi.html)
+- [利用腾讯云 SCF 及 Github Pages 免费部署 OneDrive 快速列表程序](https://logi.im/front-end/scf-fodi.html)
