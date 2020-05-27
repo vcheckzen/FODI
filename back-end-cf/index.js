@@ -19,7 +19,10 @@ async function handleRequest(request) {
     const file = querySplited[1]
     const fileName = file.split('/').pop();
     requestPath = file.replace('/' + fileName, '')
-    const url = await fetchFiles(requestPath, fileName)
+    const url = await fetchFiles(requestPath, fileName, 'file in the hole!')
+	f(fileName == '.password'){
+      return
+    }
     return Response.redirect(url, 302)
   } else {
     const { headers } = request
@@ -148,7 +151,13 @@ async function fetchFiles(path, fileName, passwd) {
   }
 
   const accessToken = await fetchAccessToken()
-  const uri = OAUTH.apiUrl + encodeURI(path) + '?expand=children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)'
+  
+  uri = ''
+  if (passwd === 'file in the hole!'){
+    uri = OAUTH.apiUrl + path + '?expand=children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)'
+  }else{
+    uri = OAUTH.apiUrl + encodeURI(path) + '?expand=children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)'
+  }
 
   const body = await getContentWithHeaders(uri, {
     Authorization: 'Bearer ' + accessToken
