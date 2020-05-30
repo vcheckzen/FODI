@@ -30,7 +30,7 @@ async function handleRequest(request) {
         body[entry[0]] = entry[1]
       }
     }
-    requestPath = body ? body['?path'] : ''
+    requestPath = Object.getOwnPropertyNames(body).length ? body['?path'] : ''
     const files = await fetchFiles(requestPath, null, body.passwd)
     return new Response(files, {
       headers: {
