@@ -19,45 +19,30 @@ def post(url, data, client):
     return post_urlencoded_data(url, data, client, HOST, EXTRA_HEADER)
 
 
-def gen_params(params, file_name, file_size):
-    return {
-        'params': params,
-        'file_info': {
-            'file_name': file_name,
-            'file_size': file_size
-        }
-    }
-
-
 def get_params(fid, pwd, client):
     if client == 'pc':
         text = get(HOST + '/' + fid, client).text
         if pwd:
-            file_name = ''
-            file_size = find(text, r"大小：(.+)</div><div id=\"downajax")
             params = find(text, r"data : '(.+)'\+pwd") + pwd
         else:
-            file_name = find(text, r"<title>(.+) - 蓝奏云</title>")
-            file_size = find(text, r"文件大小：</span>(.+)<br>")
-            frame = find(text, r"src=\"(.{10,})\" frameborder")
-
+            frame = find(text, r'src="(.{10,})" frameborder')
             text = get(HOST + frame, client).text
-            data = eval(find(text, r"data : ({.+}),"))
+            try:
+                data = eval(find(text, r"data : ({.+}),//"))
+            except Exception:
+                exec(find(text, r"var (.+ = '[\w/_+=]{10,}')"))
+                data = eval(find(text, r"data : ({.+}),//"))
             params = urlencode(data, quote_via=quote_plus)
-        return gen_params(params, file_name, file_size)
+        return {'params': params}
     else:
         text = get(HOST + '/tp/' + fid, client).text
         if pwd:
-            params = find(text, r"data : \'(.*)\'\+pwd") + pwd
-            file_name = find(text, r"<title>(.+)</title>")
-            file_size = find(text, r"id=\"submit\">下载\( (.+) \)</a>")
-            return gen_params(params, file_name, file_size)
+            params = find(text, r"data : '(.*)'\+pwd") + pwd
+            return {'params': params}
         else:
-            file_name = find(text, r"md\">(.+) <span class=\"mtt")
-            file_size = find(text, r"mtt\">\( (.+) \)</span></div>")
-            urlp = find(text, r"var url.+ = \'(.+)\'")
-            params = find(text, r"submit.href = dpost \+ \"(.+)\"")
-            return gen_params(urlp+params, file_name, file_size)
+            urlp = find(text, r"var.+= '(.+baidu.+)'")
+            params = find(text, r"\+ '(\?[\w/+=]+)'")
+            return {'params': urlp+params}
 
 
 def get_download_info(fid, pwd, client):
@@ -67,17 +52,12 @@ def get_download_info(fid, pwd, client):
     else:
         response = post(HOST + '/ajaxm.php', params['params'], client)
         result = json.loads(response.text)
-        if params['file_info']['file_name'] == '':
-            params['file_info']['file_name'] = result['inf']
         fake_url = result['dom'] + '/file/' + result['url']
         response = get(fake_url, client)
-    return {
-        'file_info': params['file_info'],
-        'url': response.headers['location']
-    }
+    return {'url': response.headers['location']}
 
 
-def gen_error(key, download_info={'url': None}):
+def gen_resp(key, download_info={'url': None}):
     return {
         'default': {
             'code': -1,
@@ -109,11 +89,11 @@ def gen_error(key, download_info={'url': None}):
 
 def params_check(queryString):
     if 'url' not in queryString:
-        return gen_error('default')
+        return gen_resp('default')
 
     url = queryString['url']
     if not re.match(HOST + '/[0-9a-z]{7,}', url):
-        return gen_error('link')
+        return gen_resp('link')
 
     result = {
         'code': 0,
@@ -134,7 +114,7 @@ def result_check(result):
     return False
 
 
-def query(gateway, queryString):
+def query(gateway, queryString, *extra):
     global GATE_WAY
     GATE_WAY = gateway
     params = params_check(queryString)
@@ -143,12 +123,12 @@ def query(gateway, queryString):
 
     fid = params['fid']
     pwd = params['pwd']
-    for client in ['pc', 'mobile']:
+    for client in ['mobile', 'pc']:
         try:
             download_info = get_download_info(fid, pwd, client)
             if result_check(download_info):
-                return gen_error(params['type'], download_info)
+                return gen_resp(params['type'], download_info)
         except Exception:
             pass
 
-    return gen_error('api')
+    return gen_resp('api')

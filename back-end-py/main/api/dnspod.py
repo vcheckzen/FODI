@@ -7,8 +7,8 @@ from ..util import post_urlencoded_data as post
 API = 'https://dnsapi.cn/Record.List'
 PARAMS = {
     'login_token': '',
-    'domain': 'logi.ml',
-    'sub_domain': 'n1',
+    'domain': '',
+    'sub_domain': '',
     'format': 'json',
     'lang': 'en',
     'error_on_empty': 'yes'
@@ -16,7 +16,7 @@ PARAMS = {
 GATE_WAY = ''
 
 
-def gen_error(key, content={}):
+def gen_resp(key, content={}):
     return {
         'default': {
             'code': -1,
@@ -39,25 +39,25 @@ def gen_error(key, content={}):
     }[key]
 
 
-def query(gateway, queryString):
+def query(gateway, queryString, *extra):
     global GATE_WAY
     GATE_WAY = gateway
     if 'domain' in queryString and 'subDomain' in queryString:
         PARAMS['domain'] = queryString['domain']
         PARAMS['sub_domain'] = queryString['subDomain']
     else:
-        return gen_error('default')
+        return gen_resp('default')
 
     try:
         record = json.loads(post(API, PARAMS).text)
     except Exception:
-        return gen_error('server')
+        return gen_resp('server')
 
     try:
-        return gen_error('success', {
+        return gen_resp('success', {
             'address': PARAMS['sub_domain'] + '.' + PARAMS['domain'],
             'ip': record['records'][0]['value'],
             'updated_on': record['records'][0]['updated_on']
         })
     except Exception:
-        return gen_error('none')
+        return gen_resp('none')

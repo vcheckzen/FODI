@@ -5,7 +5,7 @@ from ..util import aes_ecb_pkcs7_b64_encrypt as encrypt, aes_ecb_pkcs7_b64_decry
 GATE_WAY = ''
 
 
-def gen_error(key, data=None):
+def gen_resp(key, data=None):
     return {
         'default': {
             'code': -1,
@@ -26,7 +26,7 @@ def gen_error(key, data=None):
         },
         'method': {
             'code': 3,
-            'error': 'merely support encrypt and decrypt.'
+            'error': 'merely support encrypt and decrypt method.'
         },
         'key': {
             'code': 4,
@@ -38,23 +38,24 @@ def gen_error(key, data=None):
 def check_params(queryString):
     for params in ['key', 'data', 'method']:
         if params not in queryString:
-            return gen_error('default')
+            return gen_resp('default')
 
     if queryString['method'] not in ['encrypt', 'decrypt']:
-        return gen_error('method')
+        return gen_resp('method')
 
     if len(queryString['key']) < 16:
-        return gen_error('key')
+        return gen_resp('key')
 
-    return gen_error('success')
+    return gen_resp('success')
 
 
-def query(gateway, queryString):
+def query(gateway, queryString, *extra):
     global GATE_WAY
     GATE_WAY = gateway
-    params = check_params(queryString)
-    if params['code'] != 0:
-        return params
+    ret = check_params(queryString)
+    if ret['code'] != 0:
+        return ret
+
     try:
         key = queryString['key']
         data = queryString['data']
@@ -62,6 +63,6 @@ def query(gateway, queryString):
             data = encrypt(data, key)
         else:
             data = decrypt(data, key)
-        return gen_error('success', data)
+        return gen_resp('success', data)
     except Exception:
-        return gen_error('server')
+        return gen_resp('server')

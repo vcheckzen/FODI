@@ -13,14 +13,12 @@ TODAY = ''
 
 
 def formated_today():
-    from_zone = pytz.utc
-    to_zone = pytz.timezone('Asia/Shanghai')
-    utc = datetime.datetime.now(from_zone)
-    central = utc.astimezone(to_zone)
+    utc_time = datetime.datetime.now(pytz.utc)
+    central = utc_time.astimezone(pytz.timezone('Asia/Shanghai'))
     return central.strftime("%Y-%m-%d")
 
 
-def gen_error(key, content=None):
+def gen_resp(key, content=None):
     if not content:
         content = {
             'date': TODAY,
@@ -46,23 +44,23 @@ def gen_error(key, content=None):
     }[key]
 
 
-def query(gateway):
+def query(gateway, *extra):
     global GATE_WAY
     global TODAY
     GATE_WAY = gateway
     TODAY = formated_today()
-    print(TODAY)
+
     try:
         url = API + PUB_PARAMS + '&title=' + TODAY
         content = json.loads(get(url).text)
     except Exception:
-        return gen_error('server')
+        return gen_resp('server')
 
     try:
-        return gen_error('success', {
+        return gen_resp('success', {
             'date': TODAY,
             'zh': content['note'],
             'en': content['content']
         })
     except Exception:
-        return gen_error('api')
+        return gen_resp('api')

@@ -5,7 +5,7 @@ from ..util import qrencode
 GATE_WAY = ''
 
 
-def gen_error(key, data=None):
+def gen_resp(key, data=None):
     return {
         'default': {
             'code': -1,
@@ -23,7 +23,7 @@ def gen_error(key, data=None):
         },
         'method': {
             'code': 3,
-            'error': 'merely support encode'
+            'error': 'merely support encode method'
         }
     }[key]
 
@@ -31,15 +31,15 @@ def gen_error(key, data=None):
 def check_params(queryString):
     for param in ['text', 'method']:
         if param not in queryString:
-            return gen_error('default')
+            return gen_resp('default')
 
     if queryString['method'] != 'encode':
-        return gen_error('method')
+        return gen_resp('method')
 
-    return gen_error('success')
+    return gen_resp('success')
 
 
-def query(gateway, queryString):
+def query(gateway, queryString, *extra):
     global GATE_WAY
     GATE_WAY = gateway
     params = check_params(queryString)
@@ -54,6 +54,6 @@ def query(gateway, queryString):
             border = queryString['border']
         text = queryString['text']
         data = qrencode(text, size, border)
-        return gen_error('success', data)
+        return gen_resp('success', data)
     except Exception:
-        return gen_error('server')
+        return gen_resp('server')

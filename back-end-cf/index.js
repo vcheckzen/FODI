@@ -15,7 +15,8 @@ async function handleRequest(request) {
   if (querySplited && querySplited[0] === 'file') {
     const file = querySplited[1]
     const fileName = file.split('/').pop()
-    if (fileName === PASSWD_FILENAME) return
+    if (fileName === PASSWD_FILENAME)
+      return Response.redirect('https://www.baidu.com/s?wd=%E6%80%8E%E6%A0%B7%E7%9B%97%E5%8F%96%E5%AF%86%E7%A0%81', 301)
     requestPath = file.replace('/' + fileName, '')
     const url = await fetchFiles(requestPath, fileName)
     return Response.redirect(url, 302)
@@ -131,8 +132,8 @@ async function fetchAccessToken() {
 }
 
 async function fetchFiles(path, fileName, passwd) {
-  if (!path || path === '/') path = ''
-  path = (path || EXPOSE_PATH) ? ':' + EXPOSE_PATH + path : ''
+  if (path === '/') path = ''
+  if (path || EXPOSE_PATH) path = ':' + EXPOSE_PATH + path
 
   const accessToken = await fetchAccessToken()
   const uri = OAUTH.apiUrl + encodeURI(path)
