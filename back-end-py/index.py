@@ -37,29 +37,30 @@ def router(event):
     """
     door = 'https://' + event['headers']['host'] + '/' \
         + event['requestContext']['stage']
-    outer = event['requestContext']['path']
-    inner = door + event['path']
+    func_path = event['requestContext']['path']
 
-    api = event['path'].replace(outer, '').strip('/')
+    api = event['path'].replace(func_path, '').strip('/')
+    api_url = door + event['path']
+
     queryString = event['queryString']
     body = None
     if 'body' in event:
         body = event['body']
 
-    # global API_NAMES
     if api in API_NAMES:
-        data = eval(api)(inner, queryString, body)
+        data = eval(api)(api_url, queryString, body)
     else:
         data = {
             'code': -1,
             'error': 'path error.',
-            'examples': [door + inner + '/' + p + '/' for p in API_NAMES]
+            'examples': [door + func_path + '/' + p + '/' for p in API_NAMES]
         }
 
     return data
 
 
 def main_handler(event, content):
+    print(event)
     """网关入口函数
     """
     return gen_response(router(event))
