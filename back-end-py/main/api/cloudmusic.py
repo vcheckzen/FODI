@@ -16,27 +16,27 @@ def post(url, data):
     return cloudmusic_post(url, data, 'pc', HOST)
 
 
-def get_ids(id):
-    content = get(HOST + '/playlist?id=' + id).text
-    ids = find_all(content, r"<li><a href=\"/song\?id=(\d+)\">")
+def get_ids(list_id):
+    content = get(HOST + '/playlist?id=' + list_id).text
+    ids = find_all(content, r'<li><a href="/song\?id=(\d+)">')
     return list(set(ids))
 
 
-def get_mp3(id):
-    fake_url = HOST + '/song/media/outer/url?id=' + id + '.mp3'
+def get_mp3(song_id):
+    fake_url = HOST + '/song/media/outer/url?id=' + song_id + '.mp3'
     return get(fake_url).headers['Location'].replace('http:', 'https:')
 
 
-def get_song_info(id):
-    content = get(HOST + '/song?id=' + id).text
+def get_song_info(song_id):
+    content = get(HOST + '/song?id=' + song_id).text
     cover = find_first(
-        content, r"<meta property=\"og:image\" content=\"(.+)\" />").replace('http:', 'https:')
+        content, r'<meta property="og:image" content="(.+)" />').replace('http:', 'https:')
     cover = cover + '?param=130y130'
     title = find_first(
-        content, r"<meta property=\"og:title\" content=\"(.+)\" />")
+        content, r'<meta property="og:title" content="(.+)" />')
     artist = find_first(
-        content, r"<meta property=\"og:music:artist\" content=\"(.+)\" />")
-    mp3 = GATE_WAY + '?id=' + id
+        content, r'<meta property="og:music:artist" content="(.+)" />')
+    mp3 = GATE_WAY + '?id=' + song_id
     return {
         'title': title,
         'artist': artist,
@@ -45,9 +45,9 @@ def get_song_info(id):
     }
 
 
-def get_songs_info1(id):
+def get_songs_info_from_api(list_id):
     content = post(HOST + '/api/v3/playlist/detail', {
-        'id': id,
+        'id': list_id,
         'n': 100000,
         's': 8
     }).text
@@ -57,18 +57,21 @@ def get_songs_info1(id):
         artist = ''
         for ar in song['ar']:
             artist += ar['name'] + ','
+        cover = song['al']['picUrl']
+        if cover:
+            cover = cover.replace('http:', 'https:') + '?param=130y130'
         songs.append({
             'title': song['name'],
             'artist': artist[:-1],
             'mp3': GATE_WAY + '?id=' + str(song['id']),
-            'cover': song['al']['picUrl'].replace('http:', 'https:') + '?param=130y130'
+            'cover': cover
         })
     return songs
 
 
-def get_songs_info2(ids):
+def get_songs_info_with_traversal(song_ids):
     songs = []
-    for id in ids:
+    for id in song_ids:
         try:
             songs.append(get_song_info(id))
         except Exception:
@@ -76,7 +79,7 @@ def get_songs_info2(ids):
     return songs
 
 
-def gen_error(key, url=None, songs=None):
+def gen_resp(key, url=None, songs=None):
     return {
         'default': {
             'code': -1,
@@ -103,16 +106,16 @@ def gen_error(key, url=None, songs=None):
     }[key]
 
 
-def query(gateway, queryString):
+def query(gateway, queryString, *extra):
     global GATE_WAY
     GATE_WAY = gateway
     try:
         if 'id' in queryString:
-            return gen_error('url', get_mp3(queryString['id']))
+            return gen_resp('url', get_mp3(queryString['id']))
         elif 'ids' in queryString:
-            return gen_error('success', songs=get_songs_info2(queryString['ids'].split(',')))
+            return gen_resp('success', songs=get_songs_info_with_traversal(queryString['ids'].split(',')))
         elif 'playlist' in queryString:
-            return gen_error('success', songs=get_songs_info1(queryString['playlist']))
+            return gen_resp('success', songs=get_songs_info_from_api(queryString['playlist']))
     except Exception:
-        return gen_error('api')
-    return gen_error('default')
+        return gen_resp('api')
+    return gen_resp('default')

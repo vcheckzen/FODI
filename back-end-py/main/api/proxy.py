@@ -5,7 +5,7 @@ from ..util import get
 GATE_WAY = ''
 
 
-def gen_error(key, html=None):
+def gen_resp(key, html=None):
     return {
         'default': {
             'code': -1,
@@ -23,12 +23,12 @@ def gen_error(key, html=None):
     }[key]
 
 
-def query(gateway, queryString):
+def query(gateway, queryString, *extra):
     global GATE_WAY
     GATE_WAY = gateway
     if 'url' not in queryString:
-        return gen_error('default')
+        return gen_resp('default')
     try:
-        return gen_error('html', get(queryString['url']).text)
+        return gen_resp('html', get(queryString['url']).text)
     except Exception:
-        return gen_error('server')
+        return gen_resp('server')

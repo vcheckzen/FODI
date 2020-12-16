@@ -16,6 +16,7 @@ EXPOSE_PATH = ""
 ONEDRIVE_REFRESHTOKEN = ""
 
 
+PASSWORD_FILENAME = ".password"
 SECRET = ONEDRIVE_REFRESHTOKEN[:16]
 
 clientId = [
@@ -50,7 +51,7 @@ OAUTH = {
 GATE_WAY = ''
 
 
-def gen_error(key, url=None, content={}):
+def gen_resp(key, url=None, content={}):
     return {
         'success': {
             'code': 0,
@@ -85,16 +86,12 @@ def get_content(url, params=None, extra=None):
 
 
 def fetch(path=None):
-    if not path or path == '/':
-        if EXPOSE_PATH == '':
-            path = ''
-        else:
-            path = ':' + EXPOSE_PATH
-    else:
-        if EXPOSE_PATH == '':
-            path = ':' + path
-        else:
-            path = ':' + EXPOSE_PATH + path
+    if path == '/':
+        path = ''
+
+    if path or EXPOSE_PATH:
+        path = ':' + EXPOSE_PATH + path
+
     url = OAUTH['apiUrl'] + path
     params = {
         'expand': 'children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)'
@@ -107,8 +104,8 @@ def fetch(path=None):
 
 def fetch_files(path=None, file_name=None, passwd=None):
     body = fetch(path)
-    if file_name is not None:
-        for file in body['children'] and file_name != '.password':
+    if file_name:
+        for file in body['children']:
             if file['name'] == file_name:
                 return file['@microsoft.graph.downloadUrl']
     else:
@@ -116,7 +113,7 @@ def fetch_files(path=None, file_name=None, passwd=None):
         encrypted = False
         for i in list(range(len(body['children']))):
             file = body['children'][i]
-            if file['name'] == '.password':
+            if file['name'] == PASSWORD_FILENAME:
                 PASSWD = get_content(file['@microsoft.graph.downloadUrl'])
                 if PASSWD != passwd:
                     encrypted = True
@@ -147,7 +144,7 @@ def fetch_files(path=None, file_name=None, passwd=None):
 def return_access_token():
     access_token = get_access_token()
     encrypted = encrypt(access_token[:16], SECRET)
-    return gen_error('success', content={
+    return gen_resp('success', content={
         'encrypted': urlencode(encrypted),
         'plain': urlencode(access_token[16:])
     })
@@ -156,12 +153,12 @@ def return_access_token():
 def redirect_to_download_server(path, file_name):
     OAUTH['accessToken'] = get_access_token()
     URL = fetch_files(path, file_name)
-    return gen_error('url', URL)
+    return gen_resp('url', URL)
 
 
 def return_file_array(path, encrypted, plain, passwd):
     OAUTH['accessToken'] = decrypt(encrypted, SECRET) + plain
-    return gen_error('success', content=fetch_files(path, None, passwd))
+    return gen_resp('success', content=fetch_files(path, None, passwd))
 
 
 def query(gateway, queryString=None, body=None):
@@ -171,12 +168,14 @@ def query(gateway, queryString=None, body=None):
         if 'file' in queryString:
             FILE_NAME = queryString['file'].split('/').pop()
             REQUEST_PATH = queryString['file'].replace('/' + FILE_NAME, '')
+            if FILE_NAME == PASSWORD_FILENAME:
+                return gen_resp('url', 'https://www.baidu.com/s?wd=%E6%80%8E%E6%A0%B7%E7%9B%97%E5%8F%96%E5%AF%86%E7%A0%81')
             return redirect_to_download_server(REQUEST_PATH, FILE_NAME)
-        elif body is not None:
+        elif body:
             PARAMS = split_url(body)['params']
             return return_file_array(
                 urldecode(PARAMS['path']), PARAMS['encrypted'], PARAMS['plain'], PARAMS['passwd'])
         else:
             return return_access_token()
     except Exception:
-        return gen_error('server')
+        return gen_resp('server')

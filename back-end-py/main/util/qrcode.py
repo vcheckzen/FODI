@@ -14,5 +14,5 @@ def qrencode(text, box_size, border_box):
     )
     qr.add_data(text)
     buffered = BytesIO()
-    qr.make_image().save(buffered, format="JPEG")
-    return 'data:image/jpg;base64,' + b64encode(buffered.getvalue()).decode("utf-8")
+    qr.make_image().save(buffered, format='JPEG')
+    return 'data:image/jpg;base64,' + b64encode(buffered.getvalue()).decode('utf-8')

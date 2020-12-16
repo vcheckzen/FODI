@@ -1,4 +1,4 @@
-#!/home/pyscf/venv/bin/python3.6
+#!/usr/local/share/python3_venv/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
