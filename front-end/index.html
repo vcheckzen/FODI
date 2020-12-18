@@ -964,7 +964,7 @@
                     );
                     document.querySelector('.btn.quote').addEventListener('click',
                         event => {
-                            previewHandler.copyTextContent(null, window.api.url + '?file=' + path);
+                            previewHandler.copyTextContent(null, window.api.url + '?file=' + encodeURI(path));
                             const btn = document.querySelector('.btn.quote');
                             btn.innerHTML = '已复制';
                             setTimeout(() => btn.innerHTML = '引用', 250);
@@ -983,7 +983,7 @@
                             previewHandler.copyTextContent(null,
                                 window.location.origin +
                                 window.location.pathname +
-                                '?path=' + sharePath());
+                                '?path=' + encodeURI(sharePath()));
                             const btn = document.querySelector('.btn.share');
                             btn.innerHTML = '已复制';
                             setTimeout(() => btn.innerHTML = '分享', 250);
