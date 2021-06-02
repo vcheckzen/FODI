@@ -7,7 +7,7 @@
        * SITE_NAME：站点名称
        */
       window.GLOBAL_CONFIG = {
-        SCF_GATEWAY: "https://fodi.rawchen.workers.dev",
+        SCF_GATEWAY: "//tight-bar-e3b3.logi.workers.dev",
         SITE_NAME: "FODI",
         IS_CF: true,
       };
@@ -24,9 +24,14 @@
       content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
       name="viewport"
     />
-    <script src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons.js"></script>
-    <!-- <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/5.4.0/ionicons.min.js"></script> -->
-    <!-- <script src="//s0.pstatp.com/cdn/expire-1-M/ionicons/4.5.6/ionicons.js"></script> -->
+    <script
+      type="module"
+      src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.esm.js"
+    ></script>
+    <script
+      nomodule=""
+      src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.js"
+    ></script>
     <script src="//s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
     <script src="//s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/highlight.min.js"></script>
     <link
@@ -69,7 +74,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: #333;
+        background-color: rgb(134, 134, 134);
         -webkit-animation: sk-foldCubeAngle 2.4s infinite linear both;
         animation: sk-foldCubeAngle 2.4s infinite linear both;
         -webkit-transform-origin: 100% 100%;
@@ -366,6 +371,7 @@
       }
 
       .tree-node-wrapper {
+        display: table;
         margin-left: 1.5em;
       }
 
@@ -841,13 +847,34 @@
             const markdownBody = document.createElement("div");
             markdownBody.classList.add("markdown-body");
             markdownBody.innerHTML = markedText;
-            document.querySelector(".content").appendChild(markdownBody);
+            const content = document.querySelector(".content");
+            content.innerHTML = "";
+            content.appendChild(markdownBody);
           }
           let cache = window.fileCache.get(path);
           if (!cache || cache === true) {
             window.fileCache.set(path, text);
           }
         };
+
+        if (
+          window.backFordwardCache.current +
+            (window.backFordwardCache.current === "/" ? "" : "/") +
+            "README.md" ===
+          path
+        ) {
+          const readme = document.getElementById("readme");
+          if (!readme.querySelector(".sk-folding-cube")) {
+            readme.innerHTML = "";
+            readme.appendChild(
+              document
+                .getElementById("loading-wrapper-templete")
+                .content.cloneNode(true)
+            );
+            document.querySelector(".markdown-body").style.display = "block";
+          }
+        }
+
         let text = window.fileCache.get(path);
         if (text === true) {
           setTimeout(() => renderMarkdown(path, url), 200);
@@ -1071,8 +1098,16 @@
                 });
               },
             };
+
             const suffix = path.split(".").pop();
             let content = document.querySelector(".content");
+
+            content.appendChild(
+              document
+                .getElementById("loading-wrapper-templete")
+                .content.cloneNode(true)
+            );
+
             let contentType = previewHandler.fileType(suffix);
             switch (contentType) {
               case "image":
@@ -1103,16 +1138,16 @@
                 content.append(video);
                 break;
               case "text":
-                let pre = document.createElement("pre");
-                let code = document.createElement("code");
-                pre.append(code);
-                pre.style.background = "rgb(245,245,245)";
-                pre.style["overflow-x"] = "scroll";
-                pre.classList.add(suffix);
-                // content.style.textAlign = "initial";
-                content.innerHTML = "";
-                content.append(pre);
                 sendRequest("GET", url, null, null, (data) => {
+                  let pre = document.createElement("pre");
+                  let code = document.createElement("code");
+                  pre.append(code);
+                  pre.style.background = "rgb(245,245,245)";
+                  pre.style["overflow-x"] = "scroll";
+                  pre.classList.add(suffix);
+                  // content.style.textAlign = "initial";
+                  content.innerHTML = "";
+                  content.append(pre);
                   code.textContent = data;
                   if (
                     size.indexOf(" B") >= 0 ||
@@ -1149,8 +1184,11 @@
                 }
                 break;
               default:
-                content.style["text-align"] = "center";
-                content.innerHTML = "该文件不支持预览";
+                let textWrapper = document.createElement("div");
+                textWrapper.style.textAlign = "center";
+                textWrapper.innerHTML = "该文件不支持预览";
+                content.innerHTML = "";
+                content.appendChild(textWrapper);
                 break;
             }
             document.querySelector(".file-name").innerHTML = path;
@@ -1499,13 +1537,9 @@
           );
         }
       });
-
-
-    
     </script>
   </head>
 
-  <!-- <body hidden="hidden"> -->
   <body>
     <template id="tree-node-wrapper-template">
       <div class="tree-node-wrapper">
@@ -1526,7 +1560,7 @@
         </div>
       </div>
     </template>
-    <template id="loaging-wrapper-templete">
+    <template id="loading-wrapper-templete">
       <div class="sk-folding-cube">
         <div class="sk-cube1 sk-cube"></div>
         <div class="sk-cube2 sk-cube"></div>
