@@ -1414,7 +1414,7 @@
                 (data) => {
                   const files = JSON.parse(data);
                   window.fileCache.set(nextPath, files);
-                  preCache(files, 0);
+                  preCache(files, -1);
                 },
                 () => window.fileCache.set(nextPath, false)
               );
@@ -1442,25 +1442,10 @@
         loading.style.display = "initial";
         window.backFordwardCache.preview = false;
         window.backFordwardCache.current = path;
+
         let cache = window.fileCache.get(path);
         if (cache === true) {
-          let cacheWaitFileListFetch = setInterval(() => {
-            cache = window.fileCache.get(path);
-            if (typeof cache === "object") {
-              renderPage(null, cache);
-              preCacheCheck(cache, path);
-              clearInterval(cacheWaitFileListFetch);
-            } else if (cache === false) {
-              clearInterval(cacheWaitFileListFetch);
-              loading.style.color = "red";
-              loading.innerText = "Failed!";
-              setTimeout(() => {
-                loading.style.display = "none";
-                loading.style.color = "white";
-                loading.innerText = "Loading..";
-              }, 2000);
-            }
-          }, 100);
+          setTimeout(() => fetchFileList(path), 200);
         } else if (cache) {
           renderPage(null, cache);
           preCacheCheck(cache, path);
@@ -1471,7 +1456,16 @@
             window.api.url,
             window.api.formatPayload(path),
             window.api.headers,
-            renderPage
+            renderPage,
+            () => {
+              window.fileCache.set(path, false);
+              const loadingText = loading.querySelector(".loading");
+              loadingText.innerText = "Failed!";
+              setTimeout(() => {
+                loading.style.display = "none";
+                loadingText.innerText = "Loading..";
+              }, 2000);
+            }
           );
         }
       }
@@ -1539,7 +1533,6 @@
       });
     </script>
   </head>
-
   <body>
     <template id="tree-node-wrapper-template">
       <div class="tree-node-wrapper">

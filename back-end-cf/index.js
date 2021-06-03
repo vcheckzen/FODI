@@ -3,179 +3,231 @@
  * EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
  * ONEDRIVE_REFRESHTOKEN: refresh_token
  */
-const IS_CN = 0
-const EXPOSE_PATH = ""
-const ONEDRIVE_REFRESHTOKEN = ""
-const PASSWD_FILENAME = '.password'
+const IS_CN = 0;
+const EXPOSE_PATH = "";
+const ONEDRIVE_REFRESHTOKEN = "";
+const PASSWD_FILENAME = ".password";
 
 async function handleRequest(request) {
-  let querySplited, requestPath
-  let queryString = decodeURIComponent(request.url.split('?')[1])
-  if (queryString) querySplited = queryString.split('=')
-  if (querySplited && querySplited[0] === 'file') {
-    const file = querySplited[1]
-    const fileName = file.split('/').pop()
+  let querySplited, requestPath;
+  let queryString = decodeURIComponent(request.url.split("?")[1]);
+  if (queryString) querySplited = queryString.split("=");
+  if (querySplited && querySplited[0] === "file") {
+    const file = querySplited[1];
+    const fileName = file.split("/").pop();
     if (fileName === PASSWD_FILENAME)
-      return Response.redirect('https://www.baidu.com/s?wd=%E6%80%8E%E6%A0%B7%E7%9B%97%E5%8F%96%E5%AF%86%E7%A0%81', 301)
-    requestPath = file.replace('/' + fileName, '')
-    const url = await fetchFiles(requestPath, fileName)
-    return Response.redirect(url, 302)
+      return Response.redirect(
+        "https://www.baidu.com/s?wd=%E6%80%8E%E6%A0%B7%E7%9B%97%E5%8F%96%E5%AF%86%E7%A0%81",
+        301
+      );
+    requestPath = file.replace("/" + fileName, "");
+    const url = await fetchFiles(requestPath, fileName);
+    return Response.redirect(url, 302);
   } else {
-    const { headers } = request
-    const contentType = headers.get('content-type')
-    let body = {}
-    if (contentType && contentType.includes('form')) {
-      const formData = await request.formData()
+    const { headers } = request;
+    const contentType = headers.get("content-type");
+    let body = {};
+    if (contentType && contentType.includes("form")) {
+      const formData = await request.formData();
       for (let entry of formData.entries()) {
-        body[entry[0]] = entry[1]
+        body[entry[0]] = entry[1];
       }
     }
-    requestPath = Object.getOwnPropertyNames(body).length ? body['?path'] : ''
-    const files = await fetchFiles(requestPath, null, body.passwd)
+    requestPath = Object.getOwnPropertyNames(body).length ? body["?path"] : "";
+    const files = await fetchFiles(requestPath, null, body.passwd);
     return new Response(files, {
       headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*'
-      }
-    })
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "max-age=3600",
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    });
   }
 }
 
-addEventListener('fetch', event => {
-  return event.respondWith(handleRequest(event.request))
-})
+async function sha256(message) {
+  // encode as UTF-8
+  const msgBuffer = new TextEncoder().encode(message);
 
+  // hash the message
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
 
-const clientId = [
-  '4da3e7f2-bf6d-467c-aaf0-578078f0bf7c',
-  '04c3ca0b-8d07-4773-85ad-98b037d25631'
+  // convert ArrayBuffer to Array
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
 
-]
-const clientSecret = [
-  '7/+ykq2xkfx:.DWjacuIRojIaaWL0QI6',
-  'h8@B7kFVOmj0+8HKBWeNTgl@pU/z4yLB'
-]
+  // convert bytes to hex string
+  const hashHex = hashArray
+    .map((b) => ("00" + b.toString(16)).slice(-2))
+    .join("");
+  return hashHex;
+}
 
-const oauthHost = [
-  'https://login.microsoftonline.com',
-  'https://login.partner.microsoftonline.cn'
-]
+async function handlePostRequest(event) {
+  const request = event.request;
+  const body = await request.clone().text();
 
-const apiHost = [
-  'https://graph.microsoft.com',
-  'https://microsoftgraph.chinacloudapi.cn'
-]
+  // Hash the request body to use it as a part of the cache key
+  const hash = await sha256(body);
+  const cacheUrl = new URL(request.url);
+
+  // Store the URL in cache by prepending the body's hash
+  cacheUrl.pathname = "/posts" + cacheUrl.pathname + hash;
+
+  // Convert to a GET to be able to cache
+  const cacheKey = new Request(cacheUrl.toString(), {
+    headers: request.headers,
+    method: "GET",
+  });
+
+  const cache = caches.default;
+
+  // Find the cache key in the cache
+  let response = await cache.match(cacheKey);
+
+  // Otherwise, fetch response to POST request from origin
+  if (!response) {
+    response = await handleRequest(request);
+    event.waitUntil(cache.put(cacheKey, response.clone()));
+  }
+  return response;
+}
+
+addEventListener("fetch", (event) => {
+  try {
+    const request = event.request;
+    if (request.method.toUpperCase() === "POST")
+      return event.respondWith(handlePostRequest(event));
+    return event.respondWith(handleRequest(event.request));
+  } catch (e) {
+    return event.respondWith(new Response("Error thrown " + e.message));
+  }
+});
 
 const OAUTH = {
-  'redirectUri': 'https://scfonedrive.github.io',
-  'refreshToken': ONEDRIVE_REFRESHTOKEN,
-  'clientId': clientId[IS_CN],
-  'clientSecret': clientSecret[IS_CN],
-  'oauthUrl': oauthHost[IS_CN] + '/common/oauth2/v2.0/',
-  'apiUrl': apiHost[IS_CN] + '/v1.0/me/drive/root',
-  'scope': apiHost[IS_CN] + '/Files.ReadWrite.All offline_access'
-}
+  redirectUri: redirectUri,
+  refreshToken: ONEDRIVE_REFRESHTOKEN,
+  clientId: clientId,
+  clientSecret: clientSecret,
+  oauthUrl: loginHost + "/common/oauth2/v2.0/",
+  apiUrl: apiHost + "/v1.0/me/drive/root",
+  scope: apiHost + "/Files.ReadWrite.All offline_access",
+};
 
 async function gatherResponse(response) {
-  const { headers } = response
-  const contentType = headers.get('content-type')
-  if (contentType.includes('application/json')) {
-    return await response.json()
-  } else if (contentType.includes('application/text')) {
-    return await response.text()
-  } else if (contentType.includes('text/html')) {
-    return await response.text()
+  const { headers } = response;
+  const contentType = headers.get("content-type");
+  if (contentType.includes("application/json")) {
+    return await response.json();
+  } else if (contentType.includes("application/text")) {
+    return await response.text();
+  } else if (contentType.includes("text/html")) {
+    return await response.text();
   } else {
-    return await response.text()
+    return await response.text();
   }
+}
+
+async function cacheFetch(url, options) {
+  return fetch(new Request(url, options), {
+    cf: {
+      cacheTtl: 3600,
+      cacheEverything: true,
+    },
+  });
 }
 
 async function getContent(url) {
-  const response = await fetch(url)
-  const result = await gatherResponse(response)
-  return result
+  const response = await cacheFetch(url);
+  const result = await gatherResponse(response);
+  return result;
 }
 
 async function getContentWithHeaders(url, headers) {
-  const response = await fetch(url, { headers: headers })
-  const result = await gatherResponse(response)
-  return result
+  const response = await cacheFetch(url, { headers: headers });
+  const result = await gatherResponse(response);
+  return result;
 }
 
 async function fetchFormData(url, data) {
-  const formdata = new FormData()
+  const formdata = new FormData();
   for (const key in data) {
     if (data.hasOwnProperty(key)) {
-      formdata.append(key, data[key])
+      formdata.append(key, data[key]);
     }
   }
   const requestOptions = {
-    method: 'POST',
-    body: formdata
-  }
-  const response = await fetch(url, requestOptions)
-  const result = await gatherResponse(response)
-  return result
+    method: "POST",
+    body: formdata,
+  };
+  const response = await cacheFetch(url, requestOptions);
+  const result = await gatherResponse(response);
+  return result;
 }
 
 async function fetchAccessToken() {
-  url = OAUTH['oauthUrl'] + 'token'
+  url = OAUTH["oauthUrl"] + "token";
   data = {
-    'client_id': OAUTH['clientId'],
-    'client_secret': OAUTH['clientSecret'],
-    'grant_type': 'refresh_token',
-    'requested_token_use': 'on_behalf_of',
-    'refresh_token': OAUTH['refreshToken']
-  }
-  const result = await fetchFormData(url, data)
-  return result.access_token
+    client_id: OAUTH["clientId"],
+    client_secret: OAUTH["clientSecret"],
+    grant_type: "refresh_token",
+    requested_token_use: "on_behalf_of",
+    refresh_token: OAUTH["refreshToken"],
+  };
+  const result = await fetchFormData(url, data);
+  return result.access_token;
 }
 
 async function fetchFiles(path, fileName, passwd) {
-  if (path === '/') path = ''
-  if (path || EXPOSE_PATH) path = ':' + EXPOSE_PATH + path
+  if (path === "/") path = "";
+  if (path || EXPOSE_PATH) path = ":" + EXPOSE_PATH + path;
 
-  const accessToken = await fetchAccessToken()
-  const uri = OAUTH.apiUrl + encodeURI(path)
-    + '?expand=children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)'
-  const body = await getContentWithHeaders(uri, { Authorization: 'Bearer ' + accessToken })
+  const accessToken = await fetchAccessToken();
+  const uri =
+    OAUTH.apiUrl +
+    encodeURI(path) +
+    "?expand=children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)";
+  const body = await getContentWithHeaders(uri, {
+    Authorization: "Bearer " + accessToken,
+  });
   if (fileName) {
-    let thisFile = null
-    body.children.forEach(file => {
+    let thisFile = null;
+    body.children.forEach((file) => {
       if (file.name === decodeURIComponent(fileName)) {
-        thisFile = file['@microsoft.graph.downloadUrl']
-        return
+        thisFile = file["@microsoft.graph.downloadUrl"];
+        return;
       }
-    })
-    return thisFile
+    });
+    return thisFile;
   } else {
-    let files = []
-    let encrypted = false
+    let files = [];
+    let encrypted = false;
     for (let i = 0; i < body.children.length; i++) {
-      const file = body.children[i]
+      const file = body.children[i];
       if (file.name === PASSWD_FILENAME) {
-        const PASSWD = await getContent(file['@microsoft.graph.downloadUrl'])
+        const PASSWD = await getContent(file["@microsoft.graph.downloadUrl"]);
         if (PASSWD !== passwd) {
-          encrypted = true
-          break
+          encrypted = true;
+          break;
         } else {
-          continue
+          continue;
         }
       }
       files.push({
         name: file.name,
         size: file.size,
         time: file.lastModifiedDateTime,
-        url: file['@microsoft.graph.downloadUrl']
-      })
+        url: file["@microsoft.graph.downloadUrl"],
+      });
     }
-    let parent = body.children.length ? body.children[0].parentReference.path : body.parentReference.path
-    parent = parent.split(':').pop().replace(EXPOSE_PATH, '') || '/'
-    parent = decodeURIComponent(parent)
+    let parent = body.children.length
+      ? body.children[0].parentReference.path
+      : body.parentReference.path;
+    parent = parent.split(":").pop().replace(EXPOSE_PATH, "") || "/";
+    parent = decodeURIComponent(parent);
     if (encrypted) {
-      return JSON.stringify({ parent: parent, files: [], encrypted: true })
+      return JSON.stringify({ parent: parent, files: [], encrypted: true });
     } else {
-      return JSON.stringify({ parent: parent, files: files })
+      return JSON.stringify({ parent: parent, files: files });
     }
   }
 }
