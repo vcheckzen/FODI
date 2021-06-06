@@ -1363,7 +1363,7 @@
       }
 
       async function preCache(files, level) {
-        if (level > 2) return;
+        if (level > 1) return;
         files.files.forEach((file) => {
           const parent = files.parent === "/" ? "" : files.parent;
           const path = parent + "/" + file.name;
@@ -1403,7 +1403,7 @@
           const nextPath = prefix + "/" + file.name;
           const pathCache = window.fileCache.get(nextPath);
           if (!file.url) {
-            if (!pathCache && pathCache !== true) {
+            if (!pathCache) {
               // console.log('inner caching ' + nextPath);
               window.fileCache.set(nextPath, true);
               sendRequest(
@@ -1414,10 +1414,12 @@
                 (data) => {
                   const files = JSON.parse(data);
                   window.fileCache.set(nextPath, files);
-                  preCache(files, -1);
+                  preCache(files, 0);
                 },
                 () => window.fileCache.set(nextPath, false)
               );
+            } else if (pathCache.files) {
+              preCacheCheck(pathCache, nextPath);
             }
           } else if (file.name.split(".").pop() === "md") {
             if (!pathCache && pathCache !== true) {
