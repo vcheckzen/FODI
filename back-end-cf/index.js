@@ -144,7 +144,7 @@ async function fetchAccessToken() {
   };
   const result = await fetchFormData(url, data);
 
-  if (typeof FODI_CACHE !== 'undefined') {
+  if (typeof FODI_CACHE !== 'undefined' && result.refresh_token) {
     result.save_time = Date.now();
     await FODI_CACHE.put('token_data', JSON.stringify(result));
   }
