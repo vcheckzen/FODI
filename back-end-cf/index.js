@@ -122,7 +122,7 @@ async function fetchAccessToken() {
   let refreshToken = OAUTH["refreshToken"];
   if (typeof FODI_CACHE !== 'undefined') {
     const cache = JSON.parse(await FODI_CACHE.get('token_data'));
-    if (cache) {
+    if (cache.refresh_token) {
       const passedMilis = Date.now() - cache.save_time;
       if (passedMilis / 1000 < cache.expires_in - 600) {
         return cache.access_token;
