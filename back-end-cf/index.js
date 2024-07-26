@@ -164,7 +164,7 @@ async function fetchAccessToken() {
   return result.access_token;
 }
 
-async function fetchFiles(path, fileName, passwd) {
+async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
   if (path === "/") path = "";
   if (path || EXPOSE_PATH) path = ":" + EXPOSE_PATH + path;
 
@@ -178,17 +178,22 @@ async function fetchFiles(path, fileName, passwd) {
   });
 
   let authState = PATH_AUTH_STATES.NO_PW_FILE;
-  body.children.forEach(async file => {
+  for (const file of body.children) {
     if (file.name === PASSWD_FILENAME) {
       const PASSWD = await getContent(file["@microsoft.graph.downloadUrl"]);
+      // Only valid for recursive call
+      if (viewExposePathPassword) {
+        return PASSWD;
+      }
+
       if (PASSWD === passwd) {
         authState = PATH_AUTH_STATES.PW_CORRECT;
       } else {
         authState = PATH_AUTH_STATES.PW_ERROR;
       }
-      return;
+      break;
     }
-  });
+  }
 
   let parent = body.children.length
     ? body.children[0].parentReference.path
@@ -198,13 +203,13 @@ async function fetchFiles(path, fileName, passwd) {
 
   if (authState === PATH_AUTH_STATES.NO_PW_FILE && parent.split("/").length <= PROTECTED_LAYERS) {
     const upperPasswd = EXPOSE_PASSWD ? EXPOSE_PASSWD : (
-      (!path || path === "/") ? "" : await getContent(await fetchFiles("/", PASSWD_FILENAME))
+      (!path || path === "/") ? "" : await fetchFiles("/", null, null, true)
     );
     if (upperPasswd !== passwd) authState = PATH_AUTH_STATES.PW_ERROR;
   }
 
   // Auth failed
-  if (authState === PATH_AUTH_STATES.PW_ERROR) {
+  if (authState === PATH_AUTH_STATES.PW_ERROR && fileName !== PASSWD_FILENAME) {
     return JSON.stringify({ parent, files: [], encrypted: true });
   }
 
@@ -228,6 +233,6 @@ async function fetchFiles(path, fileName, passwd) {
       size: file.size,
       time: file.lastModifiedDateTime,
       url: file["@microsoft.graph.downloadUrl"],
-    }))
+    })).filter(file => file.name !== PASSWD_FILENAME)
   });
 }
