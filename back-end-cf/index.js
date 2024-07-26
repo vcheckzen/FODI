@@ -165,6 +165,7 @@ async function fetchAccessToken() {
 }
 
 async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
+  const reletivePath = path;
   if (path === "/") path = "";
   if (path || EXPOSE_PATH) path = ":" + EXPOSE_PATH + path;
 
@@ -177,21 +178,18 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
     Authorization: "Bearer " + accessToken,
   });
 
-  let authState = PATH_AUTH_STATES.NO_PW_FILE;
-  for (const file of body.children) {
-    if (file.name === PASSWD_FILENAME) {
-      const PASSWD = await getContent(file["@microsoft.graph.downloadUrl"]);
-      // Only valid for recursive call
-      if (viewExposePathPassword) {
-        return PASSWD;
-      }
+  const pwFile = body.children.filter(file => file.name === PASSWD_FILENAME)[0];
+  const PASSWD = pwFile ? await getContent(pwFile["@microsoft.graph.downloadUrl"]) : '';
+  if (viewExposePathPassword) {
+    return PASSWD;
+  }
 
-      if (PASSWD === passwd) {
-        authState = PATH_AUTH_STATES.PW_CORRECT;
-      } else {
-        authState = PATH_AUTH_STATES.PW_ERROR;
-      }
-      break;
+  let authState = PATH_AUTH_STATES.NO_PW_FILE;
+  if (pwFile) {
+    if (PASSWD === passwd) {
+      authState = PATH_AUTH_STATES.PW_CORRECT;
+    } else {
+      authState = PATH_AUTH_STATES.PW_ERROR;
     }
   }
 
@@ -203,13 +201,13 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
 
   if (authState === PATH_AUTH_STATES.NO_PW_FILE && parent.split("/").length <= PROTECTED_LAYERS) {
     const upperPasswd = EXPOSE_PASSWD ? EXPOSE_PASSWD : (
-      (!path || path === "/") ? "" : await fetchFiles("/", null, null, true)
+      (!reletivePath || reletivePath === "/") ? "" : await fetchFiles("", null, null, true)
     );
     if (upperPasswd !== passwd) authState = PATH_AUTH_STATES.PW_ERROR;
   }
 
   // Auth failed
-  if (authState === PATH_AUTH_STATES.PW_ERROR && fileName !== PASSWD_FILENAME) {
+  if (authState === PATH_AUTH_STATES.PW_ERROR) {
     return JSON.stringify({ parent, files: [], encrypted: true });
   }
 
