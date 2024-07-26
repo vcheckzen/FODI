@@ -2,11 +2,16 @@
  * IS_CN: 如果为世纪互联版本，请将 0 改为 1
  * EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
  * ONEDRIVE_REFRESHTOKEN: refresh_token
+ * PASSWD_FILENAME: 密码文件名
+ * PROTECTED_LAYERS: 保防护层数，防止猜测目录，默认-1为关闭，类似'/Applications'需要保护填写为2，开启需在PASSWORD_FILENAME文件中填写密码
+ * EXPOSE_PASSWD: EXPOSE_PATH目录密码，优先级 本目录密码 > EXPOSE_PASSWD > EXPORSE_PATH目录密码；填写后访问速度稍快，但不便于更改
  */
 const IS_CN = 0;
 const EXPOSE_PATH = "";
 const ONEDRIVE_REFRESHTOKEN = "";
 const PASSWD_FILENAME = ".password";
+const PROTECTED_LAYERS = -1;
+const EXPOSE_PASSWD = "";
 
 addEventListener('scheduled', event => {
   event.waitUntil(fetchAccessToken(event.scheduledTime));
@@ -31,10 +36,16 @@ const OAUTH = {
 };
 
 async function handleRequest(request) {
-  let querySplited, requestPath;
-  let queryString = decodeURIComponent(request.url.split("?")[1]);
+  let queryString, querySplited, requestPath;
+  let abnormalWay = false;
+  if (request.url.includes("?")) {
+    queryString = decodeURIComponent(request.url.split("?")[1]);
+  } else if(request.url.split("/").pop().includes(".")) {
+    queryString = decodeURIComponent("file=/" + request.url.split("://")[1].split(/\/(.+)/)[1]);
+    abnormalWay = true;
+  }
   if (queryString) querySplited = queryString.split("=");
-  if (querySplited && querySplited[0] === "file") {
+  if ((querySplited && querySplited[0] === "file") || abnormalWay) {
     const file = querySplited[1];
     const fileName = file.split("/").pop();
     if (fileName === PASSWD_FILENAME)
@@ -174,7 +185,7 @@ async function fetchFiles(path, fileName, passwd) {
     return thisFile;
   } else {
     let files = [];
-    let encrypted = false;
+    let encrypted = false, pwcorrect = false;
     for (let i = 0; i < body.children.length; i++) {
       const file = body.children[i];
       if (file.name === PASSWD_FILENAME) {
@@ -183,6 +194,7 @@ async function fetchFiles(path, fileName, passwd) {
           encrypted = true;
           break;
         } else {
+          pwcorrect = true;
           continue;
         }
       }
@@ -198,6 +210,8 @@ async function fetchFiles(path, fileName, passwd) {
       : body.parentReference.path;
     parent = parent.split(":").pop().replace(EXPOSE_PATH, "") || "/";
     parent = decodeURIComponent(parent);
+    const EXPOSEPW = EXPOSE_PASSWD ? EXPOSE_PASSWD : await getContent(await fetchFiles("/", PASSWD_FILENAME));
+    if (!pwcorrect && parent.split("/").length <= PROTECTED_LAYERS && EXPOSEPW !== passwd) encrypted = true;
     if (encrypted) {
       return JSON.stringify({ parent: parent, files: [], encrypted: true });
     } else {
