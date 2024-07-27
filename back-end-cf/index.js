@@ -2,14 +2,19 @@
  * IS_CN: 如果为世纪互联版本，请将 0 改为 1
  * EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
  * ONEDRIVE_REFRESHTOKEN: refresh_token
+ * PASSWD_FILENAME: 密码文件名
+ * PROTECTED_LAYERS: EXPOSE_PATH 目录密码防护层数，防止猜测目录，默认 -1 为关闭，类似 '/Applications' 需要保护填写为 2（保护 EXPOSE_PATH 及其一级子目录），开启需在 EXPORSE_PATH 目录的 PASSWORD_FILENAME 文件中填写密码
+ * EXPOSE_PASSWD: 覆盖 EXPOSE_PATH 目录密码，优先级：本目录密码 > EXPOSE_PASSWD > EXPORSE_PATH 目录密码；填写后访问速度稍快，但不便于更改
  */
 const IS_CN = 0;
 const EXPOSE_PATH = "";
 const ONEDRIVE_REFRESHTOKEN = "";
 const PASSWD_FILENAME = ".password";
+const PROTECTED_LAYERS = -1;
+const EXPOSE_PASSWD = "";
 
 addEventListener('scheduled', event => {
-  event.waitUntil(fetchAccessToken(event.scheduledTime));
+  event.waitUntil(fetchAccessToken(/* event.scheduledTime */));
 });
 
 addEventListener("fetch", (event) => {
@@ -30,11 +35,23 @@ const OAUTH = {
   scope: apiHost + "/Files.ReadWrite.All offline_access",
 };
 
+const PATH_AUTH_STATES = Object.freeze({
+  NO_PW_FILE: Symbol("NO_PW_FILE"),
+  PW_CORRECT: Symbol("PW_CORRECT"),
+  PW_ERROR: Symbol("PW_ERROR")
+});
+
 async function handleRequest(request) {
-  let querySplited, requestPath;
-  let queryString = decodeURIComponent(request.url.split("?")[1]);
+  let queryString, querySplited, requestPath;
+  let abnormalWay = false;
+  if (request.url.includes("?")) {
+    queryString = decodeURIComponent(request.url.split("?")[1]);
+  } else if (request.url.split("/").pop().includes(".")) {
+    queryString = decodeURIComponent("file=/" + request.url.split("://")[1].split(/\/(.+)/)[1]);
+    abnormalWay = true;
+  }
   if (queryString) querySplited = queryString.split("=");
-  if (querySplited && querySplited[0] === "file") {
+  if ((querySplited && querySplited[0] === "file") || abnormalWay) {
     const file = querySplited[1];
     const fileName = file.split("/").pop();
     if (fileName === PASSWD_FILENAME)
@@ -51,7 +68,7 @@ async function handleRequest(request) {
     let body = {};
     if (contentType && contentType.includes("form")) {
       const formData = await request.formData();
-      for (let entry of formData.entries()) {
+      for (const entry of formData.entries()) {
         body[entry[0]] = entry[1];
       }
     }
@@ -72,13 +89,9 @@ async function gatherResponse(response) {
   const contentType = headers.get("content-type");
   if (contentType.includes("application/json")) {
     return await response.json();
-  } else if (contentType.includes("application/text")) {
-    return await response.text();
-  } else if (contentType.includes("text/html")) {
-    return await response.text();
-  } else {
-    return await response.text();
   }
+
+  return await response.text();
 }
 
 async function cacheFetch(url, options) {
@@ -151,7 +164,8 @@ async function fetchAccessToken() {
   return result.access_token;
 }
 
-async function fetchFiles(path, fileName, passwd) {
+async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
+  const relativePath = path;
   if (path === "/") path = "";
   if (path || EXPOSE_PATH) path = ":" + EXPOSE_PATH + path;
 
@@ -163,6 +177,41 @@ async function fetchFiles(path, fileName, passwd) {
   const body = await getContentWithHeaders(uri, {
     Authorization: "Bearer " + accessToken,
   });
+
+  const pwFile = body.children.filter(file => file.name === PASSWD_FILENAME)[0];
+  const PASSWD = pwFile ? await getContent(pwFile["@microsoft.graph.downloadUrl"]) : '';
+  if (viewExposePathPassword) {
+    return PASSWD;
+  }
+
+  let authState = PATH_AUTH_STATES.NO_PW_FILE;
+  if (pwFile) {
+    if (PASSWD === passwd) {
+      authState = PATH_AUTH_STATES.PW_CORRECT;
+    } else {
+      authState = PATH_AUTH_STATES.PW_ERROR;
+    }
+  }
+
+  let parent = body.children.length
+    ? body.children[0].parentReference.path
+    : body.parentReference.path;
+  parent = parent.split(":").pop().replace(EXPOSE_PATH, "") || "/";
+  parent = decodeURIComponent(parent);
+
+  if (authState === PATH_AUTH_STATES.NO_PW_FILE && parent.split("/").length <= PROTECTED_LAYERS) {
+    const upperPasswd = EXPOSE_PASSWD ? EXPOSE_PASSWD : (
+      (!relativePath || relativePath === "/") ? "" : await fetchFiles("", null, null, true)
+    );
+    if (upperPasswd !== passwd) authState = PATH_AUTH_STATES.PW_ERROR;
+  }
+
+  // Auth failed
+  if (authState === PATH_AUTH_STATES.PW_ERROR) {
+    return JSON.stringify({ parent, files: [], encrypted: true });
+  }
+
+  // Download file
   if (fileName) {
     let thisFile = null;
     body.children.forEach((file) => {
@@ -172,36 +221,16 @@ async function fetchFiles(path, fileName, passwd) {
       }
     });
     return thisFile;
-  } else {
-    let files = [];
-    let encrypted = false;
-    for (let i = 0; i < body.children.length; i++) {
-      const file = body.children[i];
-      if (file.name === PASSWD_FILENAME) {
-        const PASSWD = await getContent(file["@microsoft.graph.downloadUrl"]);
-        if (PASSWD !== passwd) {
-          encrypted = true;
-          break;
-        } else {
-          continue;
-        }
-      }
-      files.push({
-        name: file.name,
-        size: file.size,
-        time: file.lastModifiedDateTime,
-        url: file["@microsoft.graph.downloadUrl"],
-      });
-    }
-    let parent = body.children.length
-      ? body.children[0].parentReference.path
-      : body.parentReference.path;
-    parent = parent.split(":").pop().replace(EXPOSE_PATH, "") || "/";
-    parent = decodeURIComponent(parent);
-    if (encrypted) {
-      return JSON.stringify({ parent: parent, files: [], encrypted: true });
-    } else {
-      return JSON.stringify({ parent: parent, files: files });
-    }
   }
+
+  // List folder
+  return JSON.stringify({
+    parent,
+    files: body.children.map(file => ({
+      name: file.name,
+      size: file.size,
+      time: file.lastModifiedDateTime,
+      url: file["@microsoft.graph.downloadUrl"],
+    })).filter(file => file.name !== PASSWD_FILENAME)
+  });
 }
