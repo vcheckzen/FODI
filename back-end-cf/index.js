@@ -165,7 +165,7 @@ async function fetchAccessToken() {
 }
 
 async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
-  const reletivePath = path;
+  const relativePath = path;
   if (path === "/") path = "";
   if (path || EXPOSE_PATH) path = ":" + EXPOSE_PATH + path;
 
@@ -201,7 +201,7 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
 
   if (authState === PATH_AUTH_STATES.NO_PW_FILE && parent.split("/").length <= PROTECTED_LAYERS) {
     const upperPasswd = EXPOSE_PASSWD ? EXPOSE_PASSWD : (
-      (!reletivePath || reletivePath === "/") ? "" : await fetchFiles("", null, null, true)
+      (!relativePath || relativePath === "/") ? "" : await fetchFiles("", null, null, true)
     );
     if (upperPasswd !== passwd) authState = PATH_AUTH_STATES.PW_ERROR;
   }
