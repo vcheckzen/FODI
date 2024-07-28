@@ -14,7 +14,7 @@ const PROTECTED_LAYERS = -1;
 const EXPOSE_PASSWD = "";
 
 addEventListener('scheduled', event => {
-  event.waitUntil(fetchAccessToken(/* event.scheduledTime */));
+  event.waitUntil(fetchAccessToken( /* event.scheduledTime */ ));
 });
 
 addEventListener("fetch", (event) => {
@@ -63,9 +63,11 @@ async function handleRequest(request) {
     const url = await fetchFiles(requestPath, fileName);
     return Response.redirect(url, 302);
   } else {
-    const { headers } = request;
+    const {
+      headers
+    } = request;
     const contentType = headers.get("content-type");
-    let body = {};
+    const body = {};
     if (contentType && contentType.includes("form")) {
       const formData = await request.formData();
       for (const entry of formData.entries()) {
@@ -85,12 +87,13 @@ async function handleRequest(request) {
 }
 
 async function gatherResponse(response) {
-  const { headers } = response;
+  const {
+    headers
+  } = response;
   const contentType = headers.get("content-type");
   if (contentType.includes("application/json")) {
     return await response.json();
   }
-
   return await response.text();
 }
 
@@ -110,7 +113,9 @@ async function getContent(url) {
 }
 
 async function getContentWithHeaders(url, headers) {
-  const response = await cacheFetch(url, { headers: headers });
+  const response = await cacheFetch(url, {
+    headers: headers
+  });
   const result = await gatherResponse(response);
   return result;
 }
@@ -193,9 +198,9 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
     }
   }
 
-  let parent = body.children.length
-    ? body.children[0].parentReference.path
-    : body.parentReference.path;
+  let parent = body.children.length ?
+    body.children[0].parentReference.path :
+    body.parentReference.path;
   parent = parent.split(":").pop().replace(EXPOSE_PATH, "") || "/";
   parent = decodeURIComponent(parent);
 
@@ -203,24 +208,25 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
     const upperPasswd = EXPOSE_PASSWD ? EXPOSE_PASSWD : (
       (!relativePath || relativePath === "/") ? "" : await fetchFiles("", null, null, true)
     );
-    if (upperPasswd !== passwd) authState = PATH_AUTH_STATES.PW_ERROR;
+    if (upperPasswd !== passwd) {
+      authState = PATH_AUTH_STATES.PW_ERROR;
+    }
   }
 
   // Auth failed
   if (authState === PATH_AUTH_STATES.PW_ERROR) {
-    return JSON.stringify({ parent, files: [], encrypted: true });
+    return JSON.stringify({
+      parent,
+      files: [],
+      encrypted: true
+    });
   }
 
   // Download file
   if (fileName) {
-    let thisFile = null;
-    body.children.forEach((file) => {
-      if (file.name === decodeURIComponent(fileName)) {
-        thisFile = file["@microsoft.graph.downloadUrl"];
-        return;
-      }
-    });
-    return thisFile;
+    return body
+      .children
+      .filter(file => file.name === decodeURIComponent(fileName))[0]?.["@microsoft.graph.downloadUrl"];
   }
 
   // List folder
