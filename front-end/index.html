@@ -11,7 +11,7 @@
         SITE_NAME: "FODI",
         IS_CF: true,
       };
-      if (window.GLOBAL_CONFIG.SCF_GATEWAY.indexOf("workers") === -1) {
+      if (!window.GLOBAL_CONFIG.SCF_GATEWAY.contains("workers")) {
         window.GLOBAL_CONFIG.SCF_GATEWAY += "/fodi/";
         window.GLOBAL_CONFIG.IS_CF = false;
       }
@@ -1226,7 +1226,8 @@
               .addEventListener("click", (event) => {
                 previewHandler.copyTextContent(
                   null,
-                  window.api.url + "?file=" + encodeURI(path)
+                  // window.api.url + "?file=" + encodeURI(path)
+                  window.api.url + path
                 );
                 const btn = document.querySelector(".btn.quote");
                 btn.innerHTML = "已复制";
