@@ -1032,6 +1032,8 @@
                   ].contains(suffix)
                 ) {
                   return "office";
+                } else if (["pdf"].contains(suffix)) {
+                  return "pdf";
                 } else if (["md"].contains(suffix)) {
                   return "markdown";
                 }
@@ -1181,6 +1183,30 @@
                   iframe.style.border = "0";
                   iframe.src = officeOnline;
                   content.appendChild(iframe);
+                }
+                break;
+              case "pdf":
+                const pdfOnline =
+                  // "pdfjs/web/viewer.html?file=" +
+                  "//mozilla.github.io/pdf.js/web/viewer.html?file=" +
+                  encodeURIComponent(url);
+                let pdfDiv = document.createElement("div");
+                pdfDiv.style.lineHeight = "2em";
+                pdfDiv.style.background = "rgba(218, 215, 215, 0.21)";
+                pdfDiv.style.webkitTapHighlightColor = "rgba(0, 0, 0, 0)";
+                pdfDiv.style.cursor = "pointer";
+                pdfDiv.style.textAlign = "center";
+                pdfDiv.innerHTML = "新窗口打开";
+                pdfDiv.addEventListener("click", () => window.open(pdfOnline));
+                content.innerHTML = "";
+                content.appendChild(pdfDiv);
+                if (document.body.clientWidth >= 480) {
+                  let pdfIframe = document.createElement("iframe");
+                  pdfIframe.width = "100%";
+                  pdfIframe.style.height = "41em";
+                  pdfIframe.style.border = "0";
+                  pdfIframe.src = pdfOnline;
+                  content.appendChild(pdfIframe);
                 }
                 break;
               default:
