@@ -11,10 +11,10 @@
         SITE_NAME: "FODI",
         IS_CF: true,
       };
-      if (!window.GLOBAL_CONFIG.SCF_GATEWAY.includes("workers")) {
-        window.GLOBAL_CONFIG.SCF_GATEWAY += "/fodi/";
-        window.GLOBAL_CONFIG.IS_CF = false;
-      }
+      // if (window.GLOBAL_CONFIG.SCF_GATEWAY.indexOf("workers") === -1) {
+      //   window.GLOBAL_CONFIG.SCF_GATEWAY += "/fodi/";
+      //   window.GLOBAL_CONFIG.IS_CF = false;
+      // }
       // if (location.protocol === 'http:') {
       //     location.href = location.href.replace(/http/, 'https');
       // }
@@ -986,16 +986,31 @@
                   }
                   return false;
                 };
-                if (
+                if (["mp3", "flac", "wav"].contains(suffix)) {
+                  return "audio";
+                } else if (
                   ["bmp", "jpg", "png", "svg", "webp", "gif"].contains(suffix)
                 ) {
                   return "image";
-                } else if (["mp3", "flac", "wav"].contains(suffix)) {
-                  return "audio";
+                } else if (["md"].contains(suffix)) {
+                  return "markdown";
                 } else if (
-                  ["mp4", "avi", "mkv", "flv", "m3u8"].contains(suffix)
+                  [
+                    "doc",
+                    "docx",
+                    "ppt",
+                    "pptx",
+                    "xls",
+                    "xlsx",
+                    "mpp",
+                    "rtf",
+                    "vsd",
+                    "vsdx",
+                  ].contains(suffix)
                 ) {
-                  return "video";
+                  return "office";
+                } else if (["pdf"].contains(suffix)) {
+                  return "pdf";
                 } else if (
                   [
                     "txt",
@@ -1017,25 +1032,12 @@
                   ].contains(suffix)
                 ) {
                   return "text";
+                } else if (["torrent"].contains(suffix)) {
+                  return "torrent";
                 } else if (
-                  [
-                    "doc",
-                    "docx",
-                    "ppt",
-                    "pptx",
-                    "xls",
-                    "xlsx",
-                    "mpp",
-                    "rtf",
-                    "vsd",
-                    "vsdx",
-                  ].contains(suffix)
+                  ["mp4", "avi", "mkv", "flv", "m3u8"].contains(suffix)
                 ) {
-                  return "office";
-                } else if (["pdf"].contains(suffix)) {
-                  return "pdf";
-                } else if (["md"].contains(suffix)) {
-                  return "markdown";
+                  return "video";
                 }
               },
               loadResource: (resource, callback) => {
@@ -1073,12 +1075,12 @@
               },
 
               createDplayer: (video, type, elem) => {
-                const host = "//s0.pstatp.com/cdn/expire-1-M";
+                const host = "//lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M";
                 const resources = [
                   "/dplayer/1.25.0/DPlayer.min.css",
-                  "/dplayer/1.25.0/DPlayer.min.js",
-                  "/hls.js/0.12.4/hls.light.min.js",
-                  "/flv.js/1.5.0/flv.min.js",
+                  "/dplayer/1.26.0/DPlayer.min.js",
+                  "/hls.js/1.1.5/hls.light.min.js",
+                  "/flv.js/1.6.2/flv.min.js",
                 ];
                 let unloadedResourceCount = resources.length;
                 resources.forEach((resource) => {
@@ -1089,6 +1091,8 @@
                       };
                       if (type === "flv") {
                         option.type = "flv";
+                      } else if (type === "m3u8") {
+                        option.type = "hls";
                       }
                       new DPlayer({
                         container: elem,
@@ -1112,17 +1116,6 @@
 
             let contentType = previewHandler.fileType(suffix);
             switch (contentType) {
-              case "image":
-                let img = new Image();
-                img.style.maxWidth = "100%";
-                img.src = url;
-                let fancy = document.createElement("a");
-                fancy.setAttribute("data-fancybox", "image");
-                fancy.href = img.src;
-                fancy.append(img);
-                content.innerHTML = "";
-                content.append(fancy);
-                break;
               case "audio":
                 let audio = new Audio();
                 audio.style.outline = "none";
@@ -1133,31 +1126,16 @@
                 content.innerHTML = "";
                 content.append(audio);
                 break;
-              case "video":
-                let video = document.createElement("div");
-                previewHandler.createDplayer(url, suffix, video);
+              case "image":
+                let img = new Image();
+                img.style.maxWidth = "100%";
+                img.src = url;
+                let fancy = document.createElement("a");
+                fancy.setAttribute("data-fancybox", "image");
+                fancy.href = img.src;
+                fancy.append(img);
                 content.innerHTML = "";
-                content.append(video);
-                break;
-              case "text":
-                sendRequest("GET", url, null, null, (data) => {
-                  let pre = document.createElement("pre");
-                  let code = document.createElement("code");
-                  pre.append(code);
-                  pre.style.background = "rgb(245,245,245)";
-                  pre.style["overflow-x"] = "scroll";
-                  pre.classList.add(suffix);
-                  // content.style.textAlign = "initial";
-                  content.innerHTML = "";
-                  content.append(pre);
-                  code.textContent = data;
-                  if (
-                    size.indexOf(" B") >= 0 ||
-                    (size.indexOf(" KB") && size.split(" ")[0] < 100)
-                  ) {
-                    hljs.highlightBlock(pre);
-                  }
-                });
+                content.append(fancy);
                 break;
               case "markdown":
                 renderMarkdown(path, url);
@@ -1208,6 +1186,52 @@
                   pdfIframe.src = pdfOnline;
                   content.appendChild(pdfIframe);
                 }
+                break;
+              case "text":
+                sendRequest("GET", url, null, null, (data) => {
+                  let pre = document.createElement("pre");
+                  let code = document.createElement("code");
+                  pre.append(code);
+                  pre.style.background = "rgb(245,245,245)";
+                  pre.style["overflow-x"] = "scroll";
+                  pre.classList.add(suffix);
+                  // content.style.textAlign = "initial";
+                  content.innerHTML = "";
+                  content.append(pre);
+                  code.textContent = data;
+                  if (
+                    size.indexOf(" B") >= 0 ||
+                    (size.indexOf(" KB") && size.split(" ")[0] < 100)
+                  ) {
+                    hljs.highlightBlock(pre);
+                  }
+                });
+                break;
+              case "torrent":
+                let torrentscr = document.createElement("script");
+                torrentscr.src =
+                  "https://cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js";
+                torrentscr.charset = "utf-8";
+                torrentscr.async = true;
+                document.head.appendChild(torrentscr);
+                let torrent = document.createElement("div");
+                torrent.id = "player";
+                torrent.className = "webtor";
+                torrent.style.textAlign = "center";
+                content.innerHTML = "";
+                content.appendChild(torrent);
+                window.webtor = window.webtor || [];
+                window.webtor.push({
+                  id: "player",
+                  width: "100%",
+                  torrentUrl: url,
+                });
+                break;
+              case "video":
+                let video = document.createElement("div");
+                previewHandler.createDplayer(url, suffix, video);
+                content.innerHTML = "";
+                content.append(video);
                 break;
               default:
                 let textWrapper = document.createElement("div");
