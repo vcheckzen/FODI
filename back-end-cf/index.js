@@ -175,13 +175,20 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
   if (path || EXPOSE_PATH) path = ":" + EXPOSE_PATH + path;
 
   const accessToken = await fetchAccessToken();
-  const uri =
-    OAUTH.apiUrl +
-    encodeURI(path) +
-    "?expand=children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)";
-  const body = await getContentWithHeaders(uri, {
+  const expand = path
+    ? ":/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl&$top=200"
+    : "?expand=children(select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl)";
+  const uri = OAUTH.apiUrl + encodeURI(path) + expand;
+  let pageRes = await getContentWithHeaders(uri, {
     Authorization: "Bearer " + accessToken,
   });
+  let body = { children: pageRes.value ? pageRes.value : pageRes.children };
+  while (pageRes["@odata.nextLink"]) {
+    pageRes = await getContentWithHeaders(pageRes["@odata.nextLink"], {
+      Authorization: "Bearer " + accessToken,
+    });
+    body.children = body.children.concat(pageRes.value);
+  }
 
   const pwFile = body.children.filter(file => file.name === PASSWD_FILENAME)[0];
   const PASSWD = pwFile ? await getContent(pwFile["@microsoft.graph.downloadUrl"]) : '';

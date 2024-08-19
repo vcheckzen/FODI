@@ -35,3 +35,8 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 #### 安装
 
 - [在 Cloudflare 部署 FODI 后端](https://logi.im/back-end/fodi-on-cloudflare.html)
+- [FODI Deployment Helper](https://logi.im/fodi/get-code/)
+
+#### 说明
+
+- 如果需要使用本地 pdf 预览，请前往 [PDF.js](https://mozilla.github.io/pdf.js/) 下载文件并解压命名为 `pdfjs` ，注释掉 `viewer.mjs` 的 `fileOrigin !== viewerOrigin` 条件
