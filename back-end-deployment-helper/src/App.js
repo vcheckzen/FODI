@@ -36,6 +36,8 @@ function App() {
   const [redirectURL, setRedirectURL] = useState();
   const [passwordFilename, setPasswordFilename] = useState();
   const [exposedPath, setExposedPath] = useState();
+  const [protectedLayers, setProtected] = useState();
+  const [exposePw, setExposePw] = useState();
   const [code, setCode] = useState();
   const [error, setError] = useState();
   const [loading, setLoading] = useState();
@@ -114,6 +116,8 @@ function App() {
             data.refresh_token,
             exposedPath || '',
             passwordFilename || '.password',
+            protectedLayers || '-1',
+            exposePw || '',
           ))
         }
       })
@@ -207,6 +211,19 @@ function App() {
               placeholder="密码文件名（默认 .password）"
               value={passwordFilename}
               onChange={(e) => setPasswordFilename(e.target.value)}
+            />
+          </div>
+
+          <div className="input between">
+            <Input
+              placeholder="保护目录（默认 -1 不开启，保护 /Applications 为 2）"
+              value={protectedLayers}
+              onChange={(e) => setProtected(e.target.value)}
+            />
+            <Input
+              placeholder="保护目录密码，优先级高于密码文件中的密码"
+              value={exposePw}
+              onChange={(e) => setExposePw(e.target.value)}
             />
           </div>
 
