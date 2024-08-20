@@ -55,7 +55,7 @@ async function handleRequest(request) {
   if (request.url.includes("?")) {
     queryString = decodeURIComponent(request.url.split("?")[1]);
   } else if (request.url.split("/").pop().includes(".")) {
-    queryString = decodeURIComponent("file=/" + request.url.split("://")[1].split(/\/(.+)/)[1]);
+    queryString = decodeURIComponent("file=/" + request.url.split("://")[1].split(/\u005c/(.+)/)[1]);
     abnormalWay = true;
   }
   if (queryString) querySplited = queryString.split("=");
