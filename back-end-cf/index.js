@@ -44,10 +44,17 @@ const PATH_AUTH_STATES = Object.freeze({
 async function handleRequest(request) {
   let queryString, querySplited, requestPath;
   let abnormalWay = false;
+  const returnHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "max-age=3600",
+    "Content-Type": "application/json; charset=utf-8",
+  };
   if (request.url.includes("?")) {
     queryString = decodeURIComponent(request.url.split("?")[1]);
   } else if (request.url.split("/").pop().includes(".")) {
-    queryString = decodeURIComponent("file=/" + request.url.split("://")[1].split(/\/(.+)/)[1]);
+    queryString = decodeURIComponent(
+      "file=/" + request.url.split("://")[1].split(/\/(.+)/)[1]
+    );
     abnormalWay = true;
   }
   if (queryString) querySplited = queryString.split("=");
@@ -65,25 +72,23 @@ async function handleRequest(request) {
   } else if (querySplited && querySplited[0] === "upload") {
     requestPath = querySplited[1];
     const uploadAllow = await fetchFiles(requestPath, ".upload");
-    if (uploadAllow) {
-      const fileList = await request.json();
+    const fileList = await request.json();
+    const pwAttack = fileList["files"].some(file => file.remotePath.split("/").pop() === PASSWD_FILENAME);
+    if (uploadAllow && !pwAttack) {
       const uploadLinks = await uploadFiles(fileList);
       return new Response(uploadLinks, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Cache-Control": "max-age=3600",
-          "Content-Type": "application/json; charset=utf-8",
-        },
+        headers: returnHeaders,
       });
     }
-    return Response.redirect(
-      "https://www.baidu.com/s?wd=%E6%80%8E%E6%A0%B7%E7%9B%97%E5%8F%96%E5%AF%86%E7%A0%81",
-      301
+    return new Response(
+      JSON.stringify({ error: "Access forbidden" }),
+      {
+        status: 403,
+        headers: returnHeaders
+      }
     );
   } else {
-    const {
-      headers
-    } = request;
+    const { headers } = request;
     const contentType = headers.get("content-type");
     const body = {};
     if (contentType && contentType.includes("form")) {
@@ -95,11 +100,7 @@ async function handleRequest(request) {
     requestPath = Object.getOwnPropertyNames(body).length ? body["?path"] : "";
     const files = await fetchFiles(requestPath, null, body.passwd);
     return new Response(files, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "max-age=3600",
-        "Content-Type": "application/json; charset=utf-8",
-      },
+      headers: returnHeaders,
     });
   }
 }
