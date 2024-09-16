@@ -14,7 +14,7 @@ const PROTECTED_LAYERS = -1;
 const EXPOSE_PASSWD = "";
 
 addEventListener('scheduled', event => {
-  event.waitUntil(fetchAccessToken( /* event.scheduledTime */));
+  event.waitUntil(fetchAccessToken(/* event.scheduledTime */));
 });
 
 addEventListener("fetch", (event) => {
@@ -61,7 +61,7 @@ async function handleRequest(request) {
   if ((querySplited && querySplited[0] === "file") || abnormalWay) {
     const file = querySplited[1];
     const fileName = file.split("/").pop();
-    if (fileName === PASSWD_FILENAME)
+    if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase())
       return Response.redirect(
         "https://www.baidu.com/s?wd=%E6%80%8E%E6%A0%B7%E7%9B%97%E5%8F%96%E5%AF%86%E7%A0%81",
         301
@@ -73,7 +73,7 @@ async function handleRequest(request) {
     requestPath = querySplited[1];
     const uploadAllow = await fetchFiles(requestPath, ".upload");
     const fileList = await request.json();
-    const pwAttack = fileList["files"].some(file => file.remotePath.split("/").pop() === PASSWD_FILENAME);
+    const pwAttack = fileList["files"].some(file => file.remotePath.split("/").pop().toLowerCase() === PASSWD_FILENAME.toLowerCase());
     if (uploadAllow && !pwAttack) {
       const uploadLinks = await uploadFiles(fileList);
       return new Response(uploadLinks, {
