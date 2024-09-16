@@ -22,7 +22,7 @@ const apiHost = "${apiHost}";
 const redirectUri = "${replayURL}";
 
 addEventListener('scheduled', event => {
-  event.waitUntil(fetchAccessToken( /* event.scheduledTime */ ));
+  event.waitUntil(fetchAccessToken(/* event.scheduledTime */));
 });
 
 addEventListener("fetch", (event) => {
@@ -52,6 +52,11 @@ const PATH_AUTH_STATES = Object.freeze({
 async function handleRequest(request) {
   let queryString, querySplited, requestPath;
   let abnormalWay = false;
+  const returnHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "max-age=3600",
+    "Content-Type": "application/json; charset=utf-8",
+  };
   if (request.url.includes("?")) {
     queryString = decodeURIComponent(request.url.split("?")[1]);
   } else if (request.url.split("/").pop().includes(".")) {
@@ -62,7 +67,7 @@ async function handleRequest(request) {
   if ((querySplited && querySplited[0] === "file") || abnormalWay) {
     const file = querySplited[1];
     const fileName = file.split("/").pop();
-    if (fileName === PASSWD_FILENAME)
+    if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase())
       return Response.redirect(
         "https://www.baidu.com/s?wd=%E6%80%8E%E6%A0%B7%E7%9B%97%E5%8F%96%E5%AF%86%E7%A0%81",
         301
@@ -70,10 +75,26 @@ async function handleRequest(request) {
     requestPath = file.replace("/" + fileName, "");
     const url = await fetchFiles(requestPath, fileName);
     return Response.redirect(url, 302);
+  } else if (querySplited && querySplited[0] === "upload") {
+    requestPath = querySplited[1];
+    const uploadAllow = await fetchFiles(requestPath, ".upload");
+    const fileList = await request.json();
+    const pwAttack = fileList["files"].some(file => file.remotePath.split("/").pop().toLowerCase() === PASSWD_FILENAME.toLowerCase());
+    if (uploadAllow && !pwAttack) {
+      const uploadLinks = await uploadFiles(fileList);
+      return new Response(uploadLinks, {
+        headers: returnHeaders,
+      });
+    }
+    return new Response(
+      JSON.stringify({ error: "Access forbidden" }),
+      {
+        status: 403,
+        headers: returnHeaders
+      }
+    );
   } else {
-    const {
-      headers
-    } = request;
+    const { headers } = request;
     const contentType = headers.get("content-type");
     const body = {};
     if (contentType && contentType.includes("form")) {
@@ -85,11 +106,7 @@ async function handleRequest(request) {
     requestPath = Object.getOwnPropertyNames(body).length ? body["?path"] : "";
     const files = await fetchFiles(requestPath, null, body.passwd);
     return new Response(files, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "max-age=3600",
-        "Content-Type": "application/json; charset=utf-8",
-      },
+      headers: returnHeaders,
     });
   }
 }
@@ -254,5 +271,30 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
       url: file["@microsoft.graph.downloadUrl"],
     })).filter(file => file.name !== PASSWD_FILENAME)
   });
+}
+
+async function uploadFiles(fileJsonList) {
+  let fileList = fileJsonList["files"];
+  const accessToken = await fetchAccessToken();
+  await Promise.all(
+    fileList.map(async (file) => {
+      const uri = \`\${OAUTH.apiUrl}:\${EXPOSE_PATH}\${file["remotePath"]}:/createUploadSession\`;
+      const headers = {
+        Authorization: "Bearer " + accessToken,
+      };
+      const uploadUrl = await fetch(uri, {
+        method: "POST",
+        headers: headers,
+      })
+        .then((response) => {
+          return response.json();
+        })
+        .then((data) => {
+          return data["uploadUrl"];
+        });
+      file.uploadUrl = uploadUrl;
+    })
+  );
+  return JSON.stringify({ files: fileList });
 }`;
 };

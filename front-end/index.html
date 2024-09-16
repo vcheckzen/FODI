@@ -1034,6 +1034,8 @@
                   return "text";
                 } else if (["torrent"].contains(suffix)) {
                   return "torrent";
+                } else if (["upload"].contains(suffix)) {
+                  return "upload";
                 } else if (
                   ["mp4", "avi", "mkv", "flv", "m3u8"].contains(suffix)
                 ) {
@@ -1226,6 +1228,23 @@
                   width: "100%",
                   torrentUrl: url,
                 });
+                break;
+              case "upload":
+                let upload = document.createElement("div");
+                upload.style.textAlign = "center";
+                upload.id = "uploadDiv";
+                upload.innerHTML = "";
+                upload.innerHTML += `
+                  <select
+                    onchange="document.getElementById('fileInput').webkitdirectory=this.value;"
+                  >
+                    <option value="">上传文件</option>
+                    <option value="1">上传文件夹</option>
+                  </select>
+                  <input type="file" id="fileInput" multiple="multiple" />
+                  <button onclick="uploadFiles()">上传</button>`;
+                content.innerHTML = "";
+                content.appendChild(upload);
                 break;
               case "video":
                 let video = document.createElement("div");
@@ -1520,6 +1539,99 @@
               }, 2000);
             }
           );
+        }
+      }
+
+      function uploadFiles() {
+        const pageSize = 20;
+        const fileInput = Array.from(
+          document.getElementById("fileInput").files
+        );
+        const odPath = document
+          .querySelector(".file-name")
+          .innerHTML.replace("/.upload", "");
+        const upFileList = fileInput.map((f) => ({
+          remotePath: `${odPath}/${f.webkitRelativePath || f.name}`,
+        }));
+
+        function paginate(array, size) {
+          const paginatedArray = [];
+          for (let i = 0; i < array.length; i += size) {
+            paginatedArray.push(array.slice(i, i + size));
+          }
+          return paginatedArray;
+        }
+
+        const paginatedUpFileList = paginate(upFileList, pageSize);
+        function sendPage(pageIndex = 0) {
+          if (pageIndex >= paginatedUpFileList.length) {
+            return;
+          }
+
+          const currentPage = paginatedUpFileList[pageIndex];
+          sendRequest(
+            window.api.method,
+            window.api.url + "?upload=" + odPath,
+            JSON.stringify({ files: currentPage }),
+            window.api.headers,
+            (response) => {
+              sendPage(pageIndex + 1);
+              const uploadLinks = JSON.parse(response).files;
+              uploadLinks.forEach(({ remotePath, uploadUrl }) => {
+                const fileToUpload = fileInput.find(
+                  (f) =>
+                    `${odPath}/${f.webkitRelativePath || f.name}` === remotePath
+                );
+                if (fileToUpload)
+                  uploadFileWithProgress(fileToUpload, uploadUrl);
+              });
+            }
+          );
+        }
+        sendPage(0);
+
+        function uploadFileWithProgress(file, uploadUrl) {
+          const xhr = new XMLHttpRequest();
+
+          const progressDiv = document.getElementById("uploadDiv");
+
+          const progressContainer = document.createElement("div");
+          progressContainer.className = "progress-container";
+          progressDiv.appendChild(progressContainer);
+
+          const progressText = document.createElement("div");
+          progressText.className = "progress-text";
+          progressContainer.appendChild(progressText);
+
+          xhr.upload.onprogress = function (event) {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round(
+                (event.loaded / event.total) * 100
+              );
+              const progressBar =
+                "[" +
+                "=".repeat(percentComplete / 5) +
+                " ".repeat(20 - percentComplete / 5) +
+                "]";
+              progressText.textContent = `${file.name}: ${progressBar} ${percentComplete}%`;
+            }
+          };
+
+          xhr.onload = function () {
+            if (xhr.status === 200 || 201) {
+              progressText.textContent += " Upload complete!";
+            } else {
+              progressText.innerHTML += " <mark>Upload failed!</mark>";
+            }
+          };
+
+          xhr.onerror = function () {
+            progressText.innerHTML +=
+              "<mark> An error occurred during the upload.</mark>";
+          };
+
+          xhr.open("PUT", uploadUrl);
+          xhr.send(file);
         }
       }
 
