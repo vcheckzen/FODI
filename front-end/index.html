@@ -1236,10 +1236,10 @@
                 upload.innerHTML = "";
                 upload.innerHTML += `
                   <select
-                    onchange="document.getElementById('fileInput').webkitdirectory=this.value;"
+                  onchange="document.getElementById('fileInput').webkitdirectory=this.value;"
                   >
-                    <option value="">上传文件</option>
-                    <option value="1">上传文件夹</option>
+                  <option value="">上传文件</option>
+                  <option value="1">上传文件夹</option>
                   </select>
                   <input type="file" id="fileInput" multiple="multiple" />
                   <button onclick="uploadFiles()">上传</button>`;
@@ -1563,6 +1563,7 @@
         }
 
         const paginatedUpFileList = paginate(upFileList, pageSize);
+
         function sendPage(pageIndex = 0) {
           if (pageIndex >= paginatedUpFileList.length) {
             return;
@@ -1590,48 +1591,106 @@
         }
         sendPage(0);
 
-        function uploadFileWithProgress(file, uploadUrl) {
-          const xhr = new XMLHttpRequest();
+        async function uploadFileWithProgress(file, uploadUrl) {
+          const chunkSize = 1024 * 1024 * 10;
+          const fileSize = file.size;
+          let uploadedBytes = 0;
+          let start = 0;
 
           const progressDiv = document.getElementById("uploadDiv");
-
-          const progressContainer = document.createElement("div");
-          progressContainer.className = "progress-container";
-          progressDiv.appendChild(progressContainer);
-
           const progressText = document.createElement("div");
-          progressText.className = "progress-text";
+          const progressContainer = document.createElement("div");
+          progressDiv.appendChild(progressContainer);
           progressContainer.appendChild(progressText);
 
-          xhr.upload.onprogress = function (event) {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round(
-                (event.loaded / event.total) * 100
-              );
-              const progressBar =
-                "[" +
-                "=".repeat(percentComplete / 5) +
-                " ".repeat(20 - percentComplete / 5) +
-                "]";
-              progressText.textContent = `${file.name}: ${progressBar} ${percentComplete}%`;
+          while (start < fileSize) {
+            try {
+              await uploadChunk(start);
+              start = Math.min(start + chunkSize, fileSize);
+            } catch (error) {
+              if (!(await handleUploadError(error))) {
+                progressText.innerHTML += " <mark>Upload failed!</mark>";
+                return;
+              }
             }
-          };
+          }
 
-          xhr.onload = function () {
-            if (xhr.status === 200 || 201) {
-              progressText.textContent += " Upload complete!";
-            } else {
-              progressText.innerHTML += " <mark>Upload failed!</mark>";
+          progressText.innerHTML += " Upload completed!";
+
+          async function uploadChunk(start) {
+            const xhr = new XMLHttpRequest();
+            const end = Math.min(start + chunkSize, fileSize);
+            const chunk = file.slice(start, end);
+
+            xhr.open("PUT", uploadUrl);
+            xhr.setRequestHeader(
+              "Content-Range",
+              `bytes ${start}-${end - 1}/${fileSize}`
+            );
+
+            return new Promise((resolve, reject) => {
+              xhr.onloadend = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  uploadedBytes = end;
+                  updateTotalProgress();
+                  resolve(xhr.status);
+                } else {
+                  reject(xhr.status);
+                }
+              };
+
+              xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                  uploadedBytes = start + event.loaded;
+                  updateTotalProgress();
+                }
+              };
+
+              xhr.send(chunk);
+            });
+          }
+
+          async function handleUploadError(error) {
+            let retryCount = 10,
+              delayTime = 1;
+            while (retryCount > 0) {
+              retryCount--;
+              if (error === 416) {
+                await new Promise((resolve) =>
+                  sendRequest("GET", uploadUrl, null, null, (data) => {
+                    start = parseInt(
+                      JSON.parse(data).nextExpectedRanges[0].split("-")[0]
+                    );
+                    resolve();
+                  })
+                );
+                return true;
+              } else {
+                await new Promise((resolve) =>
+                  setTimeout(resolve, Math.min((delayTime *= 2) * 1000, 32000))
+                );
+                try {
+                  await uploadChunk(start);
+                  return true;
+                } catch (err) {
+                  error = err;
+                }
+              }
             }
-          };
+            return false;
+          }
 
-          xhr.onerror = function () {
-            progressText.innerHTML +=
-              "<mark> An error occurred during the upload.</mark>";
-          };
-
-          xhr.open("PUT", uploadUrl);
-          xhr.send(file);
+          function updateTotalProgress() {
+            const percentComplete = Math.round(
+              (uploadedBytes / fileSize) * 100
+            );
+            const progressBar =
+              "[" +
+              "=".repeat(percentComplete / 5) +
+              " ".repeat(20 - percentComplete / 5) +
+              "]";
+            progressText.textContent = `${file.name}: ${progressBar} ${percentComplete}%`;
+          }
         }
       }
 
