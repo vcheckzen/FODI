@@ -1,13 +1,14 @@
-import React, {useRef, useState} from 'react';
-import {Button, Select, Input, Alert, Spin, message} from 'antd';
-import {LoadingOutlined} from '@ant-design/icons';
+import React, { useRef, useState } from 'react';
+import { Button, Select, Input, Alert, Spin, message } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
 
 import './App.css';
-import {generateCode} from "./util";
+import { generateCode } from './util';
 
 const defaultConfig = {
   replayURL: 'http://localhost/onedrive-login',
-  publicParams: '&scope=offline_access%20User.Read%20Files.ReadWrite.All&response_type=code',
+  publicParams:
+    '&scope=offline_access%20User.Read%20Files.ReadWrite.All&response_type=code',
   version: {
     cn: {
       api: 'https://login.partner.microsoftonline.cn',
@@ -20,14 +21,14 @@ const defaultConfig = {
       restApi: 'https://graph.microsoft.com',
       clientID: '78d4dc35-7e46-42c6-9023-2d39314433a5',
       clientSecret: 'ZudGl-p.m=LMmr3VrKgAyOf-WevB3p50',
-    }
+    },
   },
   reverseProxyURL: 'https://www.reverseproxy.com',
 };
 
 function App() {
-  const {Option} = Select;
-  const antIcon = <LoadingOutlined spin/>;
+  const { Option } = Select;
+  const antIcon = <LoadingOutlined spin />;
 
   const [version, setVersion] = useState();
   const [replayURL, setReplayURL] = useState();
@@ -42,7 +43,6 @@ function App() {
   const [error, setError] = useState();
   const [loading, setLoading] = useState();
   const textAreaRef = useRef();
-
 
   const changeVersion = (v) => {
     if (v === 'select') {
@@ -65,7 +65,7 @@ function App() {
     const config = defaultConfig.version[version];
     window.open(
       `${config.api}/common/oauth2/v2.0/authorize?client_id=` +
-      `${clientID}${defaultConfig.publicParams}&redirect_uri=${replayURL}`
+        `${clientID}${defaultConfig.publicParams}&redirect_uri=${replayURL}`
     );
   };
 
@@ -82,32 +82,35 @@ function App() {
     setLoading(true);
 
     const headers = new Headers();
-    headers.append("Content-Type", "application/x-www-form-urlencoded");
+    headers.append('Content-Type', 'application/x-www-form-urlencoded');
 
     const urlencoded = new URLSearchParams();
-    urlencoded.append("client_id", clientID);
-    urlencoded.append("redirect_uri", replayURL);
-    urlencoded.append("client_secret", clientSecret);
-    urlencoded.append("code", code);
-    urlencoded.append("grant_type", "authorization_code");
+    urlencoded.append('client_id', clientID);
+    urlencoded.append('redirect_uri', replayURL);
+    urlencoded.append('client_secret', clientSecret);
+    urlencoded.append('code', code);
+    urlencoded.append('grant_type', 'authorization_code');
 
     const requestOptions = {
       method: 'POST',
       headers: headers,
       body: urlencoded,
-      redirect: 'follow'
+      redirect: 'follow',
     };
 
-    fetch(`${defaultConfig.reverseProxyURL}?url=${defaultConfig.version[version].api}/common/oauth2/v2.0/token`
-      , requestOptions)
-      .then(response => response.json())
-      .then(data => {
+    fetch(
+      `${defaultConfig.reverseProxyURL}?url=${defaultConfig.version[version].api}/common/oauth2/v2.0/token`,
+      requestOptions
+    )
+      .then((response) => response.json())
+      .then((data) => {
         console.log(data);
         setLoading(null);
         if ('error' in data) {
           setError(data.error_description);
         } else {
-          setCode(generateCode(
+          generateCode(
+            defaultConfig.reverseProxyURL,
             defaultConfig.version[version].api,
             defaultConfig.version[version].restApi,
             clientID,
@@ -117,11 +120,13 @@ function App() {
             exposedPath || '',
             passwordFilename || '.password',
             protectedLayers || '-1',
-            exposePw || '',
-          ))
+            exposePw || ''
+          )
+            .then((code) => setCode(code))
+            .catch((err) => setError(err.message));
         }
       })
-      .catch(error => {
+      .catch((error) => {
         setLoading(null);
         setError(error);
       });
@@ -132,25 +137,24 @@ function App() {
     textAreaRef.current.select();
     document.execCommand('copy');
     e.target.focus();
-    message.success('复制成功')
+    message.success('复制成功');
   };
 
   return (
     <div className="main">
-
-      {loading && <Spin className="progress" indicator={antIcon}/>}
-      {error && <Alert
-        message="Error"
-        description={error}
-        type="error"
-        showIcon
-        closable
-      />}
+      {loading && <Spin className="progress" indicator={antIcon} />}
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          closable
+        />
+      )}
 
       <div>
-        <div className="header">
-          FODI DEPLOYMENT HELPER
-        </div>
+        <div className="header">FODI DEPLOYMENT HELPER</div>
 
         <div className="content">
           <div className="steps">
@@ -235,8 +239,11 @@ function App() {
       </div>
 
       <div className="code">
-          <textarea value={code} ref={textAreaRef} onChange={(e) => setCode(e.target.value)}>
-          </textarea>
+        <textarea
+          value={code}
+          ref={textAreaRef}
+          onChange={(e) => setCode(e.target.value)}
+        ></textarea>
       </div>
       <div className="footer">FODI © {new Date().getFullYear()} </div>
     </div>
