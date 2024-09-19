@@ -1190,9 +1190,12 @@
               },
             };
 
-            const suffix = path.split('.').pop();
-            let content = document.querySelector('.content');
+            const name = path.split('/').pop();
+            const suffix = name.includes('.')
+              ? name.split('.').pop()
+              : '__no_suffix__';
 
+            let content = document.querySelector('.content');
             content.appendChild(
               document
                 .getElementById('loading-wrapper-templete')
