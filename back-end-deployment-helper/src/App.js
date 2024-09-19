@@ -141,15 +141,17 @@ function App() {
   };
 
   return (
-    <div className="main">
+    <div className={`main ${error && 'with-error'}`}>
       {loading && <Spin className="progress" indicator={antIcon} />}
       {error && (
         <Alert
+          className="alert"
           message="Error"
           description={error}
           type="error"
           showIcon
           closable
+          onClose={(_) => setError(null)}
         />
       )}
 

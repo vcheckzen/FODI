@@ -10,6 +10,10 @@
     row-gap: 5px;
 }
 
+.main.with-error {
+    grid-template-rows: 0.1fr 1fr 2fr 50px;
+}
+
 .progress {
     position: fixed;
     top: 30%;
@@ -20,6 +24,10 @@
 
 .progress span {
     font-size: 70px;
+}
+
+.alert {
+    margin-bottom: -5px;
 }
 
 .header {
