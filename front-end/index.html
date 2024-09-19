@@ -7,8 +7,8 @@
        * SITE_NAME：站点名称
        */
       window.GLOBAL_CONFIG = {
-        SCF_GATEWAY: "//tight-bar-e3b3.logi.workers.dev",
-        SITE_NAME: "FODI",
+        SCF_GATEWAY: '//tight-bar-e3b3.logi.workers.dev',
+        SITE_NAME: 'FODI',
         IS_CF: true,
       };
       // if (window.GLOBAL_CONFIG.SCF_GATEWAY.indexOf("workers") === -1) {
@@ -68,7 +68,7 @@
         transform: scale(1.1);
       }
       .sk-folding-cube .sk-cube:before {
-        content: "";
+        content: '';
         position: absolute;
         top: 0;
         left: 0;
@@ -147,15 +147,41 @@
         }
       }
 
-      .password-wrapper {
+      html *[data-hidden='1'] {
+        display: none;
+      }
+
+      .dplayer {
+        aspect-ratio: 16 / 9;
+      }
+
+      .list-header .upload-entry-wrapper {
+        padding: 0;
+      }
+
+      .upload-entry-btn {
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        border: none;
+        outline: none;
+        background: white;
+        cursor: pointer;
+      }
+
+      .password-wrapper,
+      .file-upload-chooser {
         display: flex;
         align-items: center;
+        justify-content: center;
+        column-gap: 0.6em;
+        margin-top: 1em;
       }
 
       .password {
         margin: 0 auto;
-        padding-top: 1em;
-        display: none;
+        /* margin-top: 1em; */
+        /* display: none; */
       }
 
       .password input {
@@ -164,16 +190,51 @@
         border: solid rgb(218, 215, 215) 1px;
       }
 
-      .password button {
+      .password button,
+      .file-upload-chooser button,
+      .file-upload-chooser select,
+      .file-upload-label {
         background: white;
         height: 2em;
         outline: none;
         border: solid rgb(218, 215, 215) 1px;
       }
 
-      .password button:hover {
+      .password button:hover,
+      .upload-entry-btn:hover,
+      .file-upload-chooser button:hover,
+      .file-upload-label:hover {
         color: white;
         background: rgb(218, 215, 215);
+      }
+
+      .file-upload-wrapper {
+        /* display: none; */
+        font-size: 0.8em;
+        padding: 0 1em;
+      }
+
+      .file-upload-input {
+        display: none;
+      }
+
+      .file-upload-label {
+        display: inline-block;
+        line-height: 2em;
+      }
+
+      .file-upload-name {
+        white-space: nowrap;
+        overflow: hidden;
+        width: 10em;
+        text-align: center;
+      }
+
+      .file-upload-progress {
+        margin-top: 1em;
+        padding: 1em;
+        background-color: rgb(245, 245, 245);
+        display: none;
       }
 
       pre * {
@@ -181,14 +242,16 @@
       }
 
       .preview {
-        display: none;
+        /* display: none; */
         font-size: 0.8em;
+        height: 100%;
       }
 
       .content {
         clear: both;
         padding: 0 1em;
         margin: 0 auto;
+        height: calc(100% - 11em);
         /* text-align: center; */
       }
 
@@ -516,9 +579,9 @@
     <script>
       function createCORSRequest(method, url, timeout) {
         let xhr = new XMLHttpRequest();
-        if ("withCredentials" in xhr) {
+        if ('withCredentials' in xhr) {
           xhr.open(method, url, true);
-        } else if (typeof XDomainRequest !== "undefined") {
+        } else if (typeof XDomainRequest !== 'undefined') {
           xhr = new XDomainRequest();
           xhr.open(method, url);
         } else {
@@ -548,7 +611,7 @@
           });
           if (times < 1) {
             sendRequest(method, url, data, headers, callback, error, times + 1);
-          } else if (typeof error === "function") {
+          } else if (typeof error === 'function') {
             error();
           }
         };
@@ -584,34 +647,34 @@
           }
           renderTreeNode(files);
         }
-        if (document.body.getAttribute("hidden")) {
-          document.body.removeAttribute("hidden");
+        if (document.body.getAttribute('hidden')) {
+          document.body.removeAttribute('hidden');
         }
-        document.querySelector(".loading-wrapper").style.display = "none";
+        document.querySelector('.loading-wrapper').style.display = 'none';
       }
 
       function renderPath(path) {
         const createPathSpan = (text, path) => {
-          let pathSpan = document.createElement("span");
+          let pathSpan = document.createElement('span');
           pathSpan.innerHTML =
-            text.length > 20 ? text.substring(0, 20) + ".." : text;
-          pathSpan.className = text === "/" ? "nav-arr" : "nav-path";
+            text.length > 20 ? text.substring(0, 20) + '..' : text;
+          pathSpan.className = text === '/' ? 'nav-arr' : 'nav-path';
           if (path) {
             addPathListener(pathSpan, path);
           }
           return pathSpan;
         };
 
-        const paths = path.split("/");
-        let pathSpanWrapper = document.getElementById("path");
-        pathSpanWrapper.innerHTML = "";
+        const paths = path.split('/');
+        let pathSpanWrapper = document.getElementById('path');
+        pathSpanWrapper.innerHTML = '';
         pathSpanWrapper.appendChild(createPathSpan(window.api.root));
-        let continualPath = "/";
+        let continualPath = '/';
         for (let i = 1; i < paths.length - 1; i++) {
           continualPath += paths[i];
           pathSpanWrapper.appendChild(createPathSpan(paths[i], continualPath));
-          pathSpanWrapper.appendChild(createPathSpan("/"));
-          continualPath += "/";
+          pathSpanWrapper.appendChild(createPathSpan('/'));
+          continualPath += '/';
         }
         pathSpanWrapper.appendChild(createPathSpan(paths[paths.length - 1]));
       }
@@ -621,14 +684,14 @@
 
         const createFileWrapper = (type, name, time, size, path, url) => {
           let fileWrapper = document
-            .getElementById("file-wrapper-templete")
+            .getElementById('file-wrapper-templete')
             .content.cloneNode(true);
-          fileWrapper.querySelector("ion-icon").setAttribute("name", type);
-          fileWrapper.querySelector(".name").innerHTML = name;
-          fileWrapper.querySelector(".time").innerHTML = time;
-          fileWrapper.querySelector(".size").innerHTML = size;
+          fileWrapper.querySelector('ion-icon').setAttribute('name', type);
+          fileWrapper.querySelector('.name').innerHTML = name;
+          fileWrapper.querySelector('.time').innerHTML = time;
+          fileWrapper.querySelector('.size').innerHTML = size;
           addFileListLineListener(
-            fileWrapper.querySelector(".row.file-wrapper"),
+            fileWrapper.querySelector('.row.file-wrapper'),
             path,
             url,
             size
@@ -637,7 +700,7 @@
         };
 
         const formatDate = (date) => {
-          const addZero = (num) => (num > 9 ? num : "0" + num);
+          const addZero = (num) => (num > 9 ? num : '0' + num);
           date = new Date(date);
           const year = date.getFullYear();
           const month = addZero(date.getMonth() + 1);
@@ -645,13 +708,13 @@
           const hour = addZero(date.getHours());
           const minute = addZero(date.getMinutes());
           const second = addZero(date.getSeconds());
-          return "yyyy-MM-dd HH:mm:ss"
-            .replace("yyyy", year)
-            .replace("MM", month)
-            .replace("dd", day)
-            .replace("HH", hour)
-            .replace("mm", minute)
-            .replace("ss", second);
+          return 'yyyy-MM-dd HH:mm:ss'
+            .replace('yyyy', year)
+            .replace('MM', month)
+            .replace('dd', day)
+            .replace('HH', hour)
+            .replace('mm', minute)
+            .replace('ss', second);
         };
 
         const formatSize = (size) => {
@@ -663,46 +726,66 @@
           size = size.toFixed(2);
           switch (count) {
             case 1:
-              size += " KB";
+              size += ' KB';
               break;
             case 2:
-              size += " MB";
+              size += ' MB';
               break;
             case 3:
-              size += " GB";
+              size += ' GB';
               break;
             case 4:
-              size += " TB";
+              size += ' TB';
               break;
             case 5:
-              size += " PB";
+              size += ' PB';
               break;
             default:
-              size += " B";
+              size += ' B';
           }
           return size;
         };
 
-        let fileList = document.getElementById("file-list");
-        fileList.innerHTML = "";
+        let fileList = document.getElementById('file-list');
+        fileList.innerHTML = '';
         files.files.forEach((file) => {
-          if (file.name.split(".").pop() === "md") {
+          if (file.name.split('.').pop() === 'md') {
             if (file.url) {
               renderMarkdown(
-                files.parent + (files.parent === "/" ? "" : "/") + file.name,
+                files.parent + (files.parent === '/' ? '' : '/') + file.name,
                 file.url
               );
             }
           }
-          if (file.name !== "README.md") {
-            const parent = files.parent === window.api.root ? "" : files.parent;
+          if (file.name === '.upload') {
+            const entryWrapper = document.querySelector(
+              '.upload-entry-wrapper'
+            );
+            if (entryWrapper) {
+              entryWrapper.dataset.hidden = '0';
+              return;
+            }
+
+            const listHeader = document.querySelector('.list-header');
+            const row = listHeader.firstElementChild;
+            const uploadEntry = row.cloneNode(false);
+            uploadEntry.classList.add('upload-entry-wrapper');
+            uploadEntry.innerHTML = `<button class="upload-entry-btn">在此上传文件</button>`;
+            uploadEntry
+              .querySelector('button')
+              .addEventListener('click', () => {
+                switchRightDisplay('upload');
+              });
+            listHeader.insertBefore(uploadEntry, row);
+          } else if (file.name !== 'README.md') {
+            const parent = files.parent === window.api.root ? '' : files.parent;
             fileList.appendChild(
               createFileWrapper(
-                file.url ? "document" : "folder",
+                file.url ? 'document' : 'folder',
                 file.name,
                 formatDate(file.time),
                 formatSize(file.size),
-                parent + "/" + file.name,
+                parent + '/' + file.name,
                 file.url
               )
             );
@@ -713,33 +796,33 @@
       async function renderTreeNode(files) {
         const createTreeNodeWrapper = (array, type, name, path) => {
           let treeNodeWrapper = document
-            .getElementById("tree-node-wrapper-template")
+            .getElementById('tree-node-wrapper-template')
             .content.cloneNode(true);
-          let icons = treeNodeWrapper.querySelectorAll("ion-icon");
-          icons[0].setAttribute("name", array);
-          icons[1].setAttribute("name", type);
-          treeNodeWrapper.querySelector(".tree-node-name").innerText = name;
+          let icons = treeNodeWrapper.querySelectorAll('ion-icon');
+          icons[0].setAttribute('name', array);
+          icons[1].setAttribute('name', type);
+          treeNodeWrapper.querySelector('.tree-node-name').innerText = name;
           treeNodeWrapper.appendNode = (node) =>
-            treeNodeWrapper.querySelector(".tree-node-wrapper").append(node);
+            treeNodeWrapper.querySelector('.tree-node-wrapper').append(node);
           addTreeNodeListener(
-            treeNodeWrapper.querySelector(".tree-node"),
+            treeNodeWrapper.querySelector('.tree-node'),
             path
           );
           return treeNodeWrapper;
         };
 
-        const paths = files.parent.split("/");
+        const paths = files.parent.split('/');
         let absolutePath = (max) => {
-          let absolutePath = "";
+          let absolutePath = '';
           for (let j = 1; j <= max; j++) {
-            absolutePath += "/" + paths[j];
+            absolutePath += '/' + paths[j];
           }
           return absolutePath;
         };
         let maxIndex = paths.length - 1;
         let currentTreeNode = createTreeNodeWrapper(
-          "arrow-dropdown",
-          "folder-open",
+          'arrow-dropdown',
+          'folder-open',
           paths[maxIndex],
           absolutePath(maxIndex)
         );
@@ -747,10 +830,10 @@
           if (!file.url) {
             currentTreeNode.appendNode(
               createTreeNodeWrapper(
-                "arrow-dropright",
-                "folder",
+                'arrow-dropright',
+                'folder',
                 file.name,
-                files.parent + "/" + file.name
+                files.parent + '/' + file.name
               )
             );
           }
@@ -759,8 +842,8 @@
         for (let i = maxIndex - 1; i > 0; i--) {
           const currentTreeNodeParentAbsolutePath = absolutePath(i);
           let currentTreeNodeParent = createTreeNodeWrapper(
-            "arrow-dropdown",
-            "folder",
+            'arrow-dropdown',
+            'folder',
             paths[i],
             currentTreeNodeParentAbsolutePath
           );
@@ -773,10 +856,10 @@
                 } else {
                   currentTreeNodeParent.appendNode(
                     createTreeNodeWrapper(
-                      "arrow-dropright",
-                      "folder",
+                      'arrow-dropright',
+                      'folder',
                       file.name,
-                      currentTreeNodeParentAbsolutePath + "/" + file.name
+                      currentTreeNodeParentAbsolutePath + '/' + file.name
                     )
                   );
                 }
@@ -788,11 +871,11 @@
           currentTreeNode = currentTreeNodeParent;
         }
 
-        const treeRoot = document.getElementById("tree-root");
-        treeRoot.innerHTML = "";
+        const treeRoot = document.getElementById('tree-root');
+        treeRoot.innerHTML = '';
         const cache = window.fileCache.get(window.api.root);
         const currentNodeName =
-          currentTreeNode.querySelector(".tree-node-name").innerText;
+          currentTreeNode.querySelector('.tree-node-name').innerText;
         if (cache) {
           cache.files.forEach((file) => {
             if (!file.url) {
@@ -801,8 +884,8 @@
               } else {
                 treeRoot.append(
                   createTreeNodeWrapper(
-                    "arrow-dropright",
-                    "folder",
+                    'arrow-dropright',
+                    'folder',
                     file.name,
                     window.api.root + file.name
                   )
@@ -829,26 +912,26 @@
             markedText = marked(text, {
               gfm: true,
               highlight: (code, lang, callback) => {
-                return hljs.highlight("bash", code).value;
+                return hljs.highlight('bash', code).value;
               },
             });
           }
           if (
             window.backFordwardCache.current +
-              (window.backFordwardCache.current === "/" ? "" : "/") +
-              "README.md" ===
+              (window.backFordwardCache.current === '/' ? '' : '/') +
+              'README.md' ===
             path
           ) {
             if (!window.backFordwardCache.preview) {
-              document.getElementById("readme").innerHTML = markedText;
-              document.querySelector(".markdown-body").style.display = "block";
+              document.getElementById('readme').innerHTML = markedText;
+              // document.querySelector('.markdown-body').style.display = 'block';
             }
           } else if (window.backFordwardCache.preview) {
-            const markdownBody = document.createElement("div");
-            markdownBody.classList.add("markdown-body");
+            const markdownBody = document.createElement('div');
+            markdownBody.classList.add('markdown-body');
             markdownBody.innerHTML = markedText;
-            const content = document.querySelector(".content");
-            content.innerHTML = "";
+            const content = document.querySelector('.content');
+            content.innerHTML = '';
             content.appendChild(markdownBody);
           }
           let cache = window.fileCache.get(path);
@@ -859,19 +942,19 @@
 
         if (
           window.backFordwardCache.current +
-            (window.backFordwardCache.current === "/" ? "" : "/") +
-            "README.md" ===
+            (window.backFordwardCache.current === '/' ? '' : '/') +
+            'README.md' ===
           path
         ) {
-          const readme = document.getElementById("readme");
-          if (!readme.querySelector(".sk-folding-cube")) {
-            readme.innerHTML = "";
+          const readme = document.getElementById('readme');
+          if (!readme.querySelector('.sk-folding-cube')) {
+            readme.innerHTML = '';
             readme.appendChild(
               document
-                .getElementById("loading-wrapper-templete")
+                .getElementById('loading-wrapper-templete')
                 .content.cloneNode(true)
             );
-            document.querySelector(".markdown-body").style.display = "block";
+            // document.querySelector('.markdown-body').style.display = 'block';
           }
         }
 
@@ -892,7 +975,7 @@
         } else {
           window.fileCache.set(path, true);
           sendRequest(
-            "GET",
+            'GET',
             url,
             null,
             null,
@@ -903,21 +986,21 @@
       }
 
       function handleEncryptedFolder(files) {
-        switchRightDisplay("encrypted");
-        const password = document.querySelector(".password");
-        const input = password.querySelector("input");
-        const button = password.querySelector("button");
+        switchRightDisplay('encrypted');
+        const password = document.querySelector('.password');
+        const input = password.querySelector('input');
+        const button = password.querySelector('button');
         const buttonParent = button.parentElement;
         const buttonClone = button.cloneNode(true);
         buttonParent.replaceChild(buttonClone, button);
-        input.placeholder = "请输入密码";
-        buttonClone.addEventListener("click", (event) => {
+        input.placeholder = '请输入密码';
+        buttonClone.addEventListener('click', (event) => {
           const passwd = input.value;
           if (!input.value) {
             return;
           }
-          input.value = "";
-          input.placeholder = "正在验证..";
+          input.value = '';
+          input.placeholder = '正在验证..';
           sendRequest(
             window.api.method,
             window.api.url,
@@ -926,7 +1009,7 @@
             (data) => {
               const newFiles = JSON.parse(data);
               if (newFiles.encrypted) {
-                input.placeholder = "密码错误";
+                input.placeholder = '密码错误';
               } else {
                 window.fileCache.set(newFiles.parent, newFiles);
                 fetchFileList(newFiles.parent);
@@ -938,14 +1021,14 @@
       }
 
       function addPathListener(elem, path) {
-        elem.addEventListener("click", (event) => {
+        elem.addEventListener('click', (event) => {
           fetchFileList(path);
           switchBackForwardStatus(path);
         });
       }
 
       function addTreeNodeListener(elem, path) {
-        elem.addEventListener("click", (event) => {
+        elem.addEventListener('click', (event) => {
           fetchFileList(path);
           switchBackForwardStatus(path);
         });
@@ -953,13 +1036,13 @@
 
       function addFileListLineListener(elem, path, url, size) {
         if (url) {
-          elem.addEventListener("click", (event) => {
+          elem.addEventListener('click', (event) => {
             window.backFordwardCache.preview = true;
             const previewHandler = {
               copyTextContent: (source, text) => {
                 let result = false;
-                let target = document.createElement("pre");
-                target.style.opacity = "0";
+                let target = document.createElement('pre');
+                target.style.opacity = '0';
                 target.textContent = text || source.textContent;
                 document.body.appendChild(target);
                 try {
@@ -967,7 +1050,7 @@
                   range.selectNode(target);
                   window.getSelection().removeAllRanges();
                   window.getSelection().addRange(range);
-                  document.execCommand("copy");
+                  document.execCommand('copy');
                   window.getSelection().removeAllRanges();
                   result = true;
                 } catch (e) {}
@@ -979,82 +1062,82 @@
                   const object = this;
                   for (const key in object) {
                     if (object.hasOwnProperty(key)) {
-                      if (eval("/^" + search + "$/i").test(object[key])) {
+                      if (eval('/^' + search + '$/i').test(object[key])) {
                         return true;
                       }
                     }
                   }
                   return false;
                 };
-                if (["mp3", "flac", "wav"].contains(suffix)) {
-                  return "audio";
+                if (['mp3', 'flac', 'wav'].contains(suffix)) {
+                  return 'audio';
                 } else if (
-                  ["bmp", "jpg", "png", "svg", "webp", "gif"].contains(suffix)
+                  ['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].contains(suffix)
                 ) {
-                  return "image";
-                } else if (["md"].contains(suffix)) {
-                  return "markdown";
-                } else if (
-                  [
-                    "doc",
-                    "docx",
-                    "ppt",
-                    "pptx",
-                    "xls",
-                    "xlsx",
-                    "mpp",
-                    "rtf",
-                    "vsd",
-                    "vsdx",
-                  ].contains(suffix)
-                ) {
-                  return "office";
-                } else if (["pdf"].contains(suffix)) {
-                  return "pdf";
+                  return 'image';
+                } else if (['md'].contains(suffix)) {
+                  return 'markdown';
                 } else if (
                   [
-                    "txt",
-                    "js",
-                    "json",
-                    "css",
-                    "html",
-                    "java",
-                    "c",
-                    "cpp",
-                    "php",
-                    "cmd",
-                    "ps1",
-                    "bat",
-                    "sh",
-                    "py",
-                    "go",
-                    "asp",
+                    'doc',
+                    'docx',
+                    'ppt',
+                    'pptx',
+                    'xls',
+                    'xlsx',
+                    'mpp',
+                    'rtf',
+                    'vsd',
+                    'vsdx',
                   ].contains(suffix)
                 ) {
-                  return "text";
-                } else if (["torrent"].contains(suffix)) {
-                  return "torrent";
-                } else if (["upload"].contains(suffix)) {
-                  return "upload";
+                  return 'office';
+                } else if (['pdf'].contains(suffix)) {
+                  return 'pdf';
                 } else if (
-                  ["mp4", "avi", "mkv", "flv", "m3u8"].contains(suffix)
+                  [
+                    'txt',
+                    'js',
+                    'json',
+                    'css',
+                    'html',
+                    'java',
+                    'c',
+                    'cpp',
+                    'php',
+                    'cmd',
+                    'ps1',
+                    'bat',
+                    'sh',
+                    'py',
+                    'go',
+                    'asp',
+                  ].contains(suffix)
                 ) {
-                  return "video";
+                  return 'text';
+                } else if (['torrent'].contains(suffix)) {
+                  return 'torrent';
+                } else if (['upload'].contains(suffix)) {
+                  return 'upload';
+                } else if (
+                  ['mp4', 'avi', 'mkv', 'flv', 'm3u8'].contains(suffix)
+                ) {
+                  return 'video';
                 }
               },
               loadResource: (resource, callback) => {
                 let type;
-                switch (resource.split(".").pop()) {
-                  case "css":
-                    type = "link";
+                switch (resource.split('.').pop()) {
+                  case 'css':
+                    type = 'link';
                     break;
-                  case "js":
-                    type = "script";
+                  case 'js':
+                    type = 'script';
                     break;
                 }
                 let element = document.createElement(type);
                 let loaded = false;
-                if (typeof callback === "function") {
+                if (typeof callback === 'function') {
                   element.onload = element.onreadystatechange = () => {
                     if (
                       !loaded &&
@@ -1067,22 +1150,22 @@
                     }
                   };
                 }
-                if (type === "link") {
+                if (type === 'link') {
                   element.href = resource;
-                  element.rel = "stylesheet";
+                  element.rel = 'stylesheet';
                 } else {
                   element.src = resource;
                 }
-                document.getElementsByTagName("head")[0].appendChild(element);
+                document.getElementsByTagName('head')[0].appendChild(element);
               },
 
               createDplayer: (video, type, elem) => {
-                const host = "//lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M";
+                const host = '//lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M';
                 const resources = [
-                  "/dplayer/1.25.0/DPlayer.min.css",
-                  "/dplayer/1.26.0/DPlayer.min.js",
-                  "/hls.js/1.1.5/hls.light.min.js",
-                  "/flv.js/1.6.2/flv.min.js",
+                  '/dplayer/1.25.0/DPlayer.min.css',
+                  '/dplayer/1.26.0/DPlayer.min.js',
+                  '/hls.js/1.1.5/hls.light.min.js',
+                  '/flv.js/1.6.2/flv.min.js',
                 ];
                 let unloadedResourceCount = resources.length;
                 resources.forEach((resource) => {
@@ -1091,10 +1174,10 @@
                       let option = {
                         url: video,
                       };
-                      if (type === "flv") {
-                        option.type = "flv";
-                      } else if (type === "m3u8") {
-                        option.type = "hls";
+                      if (type === 'flv') {
+                        option.type = 'flv';
+                      } else if (type === 'm3u8') {
+                        option.type = 'hls';
                       }
                       new DPlayer({
                         container: elem,
@@ -1107,183 +1190,166 @@
               },
             };
 
-            const suffix = path.split(".").pop();
-            let content = document.querySelector(".content");
+            const suffix = path.split('.').pop();
+            let content = document.querySelector('.content');
 
             content.appendChild(
               document
-                .getElementById("loading-wrapper-templete")
+                .getElementById('loading-wrapper-templete')
                 .content.cloneNode(true)
             );
 
             let contentType = previewHandler.fileType(suffix);
             switch (contentType) {
-              case "audio":
+              case 'audio':
                 let audio = new Audio();
-                audio.style.outline = "none";
-                audio.preload = "auto";
-                audio.controls = "controls";
-                audio.style.width = "100%";
+                audio.style.outline = 'none';
+                audio.preload = 'auto';
+                audio.controls = 'controls';
+                audio.style.width = '100%';
                 audio.src = url;
-                content.innerHTML = "";
+                content.innerHTML = '';
                 content.append(audio);
                 break;
-              case "image":
+              case 'image':
                 let img = new Image();
-                img.style.maxWidth = "100%";
+                img.style.maxWidth = '100%';
                 img.src = url;
-                let fancy = document.createElement("a");
-                fancy.setAttribute("data-fancybox", "image");
+                let fancy = document.createElement('a');
+                fancy.setAttribute('data-fancybox', 'image');
                 fancy.href = img.src;
                 fancy.append(img);
-                content.innerHTML = "";
+                content.innerHTML = '';
                 content.append(fancy);
                 break;
-              case "markdown":
+              case 'markdown':
                 renderMarkdown(path, url);
                 break;
-              case "office":
+              case 'office':
                 const officeOnline =
-                  "//view.officeapps.live.com/op/view.aspx?src=" +
+                  '//view.officeapps.live.com/op/view.aspx?src=' +
                   encodeURIComponent(url);
-                let div = document.createElement("div");
-                div.style.lineHeight = "2em";
-                div.style.background = "rgba(218, 215, 215, 0.21)";
-                div.style.webkitTapHighlightColor = "rgba(0, 0, 0, 0)";
-                div.style.cursor = "pointer";
-                div.style.textAlign = "center";
-                div.innerHTML = "新窗口打开";
-                div.addEventListener("click", () => window.open(officeOnline));
-                content.innerHTML = "";
+                let div = document.createElement('div');
+                div.style.lineHeight = '2em';
+                div.style.background = 'rgba(218, 215, 215, 0.21)';
+                div.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+                div.style.cursor = 'pointer';
+                div.style.textAlign = 'center';
+                div.innerHTML = '新窗口打开';
+                div.addEventListener('click', () => window.open(officeOnline));
+                content.innerHTML = '';
                 content.appendChild(div);
                 if (document.body.clientWidth >= 480) {
-                  let iframe = document.createElement("iframe");
-                  iframe.width = "100%";
-                  iframe.style.height = "41em";
-                  iframe.style.border = "0";
+                  let iframe = document.createElement('iframe');
+                  iframe.width = '100%';
+                  iframe.style.height = '100%';
+                  iframe.style.border = '0';
                   iframe.src = officeOnline;
                   content.appendChild(iframe);
                 }
                 break;
-              case "pdf":
+              case 'pdf':
                 const pdfOnline =
                   // "pdfjs/web/viewer.html?file=" +
-                  "//mozilla.github.io/pdf.js/web/viewer.html?file=" +
+                  '//mozilla.github.io/pdf.js/web/viewer.html?file=' +
                   encodeURIComponent(url);
-                let pdfDiv = document.createElement("div");
-                pdfDiv.style.lineHeight = "2em";
-                pdfDiv.style.background = "rgba(218, 215, 215, 0.21)";
-                pdfDiv.style.webkitTapHighlightColor = "rgba(0, 0, 0, 0)";
-                pdfDiv.style.cursor = "pointer";
-                pdfDiv.style.textAlign = "center";
-                pdfDiv.innerHTML = "新窗口打开";
-                pdfDiv.addEventListener("click", () => window.open(pdfOnline));
-                content.innerHTML = "";
+                let pdfDiv = document.createElement('div');
+                pdfDiv.style.lineHeight = '2em';
+                pdfDiv.style.background = 'rgba(218, 215, 215, 0.21)';
+                pdfDiv.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+                pdfDiv.style.cursor = 'pointer';
+                pdfDiv.style.textAlign = 'center';
+                pdfDiv.innerHTML = '新窗口打开';
+                pdfDiv.addEventListener('click', () => window.open(pdfOnline));
+                content.innerHTML = '';
                 content.appendChild(pdfDiv);
                 if (document.body.clientWidth >= 480) {
-                  let pdfIframe = document.createElement("iframe");
-                  pdfIframe.width = "100%";
-                  pdfIframe.style.height = "41em";
-                  pdfIframe.style.border = "0";
+                  let pdfIframe = document.createElement('iframe');
+                  pdfIframe.width = '100%';
+                  pdfIframe.style.height = '100%';
+                  pdfIframe.style.border = '0';
                   pdfIframe.src = pdfOnline;
                   content.appendChild(pdfIframe);
                 }
                 break;
-              case "text":
-                sendRequest("GET", url, null, null, (data) => {
-                  let pre = document.createElement("pre");
-                  let code = document.createElement("code");
+              case 'text':
+                sendRequest('GET', url, null, null, (data) => {
+                  let pre = document.createElement('pre');
+                  let code = document.createElement('code');
                   pre.append(code);
-                  pre.style.background = "rgb(245,245,245)";
-                  pre.style["overflow-x"] = "scroll";
+                  pre.style.background = 'rgb(245,245,245)';
+                  pre.style['overflow-x'] = 'scroll';
                   pre.classList.add(suffix);
                   // content.style.textAlign = "initial";
-                  content.innerHTML = "";
+                  content.innerHTML = '';
                   content.append(pre);
                   code.textContent = data;
                   if (
-                    size.indexOf(" B") >= 0 ||
-                    (size.indexOf(" KB") && size.split(" ")[0] < 100)
+                    size.indexOf(' B') >= 0 ||
+                    (size.indexOf(' KB') && size.split(' ')[0] < 100)
                   ) {
                     hljs.highlightBlock(pre);
                   }
                 });
                 break;
-              case "torrent":
-                let torrentscr = document.createElement("script");
+              case 'torrent':
+                let torrentscr = document.createElement('script');
                 torrentscr.src =
-                  "https://cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js";
-                torrentscr.charset = "utf-8";
+                  'https://cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js';
+                torrentscr.charset = 'utf-8';
                 torrentscr.async = true;
                 document.head.appendChild(torrentscr);
-                let torrent = document.createElement("div");
-                torrent.id = "player";
-                torrent.className = "webtor";
-                torrent.style.textAlign = "center";
-                content.innerHTML = "";
+                let torrent = document.createElement('div');
+                torrent.id = 'player';
+                torrent.className = 'webtor';
+                torrent.style.textAlign = 'center';
+                content.innerHTML = '';
                 content.appendChild(torrent);
                 window.webtor = window.webtor || [];
                 window.webtor.push({
-                  id: "player",
-                  width: "100%",
+                  id: 'player',
+                  width: '100%',
                   torrentUrl: url,
                 });
                 break;
-              case "upload":
-                let upload = document.createElement("div");
-                upload.style.textAlign = "center";
-                upload.id = "uploadDiv";
-                upload.innerHTML = "";
-                upload.innerHTML += `
-                  <select
-                  onchange="document.getElementById('fileInput').webkitdirectory=this.value;"
-                  >
-                  <option value="">上传文件</option>
-                  <option value="1">上传文件夹</option>
-                  </select>
-                  <input type="file" id="fileInput" multiple="multiple" />
-                  <button onclick="uploadFiles()">上传</button>`;
-                content.innerHTML = "";
-                content.appendChild(upload);
-                break;
-              case "video":
-                let video = document.createElement("div");
+              case 'video':
+                let video = document.createElement('div');
                 previewHandler.createDplayer(url, suffix, video);
-                content.innerHTML = "";
+                content.innerHTML = '';
                 content.append(video);
                 break;
               default:
-                let textWrapper = document.createElement("div");
-                textWrapper.style.textAlign = "center";
-                textWrapper.innerHTML = "该文件不支持预览";
-                content.innerHTML = "";
+                let textWrapper = document.createElement('div');
+                textWrapper.style.textAlign = 'center';
+                textWrapper.innerHTML = '该文件不支持预览';
+                content.innerHTML = '';
                 content.appendChild(textWrapper);
                 break;
             }
-            document.querySelector(".file-name").innerHTML = path;
+            document.querySelector('.file-name').innerHTML = path;
             document
-              .querySelector(".btn.download")
-              .addEventListener("click", () => (location.href = url));
+              .querySelector('.btn.download')
+              .addEventListener('click', () => (location.href = url));
             document
-              .querySelector(".btn.quote")
-              .addEventListener("click", (event) => {
+              .querySelector('.btn.quote')
+              .addEventListener('click', (event) => {
                 previewHandler.copyTextContent(
                   null,
                   // window.api.url + "?file=" + encodeURI(path)
                   window.api.url + path
                 );
-                const btn = document.querySelector(".btn.quote");
-                btn.innerHTML = "已复制";
-                setTimeout(() => (btn.innerHTML = "引用"), 250);
+                const btn = document.querySelector('.btn.quote');
+                btn.innerHTML = '已复制';
+                setTimeout(() => (btn.innerHTML = '引用'), 250);
               });
             document
-              .querySelector(".btn.share")
-              .addEventListener("click", (event) => {
+              .querySelector('.btn.share')
+              .addEventListener('click', (event) => {
                 const sharePath = () => {
-                  let arr = window.backFordwardCache.current.split("/");
-                  let r = "";
+                  let arr = window.backFordwardCache.current.split('/');
+                  let r = '';
                   for (let i = 1; i < arr.length; i++) {
-                    r += "/" + arr[i];
+                    r += '/' + arr[i];
                   }
                   return r;
                 };
@@ -1291,19 +1357,19 @@
                   null,
                   window.location.origin +
                     window.location.pathname +
-                    "?path=" +
+                    '?path=' +
                     encodeURI(sharePath())
                 );
-                const btn = document.querySelector(".btn.share");
-                btn.innerHTML = "已复制";
-                setTimeout(() => (btn.innerHTML = "分享"), 250);
+                const btn = document.querySelector('.btn.share');
+                btn.innerHTML = '已复制';
+                setTimeout(() => (btn.innerHTML = '分享'), 250);
               });
-            switchRightDisplay("preview");
+            switchRightDisplay('preview');
 
-            if (contentType !== "video") return;
+            if (contentType !== 'video') return;
 
             let start = null;
-            let right = document.querySelector(".right");
+            let right = document.querySelector('.right');
             const scrollToBottom = (timestamp) => {
               if (!start) start = timestamp;
               let progress = timestamp - start;
@@ -1316,7 +1382,7 @@
             window.requestAnimationFrame(scrollToBottom);
           });
         } else {
-          elem.addEventListener("click", (event) => {
+          elem.addEventListener('click', (event) => {
             fetchFileList(path);
             switchBackForwardStatus(path);
           });
@@ -1324,46 +1390,72 @@
       }
 
       function addBackForwardListener() {
-        document.getElementById("arrow-back").addEventListener("click", back);
+        document.getElementById('arrow-back').addEventListener('click', back);
         document
-          .getElementById("arrow-forward")
-          .addEventListener("click", forward);
-        document.querySelector("#main-page").addEventListener("click", () => {
+          .getElementById('arrow-forward')
+          .addEventListener('click', forward);
+        document.querySelector('#main-page').addEventListener('click', () => {
           fetchFileList(window.api.root);
           switchBackForwardStatus(window.api.root);
         });
       }
 
       function switchRightDisplay(display) {
-        if (display === "preview") {
-          document.querySelector(".list-header").style.display = "none";
-          document.querySelector("#file-list").style.display = "none";
-          document.querySelector(".markdown-body").style.display = "none";
-          document.querySelector(".password").style.display = "none";
-          document.querySelector(".preview").style.display = "initial";
-        } else if (display === "encrypted") {
-          document.querySelector(".list-header").style.display = "none";
-          document.querySelector("#file-list").style.display = "none";
-          document.querySelector(".markdown-body").style.display = "none";
-          document.querySelector(".preview").style.display = "none";
-          document.querySelector(".password").style.display = "initial";
-          document.querySelector("#readme").innerHTML = "";
-          let content = document.querySelector(".preview .content");
-          if (content) {
-            document.querySelector(".preview .content").innerHTML = "";
-          }
-        } else {
-          document.querySelector(".list-header").style.display = "initial";
-          document.querySelector("#file-list").style.display = "initial";
-          document.querySelector(".markdown-body").style.display = "none";
-          document.querySelector(".preview").style.display = "none";
-          document.querySelector(".password").style.display = "none";
-          document.querySelector("#readme").innerHTML = "";
-          let content = document.querySelector(".preview .content");
-          if (content) {
-            document.querySelector(".preview .content").innerHTML = "";
-          }
+        const entryWrapper = document.querySelector('.upload-entry-wrapper');
+        if (entryWrapper) {
+          entryWrapper.dataset.hidden = '1';
         }
+
+        document.querySelector('#readme').innerHTML = '';
+        if (display !== 'preview') {
+          const previewContent = document.querySelector('.preview .content');
+          if (previewContent) previewContent.innerHTML = '';
+        }
+
+        for (const c of document.querySelector('.right').children) {
+          c.dataset.hidden = '1';
+        }
+
+        if (display === 'preview') {
+          // document.querySelector('.list-header').style.display = 'none';
+          // document.querySelector('#file-list').style.display = 'none';
+          // document.querySelector('.markdown-body').style.display = 'none';
+          // document.querySelector('.password').style.display = 'none';
+          // document.querySelector('.preview').style.display = 'initial';
+          document.querySelector('.preview').dataset.hidden = '0';
+        } else if (display === 'encrypted') {
+          // document.querySelector('.list-header').style.display = 'none';
+          // document.querySelector('#file-list').style.display = 'none';
+          // document.querySelector('.markdown-body').style.display = 'none';
+          // document.querySelector('.preview').style.display = 'none';
+          // document.querySelector('.password-wrapper').style.display = 'initial';
+          document.querySelector('.password-wrapper').dataset.hidden = '0';
+          // document.querySelector('#readme').innerHTML = '';
+          // let content = document.querySelector('.preview .content');
+          // if (content) {
+          //   document.querySelector('.preview .content').innerHTML = '';
+          // }
+        } else if (display === 'upload') {
+          document.querySelector('.file-upload-progress').innerHTML = '';
+          document.querySelector('.file-upload-wrapper').dataset.hidden = '0';
+        } else {
+          // document.querySelector('.list-header').style.display = 'initial';
+          // document.querySelector('#file-list').style.display = 'initial';
+
+          document.querySelector('.list-header').dataset.hidden = '0';
+          document.querySelector('#file-list').dataset.hidden = '0';
+          document.querySelector('.markdown-body').dataset.hidden = '0';
+          // document.querySelector('.markdown-body').style.display = 'none';
+          // document.querySelector('.preview').style.display = 'none';
+          // document.querySelector('.password').style.display = 'none';
+          // document.querySelector('#readme').innerHTML = '';
+          // let content = document.querySelector('.preview .content');
+          // if (content) {
+          //   document.querySelector('.preview .content').innerHTML = '';
+          // }
+        }
+
+        document.querySelector('.main').dataset.hidden = '0';
       }
 
       function switchBackForwardStatus(path) {
@@ -1374,21 +1466,21 @@
           window.backFordwardCache.root !== window.backFordwardCache.current
         ) {
           window.backFordwardCache.backable = true;
-          document.getElementById("arrow-back").style.color = "black";
+          document.getElementById('arrow-back').style.color = 'black';
         } else {
           window.backFordwardCache.backable = false;
-          document.getElementById("arrow-back").style.color =
-            "rgb(218, 215, 215)";
+          document.getElementById('arrow-back').style.color =
+            'rgb(218, 215, 215)';
         }
         if (
           window.backFordwardCache.deepest !== window.backFordwardCache.current
         ) {
           window.backFordwardCache.forwardable = true;
-          document.getElementById("arrow-forward").style.color = "black";
+          document.getElementById('arrow-forward').style.color = 'black';
         } else {
           window.backFordwardCache.forwardable = false;
-          document.getElementById("arrow-forward").style.color =
-            "rgb(218, 215, 215)";
+          document.getElementById('arrow-forward').style.color =
+            'rgb(218, 215, 215)';
         }
       }
 
@@ -1401,7 +1493,7 @@
         } else {
           let former = (() => {
             let formerEndIndex =
-              window.backFordwardCache.current.lastIndexOf("/");
+              window.backFordwardCache.current.lastIndexOf('/');
             return window.backFordwardCache.current.substring(
               0,
               formerEndIndex
@@ -1420,13 +1512,13 @@
         }
         const current =
           window.backFordwardCache.current === window.api.root
-            ? ""
+            ? ''
             : window.backFordwardCache.current;
         const subLength = current ? current.length : 0;
         const later =
           current +
-          "/" +
-          window.backFordwardCache.deepest.substring(subLength).split("/")[1];
+          '/' +
+          window.backFordwardCache.deepest.substring(subLength).split('/')[1];
         fetchFileList(later);
         switchBackForwardStatus();
         // console.log(window.backFordwardCache);
@@ -1435,8 +1527,8 @@
       async function preCache(files, level) {
         if (level > 1) return;
         files.files.forEach((file) => {
-          const parent = files.parent === "/" ? "" : files.parent;
-          const path = parent + "/" + file.name;
+          const parent = files.parent === '/' ? '' : files.parent;
+          const path = parent + '/' + file.name;
           if (!file.url) {
             // console.log('caching ' + path + ', level ' + level);
             window.fileCache.set(path, true);
@@ -1452,11 +1544,11 @@
               },
               () => window.fileCache.set(path, false)
             );
-          } else if (file.name.split(".").pop() === "md") {
+          } else if (file.name.split('.').pop() === 'md') {
             // console.log('caching ' + path + ', level ' + level);
             window.fileCache.set(path, true);
             sendRequest(
-              "GET",
+              'GET',
               file.url,
               null,
               null,
@@ -1469,8 +1561,8 @@
 
       async function preCacheCheck(cache, path) {
         cache.files.forEach((file) => {
-          const prefix = path === window.api.root ? "" : path;
-          const nextPath = prefix + "/" + file.name;
+          const prefix = path === window.api.root ? '' : path;
+          const nextPath = prefix + '/' + file.name;
           const pathCache = window.fileCache.get(nextPath);
           if (!file.url) {
             if (!pathCache) {
@@ -1491,12 +1583,12 @@
             } else if (pathCache.files) {
               preCacheCheck(pathCache, nextPath);
             }
-          } else if (file.name.split(".").pop() === "md") {
+          } else if (file.name.split('.').pop() === 'md') {
             if (!pathCache && pathCache !== true) {
               // console.log('inner caching ' + nextPath);
               window.fileCache.set(nextPath, true);
               sendRequest(
-                "GET",
+                'GET',
                 file.url,
                 null,
                 null,
@@ -1510,8 +1602,8 @@
 
       function fetchFileList(path) {
         // console.log('fetching ' + path);
-        let loading = document.querySelector(".loading-wrapper");
-        loading.style.display = "initial";
+        let loading = document.querySelector('.loading-wrapper');
+        loading.style.display = 'initial';
         window.backFordwardCache.preview = false;
         window.backFordwardCache.current = path;
 
@@ -1531,11 +1623,11 @@
             renderPage,
             () => {
               window.fileCache.set(path, false);
-              const loadingText = loading.querySelector(".loading");
-              loadingText.innerText = "Failed!";
+              const loadingText = loading.querySelector('.loading');
+              loadingText.innerText = 'Failed!';
               setTimeout(() => {
-                loading.style.display = "none";
-                loadingText.innerText = "Loading..";
+                loading.style.display = 'none';
+                loadingText.innerText = 'Loading..';
               }, 2000);
             }
           );
@@ -1545,11 +1637,9 @@
       function uploadFiles() {
         const pageSize = 20;
         const fileInput = Array.from(
-          document.getElementById("fileInput").files
+          document.getElementById('file-upload-input').files
         );
-        const odPath = document
-          .querySelector(".file-name")
-          .innerHTML.replace("/.upload", "");
+        const odPath = window.backFordwardCache.current;
         const upFileList = fileInput.map((f) => ({
           remotePath: `${odPath}/${f.webkitRelativePath || f.name}`,
         }));
@@ -1566,13 +1656,14 @@
 
         function sendPage(pageIndex = 0) {
           if (pageIndex >= paginatedUpFileList.length) {
+            window.fileCache.delete(window.backFordwardCache.current);
             return;
           }
 
           const currentPage = paginatedUpFileList[pageIndex];
           sendRequest(
             window.api.method,
-            window.api.url + "?upload=" + odPath,
+            window.api.url + '?upload=' + odPath,
             JSON.stringify({ files: currentPage }),
             window.api.headers,
             (response) => {
@@ -1597,9 +1688,10 @@
           let uploadedBytes = 0;
           let start = 0;
 
-          const progressDiv = document.getElementById("uploadDiv");
-          const progressText = document.createElement("div");
-          const progressContainer = document.createElement("div");
+          const progressDiv = document.querySelector('.file-upload-progress');
+          progressDiv.style.display = 'block';
+          const progressText = document.createElement('div');
+          const progressContainer = document.createElement('div');
           progressDiv.appendChild(progressContainer);
           progressContainer.appendChild(progressText);
 
@@ -1609,22 +1701,26 @@
               start = Math.min(start + chunkSize, fileSize);
             } catch (error) {
               if (!(await handleUploadError(error))) {
-                progressText.innerHTML += " <mark>Upload failed!</mark>";
+                progressText.innerHTML += ' <mark>Upload failed!</mark>';
                 return;
               }
             }
           }
 
-          progressText.innerHTML += " Upload completed!";
+          if (fileSize === 0) {
+            progressText.innerHTML = `${file.name}: 0 byte, skipped.`;
+          } else {
+            progressText.innerHTML += ' Upload completed!';
+          }
 
           async function uploadChunk(start) {
             const xhr = new XMLHttpRequest();
             const end = Math.min(start + chunkSize, fileSize);
             const chunk = file.slice(start, end);
 
-            xhr.open("PUT", uploadUrl);
+            xhr.open('PUT', uploadUrl);
             xhr.setRequestHeader(
-              "Content-Range",
+              'Content-Range',
               `bytes ${start}-${end - 1}/${fileSize}`
             );
 
@@ -1657,9 +1753,9 @@
               retryCount--;
               if (error === 416) {
                 await new Promise((resolve) =>
-                  sendRequest("GET", uploadUrl, null, null, (data) => {
+                  sendRequest('GET', uploadUrl, null, null, (data) => {
                     start = parseInt(
-                      JSON.parse(data).nextExpectedRanges[0].split("-")[0]
+                      JSON.parse(data).nextExpectedRanges[0].split('-')[0]
                     );
                     resolve();
                   })
@@ -1685,37 +1781,37 @@
               (uploadedBytes / fileSize) * 100
             );
             const progressBar =
-              "[" +
-              "=".repeat(percentComplete / 5) +
-              " ".repeat(20 - percentComplete / 5) +
-              "]";
+              '[' +
+              '='.repeat(percentComplete / 5) +
+              ' '.repeat(20 - percentComplete / 5) +
+              ']';
             progressText.textContent = `${file.name}: ${progressBar} ${percentComplete}%`;
           }
         }
       }
 
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener('DOMContentLoaded', () => {
         document.title = window.GLOBAL_CONFIG.SITE_NAME;
-        document.querySelector(".site").textContent =
+        document.querySelector('.site').textContent =
           window.GLOBAL_CONFIG.SITE_NAME;
         window.api = {
-          root: "/",
+          root: '/',
           url: window.GLOBAL_CONFIG.SCF_GATEWAY,
-          method: "POST",
+          method: 'POST',
           formatPayload: (path, passwd) => {
             return (
-              "?path=" +
+              '?path=' +
               encodeURIComponent(path) +
-              "&encrypted=" +
+              '&encrypted=' +
               window.api.accessToken.encrypted +
-              "&plain=" +
+              '&plain=' +
               window.api.accessToken.plain +
-              "&passwd=" +
+              '&passwd=' +
               passwd
             );
           },
           headers: {
-            "Content-type": "application/x-www-form-urlencoded",
+            'Content-type': 'application/x-www-form-urlencoded',
           },
         };
         window.backFordwardCache = {
@@ -1728,19 +1824,19 @@
         };
         window.fileCache = new Map();
         const initialPath =
-          new URLSearchParams(window.location.search).get("path") ||
+          new URLSearchParams(window.location.search).get('path') ||
           window.api.root;
         if (window.GLOBAL_CONFIG.IS_CF) {
           window.api.accessToken = {
-            encrypted: "",
-            plain: "",
+            encrypted: '',
+            plain: '',
           };
           fetchFileList(initialPath);
           addBackForwardListener();
         } else {
           sendRequest(
             window.api.method,
-            window.api.url + "?accessToken",
+            window.api.url + '?accessToken',
             null,
             window.api.headers,
             (data) => {
@@ -1804,7 +1900,7 @@
       </div>
     </div>
     <div class="container">
-      <div class="main">
+      <div class="main" data-hidden="1">
         <div class="left">
           <div id="tree-root"></div>
         </div>
@@ -1837,8 +1933,46 @@
               <button>提交</button>
             </div>
           </div>
+          <div class="file-upload-wrapper">
+            <div class="file-upload-chooser">
+              <select
+                onchange="document.getElementById('file-upload-input').webkitdirectory=this.value;"
+              >
+                <option value="">上传文件</option>
+                <option value="1">上传文件夹</option>
+              </select>
+              <label for="file-upload-input" class="file-upload-label"
+                >选择文件</label
+              >
+              <input
+                class="file-upload-input"
+                type="file"
+                id="file-upload-input"
+                multiple="multiple"
+                type="file"
+              />
+              <span class="file-upload-name">未选择文件</span>
+              <button onclick="uploadFiles()">上传</button>
+            </div>
+            <div class="file-upload-progress"></div>
+          </div>
         </div>
       </div>
     </div>
+    <script>
+      const fileInput = document.querySelector('.file-upload-input');
+      const fileNameDisplay = document.querySelector('.file-upload-name');
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files.length === 1) {
+          fileNameDisplay.textContent = fileInput.files[0].name;
+        } else if (fileInput.files.length > 1) {
+          fileNameDisplay.textContent =
+            fileInput.files[0].webkitRelativePath?.split('/')[0] ||
+            `共 ${fileInput.length} 个文件`;
+        } else {
+          fileNameDisplay.textContent = '未选择文件';
+        }
+      });
+    </script>
   </body>
 </html>
