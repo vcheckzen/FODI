@@ -1,0 +1,36 @@
+name: Update Front End Repository
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: fodi
+
+      - name: Checkout front-end repo
+        uses: actions/checkout@v4
+        with:
+          repository: vcheckzen/FODI-FRONT-END
+          token: ${{ secrets.PAT }}
+          path: fodi-front-end
+
+      - name: Push
+        run: |
+          cd fodi-front-end || exit 1
+
+          if ! diff -q ../fodi/front-end/index.html index.html; then
+            cp ../fodi/front-end/index.html index.html
+            
+            git config user.name github-actions
+            git config user.email github-actions@github.com
+            git add .
+            git commit -m "sync with main repo"
+            git push
+          fi
