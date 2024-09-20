@@ -26,11 +26,11 @@
     />
     <script
       type="module"
-      src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.esm.js"
+      src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.esm.js"
     ></script>
     <script
       nomodule=""
-      src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.js"
+      src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.js"
     ></script>
     <script src="//s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
     <script src="//s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/highlight.min.js"></script>
@@ -1115,8 +1115,8 @@
                   ].contains(suffix)
                 ) {
                   return 'text';
-                } else if (['torrent'].contains(suffix)) {
-                  return 'torrent';
+                } else if (['videomagnet'].contains(suffix)) {
+                  return 'videomagnet';
                 } else if (['upload'].contains(suffix)) {
                   return 'upload';
                 } else if (
@@ -1160,16 +1160,18 @@
               },
 
               createDplayer: (video, type, elem) => {
-                const host = '//lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M';
+                const host = '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M';
                 const resources = [
-                  '/dplayer/1.25.0/DPlayer.min.css',
-                  '/dplayer/1.26.0/DPlayer.min.js',
-                  '/hls.js/1.1.5/hls.light.min.js',
-                  '/flv.js/1.6.2/flv.min.js',
+                  // '//cdn.jsdelivr.net/webtorrent/latest/webtorrent.min.js',
+                  host + '/hls.js/1.1.5/hls.light.min.js',
+                  host + '/flv.js/1.6.2/flv.min.js',
+                  host + '/dplayer/1.25.0/DPlayer.min.css',
+                  host + '/dplayer/1.25.0/DPlayer.min.js',
                 ];
+
                 let unloadedResourceCount = resources.length;
                 resources.forEach((resource) => {
-                  previewHandler.loadResource(host + resource, () => {
+                  previewHandler.loadResource(resource, () => {
                     if (!--unloadedResourceCount) {
                       let option = {
                         url: video,
@@ -1178,7 +1180,9 @@
                         option.type = 'flv';
                       } else if (type === 'm3u8') {
                         option.type = 'hls';
-                      }
+                      } /* else if (type === 'videomagnet') {
+                        option.type = 'webtorrent';
+                      }*/
                       new DPlayer({
                         container: elem,
                         screenshot: true,
@@ -1295,25 +1299,43 @@
                   }
                 });
                 break;
-              case 'torrent':
-                let torrentscr = document.createElement('script');
-                torrentscr.src =
-                  'https://cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js';
-                torrentscr.charset = 'utf-8';
-                torrentscr.async = true;
-                document.head.appendChild(torrentscr);
-                let torrent = document.createElement('div');
-                torrent.id = 'player';
-                torrent.className = 'webtor';
-                torrent.style.textAlign = 'center';
-                content.innerHTML = '';
-                content.appendChild(torrent);
-                window.webtor = window.webtor || [];
-                window.webtor.push({
-                  id: 'player',
-                  width: '100%',
-                  torrentUrl: url,
-                });
+              case 'videomagnet':
+                fetch(url)
+                  .then((resp) => resp.text())
+                  .then((magnetUrl) => {
+                    // let video = document.createElement('div');
+                    // previewHandler.createDplayer(url, suffix, video);
+                    // content.innerHTML = '';
+                    // content.append(video);
+                    console.log(magnetUrl);
+                    let torrentscr = document.createElement('script');
+                    torrentscr.src =
+                      '//cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js';
+                    torrentscr.charset = 'utf-8';
+                    torrentscr.async = true;
+                    document.head.appendChild(torrentscr);
+                    let torrent = document.createElement('div');
+                    torrent.id = 'player';
+                    torrent.className = 'webtor';
+                    torrent.style.textAlign = 'center';
+                    torrent.style.aspectRatio = '16 / 9';
+                    torrent.style.backgroundColor = '#101417';
+                    content.innerHTML = '';
+                    content.appendChild(torrent);
+                    window.webtor = window.webtor || [];
+                    window.webtor.push({
+                      id: 'player',
+                      width: '100%',
+                      magnet: magnetUrl.trim(),
+                    });
+                  })
+                  .catch((e) => {
+                    let textWrapper = document.createElement('div');
+                    textWrapper.style.textAlign = 'center';
+                    textWrapper.innerHTML = '该文件不支持预览';
+                    content.innerHTML = '';
+                    content.appendChild(textWrapper);
+                  });
                 break;
               case 'video':
                 let video = document.createElement('div');
