@@ -774,6 +774,7 @@
             uploadEntry
               .querySelector('button')
               .addEventListener('click', () => {
+                window.backFordwardCache.preview = true;
                 switchRightDisplay('upload');
               });
             listHeader.insertBefore(uploadEntry, row);
