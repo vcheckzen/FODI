@@ -1127,6 +1127,14 @@
                 }
               },
               loadResource: (resource, callback) => {
+                const rid = btoa(resource);
+                if (document.getElementById(rid)) {
+                  if (typeof callback === 'function') {
+                    callback();
+                  }
+                  return;
+                }
+
                 let type;
                 switch (resource.split('.').pop()) {
                   case 'css':
@@ -1136,7 +1144,9 @@
                     type = 'script';
                     break;
                 }
-                let element = document.createElement(type);
+                const element = document.createElement(type);
+                element.id = rid;
+
                 let loaded = false;
                 if (typeof callback === 'function') {
                   element.onload = element.onreadystatechange = () => {
@@ -1163,16 +1173,15 @@
               createDplayer: (video, type, elem) => {
                 const host = '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M';
                 const resources = [
-                  // '//cdn.jsdelivr.net/webtorrent/latest/webtorrent.min.js',
-                  host + '/hls.js/1.1.5/hls.light.min.js',
-                  host + '/flv.js/1.6.2/flv.min.js',
-                  host + '/dplayer/1.25.0/DPlayer.min.css',
-                  host + '/dplayer/1.25.0/DPlayer.min.js',
+                  '/hls.js/1.1.5/hls.light.min.js',
+                  '/flv.js/1.6.2/flv.min.js',
+                  '/dplayer/1.25.0/DPlayer.min.css',
+                  '/dplayer/1.25.0/DPlayer.min.js',
                 ];
 
                 let unloadedResourceCount = resources.length;
                 resources.forEach((resource) => {
-                  previewHandler.loadResource(resource, () => {
+                  previewHandler.loadResource(host + resource, () => {
                     if (!--unloadedResourceCount) {
                       let option = {
                         url: video,
@@ -1304,36 +1313,30 @@
                 fetch(url)
                   .then((resp) => resp.text())
                   .then((magnetUrl) => {
-                    // let video = document.createElement('div');
-                    // previewHandler.createDplayer(url, suffix, video);
-                    // content.innerHTML = '';
-                    // content.append(video);
-                    console.log(magnetUrl);
-                    let torrentscr = document.createElement('script');
-                    torrentscr.src =
-                      '//cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js';
-                    torrentscr.charset = 'utf-8';
-                    torrentscr.async = true;
-                    document.head.appendChild(torrentscr);
-                    let torrent = document.createElement('div');
-                    torrent.id = 'player';
-                    torrent.className = 'webtor';
-                    torrent.style.textAlign = 'center';
-                    torrent.style.aspectRatio = '16 / 9';
-                    torrent.style.backgroundColor = '#101417';
-                    content.innerHTML = '';
-                    content.appendChild(torrent);
-                    window.webtor = window.webtor || [];
-                    window.webtor.push({
-                      id: 'player',
-                      width: '100%',
-                      magnet: magnetUrl.trim(),
-                    });
+                    previewHandler.loadResource(
+                      '//cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js',
+                      () => {
+                        const torrent = document.createElement('div');
+                        torrent.id = 'player';
+                        torrent.className = 'webtor';
+                        torrent.style.textAlign = 'center';
+                        torrent.style.aspectRatio = '16 / 9';
+                        torrent.style.backgroundColor = '#101417';
+                        content.innerHTML = '';
+                        content.appendChild(torrent);
+                        window.webtor = window.webtor || [];
+                        window.webtor.push({
+                          id: 'player',
+                          width: '100%',
+                          magnet: magnetUrl.trim(),
+                        });
+                      }
+                    );
                   })
                   .catch((e) => {
                     let textWrapper = document.createElement('div');
                     textWrapper.style.textAlign = 'center';
-                    textWrapper.innerHTML = '该文件不支持预览';
+                    textWrapper.innerHTML = '预览失败';
                     content.innerHTML = '';
                     content.appendChild(textWrapper);
                   });
