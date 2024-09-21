@@ -56,7 +56,7 @@ async function handleRequest(request) {
     );
   }
   if (queryString) querySplited = queryString.split('=');
-  if ((querySplited && querySplited[0] === 'file')) {
+  if (querySplited && querySplited[0] === 'file') {
     const file = querySplited[1];
     const fileName = file.split('/').pop();
     if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase())
@@ -278,9 +278,9 @@ async function uploadFiles(fileJsonList) {
     requests: fileList.map((file, index) => ({
       id: `${index + 1}`,
       method: file['fileSize'] ? 'POST' : 'PUT',
-      url: `/me/drive/root:${encodeURI(
-        EXPOSE_PATH + file['remotePath']
-      )}${file['fileSize'] ? ':/createUploadSession' : ':/content'}`,
+      url: `/me/drive/root:${encodeURI(EXPOSE_PATH + file['remotePath'])}${
+        file['fileSize'] ? ':/createUploadSession' : ':/content'
+      }`,
       headers: { 'Content-Type': 'application/json' },
       body: {},
     })),

@@ -232,6 +232,14 @@
         padding: 1em;
         background-color: rgb(245, 245, 245);
         overflow: auto;
+        white-space: nowrap;
+        display: grid;
+      }
+
+      .file-upload-progress .log-separator {
+        background-image: url("data:image/svg+xml;utf8,<svg width='9' height='9' xmlns='http://www.w3.org/2000/svg' version='1.1'><text y='10'>=</text></svg>");
+        padding: 5px 0;
+        margin: 5px 0;
       }
 
       pre * {
@@ -1642,7 +1650,7 @@
         );
         const odPath = window.backFordwardCache.current;
         const upFileList = fileInput.map((f) => ({
-          remotePath: `${odPath}/${f.webkitRelativePath || f.name}`,
+          remotePath: `${odPath}/${relativePath(f)}`,
           fileSize: f.size ? 1 : 0,
         }));
 
@@ -1659,7 +1667,7 @@
         function sendPage(pageIndex = 0) {
           if (pageIndex >= paginatedUpFileList.length) {
             window.fileCache.delete(window.backFordwardCache.current);
-            createUploadLogLine().innerHTML = '='.repeat(70);
+            createUploadLogLine().className = 'log-separator';
             return;
           }
 
@@ -1672,26 +1680,26 @@
             (response) => {
               const uploadLinks = JSON.parse(response).files;
               Promise.all(
-                uploadLinks
-                  .filter((link) => link.uploadUrl)
-                  .map(({ remotePath, uploadUrl }) =>
-                    uploadFileWithProgress(
-                      fileInput.find(
-                        (f) =>
-                          `${odPath}/${f.webkitRelativePath || f.name}` ===
-                          remotePath
-                      ),
-                      uploadUrl
-                    )
+                uploadLinks.map(({ remotePath, uploadUrl }) =>
+                  uploadFileWithProgress(
+                    fileInput.find(
+                      (f) => `${odPath}/${relativePath(f)}` === remotePath
+                    ),
+                    uploadUrl
                   )
+                )
               ).finally(() => sendPage(pageIndex + 1));
             }
           );
         }
 
-        createUploadLogLine().innerHTML = '='.repeat(70);
+        createUploadLogLine().className = 'log-separator';
         document.querySelector('.file-upload-progress').dataset.hidden = '0';
         sendPage(0);
+
+        function relativePath(file) {
+          return `${file.webkitRelativePath || file.name}`;
+        }
 
         function createUploadLogLine() {
           const progressDiv = document.querySelector('.file-upload-progress');
@@ -1709,23 +1717,22 @@
           let start = 0;
 
           const progressText = createUploadLogLine();
-          while (start < fileSize) {
-            try {
-              await uploadChunk(start);
-              start = Math.min(start + chunkSize, fileSize);
-            } catch (error) {
-              if (!(await handleUploadError(error))) {
-                progressText.innerHTML += ' <mark>Upload failed!</mark>';
-                return;
+          if (fileSize === 0) {
+            updateTotalProgress();
+          } else {
+            while (start < fileSize) {
+              try {
+                await uploadChunk(start);
+                start = Math.min(start + chunkSize, fileSize);
+              } catch (error) {
+                if (!(await handleUploadError(error))) {
+                  progressText.innerHTML += ' <mark>Upload failed!</mark>';
+                  return;
+                }
               }
             }
           }
-
-          if (fileSize === 0) {
-            progressText.innerHTML = `${file.name}: Upload completed!`;
-          } else {
-            progressText.innerHTML += ' Upload completed!';
-          }
+          progressText.innerHTML += ' Upload completed!';
 
           async function uploadChunk(start) {
             const xhr = new XMLHttpRequest();
@@ -1791,15 +1798,17 @@
           }
 
           function updateTotalProgress() {
-            const percentComplete = Math.round(
-              (uploadedBytes / fileSize) * 100
-            );
+            const percentComplete = fileSize
+              ? Math.round((uploadedBytes / fileSize) * 100)
+              : 100;
             const progressBar =
               '[' +
               '='.repeat(percentComplete / 5) +
               ' '.repeat(20 - percentComplete / 5) +
               ']';
-            progressText.textContent = `${file.name}: ${progressBar} ${percentComplete}%`;
+            progressText.textContent = `${relativePath(
+              file
+            )}: ${progressBar} ${percentComplete}%`;
           }
         }
       }
