@@ -30,11 +30,15 @@
       src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.js"
     ></script>
     <script src="//s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
-    <script src="//s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/highlight.min.js"></script>
     <link
-      href="//s0.pstatp.com/cdn/expire-1-M/highlight.js/9.15.6/styles/github.min.css"
+      href="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/styles/github.min.css"
+      type="text/css"
       rel="stylesheet"
     />
+    <script
+      src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/highlight.min.js"
+      type="application/javascript"
+    ></script>
     <link
       href="//s0.pstatp.com/cdn/expire-1-M/github-markdown-css/3.0.1/github-markdown.min.css"
       rel="stylesheet"
@@ -228,11 +232,12 @@
       }
 
       .file-upload-progress {
-        margin-top: 1em;
+        margin: 1em 0;
         padding: 1em;
         background-color: rgb(245, 245, 245);
-        overflow: auto;
         white-space: nowrap;
+        width: fit-content;
+        min-width: 100%;
         display: grid;
       }
 
@@ -242,22 +247,38 @@
         margin: 5px 0;
       }
 
-      pre * {
-        font-family: Courier New;
+      .markdown-body,
+      .markdown-body * {
+        font-family: initial;
+      }
+
+      pre,
+      code,
+      pre *,
+      code * {
+        font-family: Consolas, Monaco, Lucida Console, Liberation Mono,
+          DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, Cascadia Code,
+          monospace !important;
       }
 
       .preview {
-        /* display: none; */
         font-size: 0.8em;
         height: 100%;
       }
 
-      .content {
+      .preview .content {
         clear: both;
-        padding: 0 1em;
+        padding: 0 1em 1em 1em;
         margin: 0 auto;
-        height: calc(100% - 11em);
-        /* text-align: center; */
+        width: fit-content;
+        height: fit-content;
+        min-width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .preview .content pre {
+        margin: 0;
       }
 
       .file-name {
@@ -532,7 +553,7 @@
         }
 
         .file-name {
-          overflow-x: scroll;
+          overflow-x: auto;
           height: 100%;
         }
       }
@@ -906,22 +927,21 @@
 
       async function renderMarkdown(path, url) {
         const render = (text) => {
-          let markedText;
-          try {
-            markedText = marked(text, {
-              gfm: true,
-              highlight: (code, lang, callback) => {
-                return hljs.highlight(lang, code).value;
-              },
-            });
-          } catch (e) {
-            markedText = marked(text, {
-              gfm: true,
-              highlight: (code, lang, callback) => {
-                return hljs.highlight('bash', code).value;
-              },
-            });
-          }
+          const markedText = marked(text, {
+            gfm: true,
+            highlight: (code, language, callback) => {
+              try {
+                return hljs.highlight(code, { language, ignoreIllegals: true })
+                  .value;
+              } catch (e) {
+                return hljs.highlight(code, {
+                  language: 'plaintext',
+                  ignoreIllegals: true,
+                }).value;
+              }
+            },
+          });
+
           if (
             window.backFordwardCache.current +
               (window.backFordwardCache.current === '/' ? '' : '/') +
@@ -1264,7 +1284,7 @@
                 if (document.body.clientWidth >= 480) {
                   let iframe = document.createElement('iframe');
                   iframe.width = '100%';
-                  iframe.style.height = '100%';
+                  iframe.style.aspectRatio = '16 / 9';
                   iframe.style.border = '0';
                   iframe.src = officeOnline;
                   content.appendChild(iframe);
@@ -1288,7 +1308,7 @@
                 if (document.body.clientWidth >= 480) {
                   let pdfIframe = document.createElement('iframe');
                   pdfIframe.width = '100%';
-                  pdfIframe.style.height = '100%';
+                  pdfIframe.style.aspectRatio = '16 / 9';
                   pdfIframe.style.border = '0';
                   pdfIframe.src = pdfOnline;
                   content.appendChild(pdfIframe);
@@ -1296,21 +1316,19 @@
                 break;
               case 'text':
                 sendRequest('GET', url, null, null, (data) => {
-                  let pre = document.createElement('pre');
-                  let code = document.createElement('code');
-                  pre.append(code);
+                  const pre = document.createElement('pre');
                   pre.style.background = 'rgb(245,245,245)';
-                  pre.style['overflow-x'] = 'scroll';
-                  pre.classList.add(suffix);
-                  // content.style.textAlign = "initial";
+                  pre.style.padding = '5px';
+                  // pre.style['overflow-x'] = 'auto';
+                  content.style.textAlign = 'initial';
                   content.innerHTML = '';
                   content.append(pre);
-                  code.textContent = data;
+                  pre.textContent = data;
                   if (
                     size.indexOf(' B') >= 0 ||
                     (size.indexOf(' KB') && size.split(' ')[0] < 100)
                   ) {
-                    hljs.highlightBlock(pre);
+                    hljs.highlightElement(pre);
                   }
                 });
                 break;
