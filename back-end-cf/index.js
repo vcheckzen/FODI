@@ -275,27 +275,33 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
 }
 
 async function uploadFiles(fileJsonList) {
-  let fileList = fileJsonList['files'];
+  const fileList = fileJsonList['files'];
+  const batchRequest = {
+    requests: fileList.map((file, index) => ({
+      id: `${index + 1}`,
+      method: 'POST',
+      url: `/me/drive/root:${encodeURI(
+        EXPOSE_PATH + file['remotePath']
+      )}:/createUploadSession`,
+      headers: { 'Content-Type': 'application/json' },
+      body: {},
+    })),
+  };
   const accessToken = await fetchAccessToken();
-  await Promise.all(
-    fileList.map(async (file) => {
-      const uploadPath = encodeURIComponent(EXPOSE_PATH + file['remotePath']);
-      const uri = `${OAUTH.apiUrl}:${uploadPath}:/createUploadSession`;
-      const headers = {
-        Authorization: 'Bearer ' + accessToken,
-      };
-      const uploadUrl = await cacheFetch(uri, {
-        method: 'POST',
-        headers: headers,
-      })
-        .then((response) => {
-          return response.json();
-        })
-        .then((data) => {
-          return data['uploadUrl'];
-        });
-      file.uploadUrl = uploadUrl;
-    })
-  );
+  const batchResponse = await cacheFetch(`${apiHost}/v1.0/$batch`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(batchRequest),
+  });
+  const batchResult = await batchResponse.json();
+  batchResult.responses.forEach((response) => {
+    if (response.status === 200) {
+      const index = parseInt(response.id) - 1;
+      fileList[index].uploadUrl = response.body.uploadUrl;
+    }
+  });
   return JSON.stringify({ files: fileList });
 }
