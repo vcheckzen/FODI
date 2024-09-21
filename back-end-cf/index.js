@@ -43,7 +43,6 @@ const PATH_AUTH_STATES = Object.freeze({
 
 async function handleRequest(request) {
   let queryString, querySplited, requestPath;
-  let abnormalWay = false;
   const returnHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'max-age=3600',
@@ -55,10 +54,9 @@ async function handleRequest(request) {
     queryString = decodeURIComponent(
       'file=/' + request.url.split('://')[1].split(/\/(.+)/)[1]
     );
-    abnormalWay = true;
   }
   if (queryString) querySplited = queryString.split('=');
-  if ((querySplited && querySplited[0] === 'file') || abnormalWay) {
+  if ((querySplited && querySplited[0] === 'file')) {
     const file = querySplited[1];
     const fileName = file.split('/').pop();
     if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase())
@@ -279,10 +277,10 @@ async function uploadFiles(fileJsonList) {
   const batchRequest = {
     requests: fileList.map((file, index) => ({
       id: `${index + 1}`,
-      method: 'POST',
+      method: file['fileSize'] ? 'POST' : 'PUT',
       url: `/me/drive/root:${encodeURI(
         EXPOSE_PATH + file['remotePath']
-      )}:/createUploadSession`,
+      )}${file['fileSize'] ? ':/createUploadSession' : ':/content'}`,
       headers: { 'Content-Type': 'application/json' },
       body: {},
     })),
