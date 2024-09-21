@@ -1978,7 +1978,6 @@
                 type="file"
                 id="file-upload-input"
                 multiple="multiple"
-                type="file"
               />
               <span class="file-upload-name">未选择文件</span>
               <button onclick="uploadFiles()">上传</button>
@@ -1997,7 +1996,7 @@
         } else if (fileInput.files.length > 1) {
           fileNameDisplay.textContent =
             fileInput.files[0].webkitRelativePath?.split('/')[0] ||
-            `共 ${fileInput.length} 个文件`;
+            `共 ${fileInput.files.length} 个文件`;
         } else {
           fileNameDisplay.textContent = '未选择文件';
         }
