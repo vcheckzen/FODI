@@ -234,7 +234,7 @@
         margin-top: 1em;
         padding: 1em;
         background-color: rgb(245, 245, 245);
-        display: none;
+        overflow: auto;
       }
 
       pre * {
@@ -1466,6 +1466,7 @@
           // }
         } else if (display === 'upload') {
           document.querySelector('.file-upload-progress').innerHTML = '';
+          document.querySelector('.file-upload-progress').dataset.hidden = '1';
           document.querySelector('.file-upload-wrapper').dataset.hidden = '0';
         } else {
           // document.querySelector('.list-header').style.display = 'initial';
@@ -1686,6 +1687,7 @@
         function sendPage(pageIndex = 0) {
           if (pageIndex >= paginatedUpFileList.length) {
             window.fileCache.delete(window.backFordwardCache.current);
+            createUploadLogLine().innerHTML = '='.repeat(70);
             return;
           }
 
@@ -1696,20 +1698,37 @@
             JSON.stringify({ files: currentPage }),
             window.api.headers,
             (response) => {
-              sendPage(pageIndex + 1);
               const uploadLinks = JSON.parse(response).files;
-              uploadLinks.forEach(({ remotePath, uploadUrl }) => {
-                const fileToUpload = fileInput.find(
-                  (f) =>
-                    `${odPath}/${f.webkitRelativePath || f.name}` === remotePath
-                );
-                if (fileToUpload)
-                  uploadFileWithProgress(fileToUpload, uploadUrl);
-              });
+              Promise.all(
+                uploadLinks
+                  .filter((link) => link.uploadUrl)
+                  .map(({ remotePath, uploadUrl }) =>
+                    uploadFileWithProgress(
+                      fileInput.find(
+                        (f) =>
+                          `${odPath}/${f.webkitRelativePath || f.name}` ===
+                          remotePath
+                      ),
+                      uploadUrl
+                    )
+                  )
+              ).finally(() => sendPage(pageIndex + 1));
             }
           );
         }
+
+        createUploadLogLine().innerHTML = '='.repeat(70);
+        document.querySelector('.file-upload-progress').dataset.hidden = '0';
         sendPage(0);
+
+        function createUploadLogLine() {
+          const progressDiv = document.querySelector('.file-upload-progress');
+          const progressText = document.createElement('div');
+          const progressContainer = document.createElement('div');
+          progressDiv.appendChild(progressContainer);
+          progressContainer.appendChild(progressText);
+          return progressText;
+        }
 
         async function uploadFileWithProgress(file, uploadUrl) {
           const chunkSize = 1024 * 1024 * 10;
@@ -1717,13 +1736,7 @@
           let uploadedBytes = 0;
           let start = 0;
 
-          const progressDiv = document.querySelector('.file-upload-progress');
-          progressDiv.style.display = 'block';
-          const progressText = document.createElement('div');
-          const progressContainer = document.createElement('div');
-          progressDiv.appendChild(progressContainer);
-          progressContainer.appendChild(progressText);
-
+          const progressText = createUploadLogLine();
           while (start < fileSize) {
             try {
               await uploadChunk(start);
