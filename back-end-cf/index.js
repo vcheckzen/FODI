@@ -42,22 +42,15 @@ const PATH_AUTH_STATES = Object.freeze({
 });
 
 async function handleRequest(request) {
-  let queryString, querySplited, requestPath;
+  let requestPath;
   const returnHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'max-age=3600',
     'Content-Type': 'application/json; charset=utf-8',
   };
-  if (request.url.includes('?')) {
-    queryString = decodeURIComponent(request.url.split('?')[1]);
-  } else if (request.url.split('/').pop().includes('.')) {
-    queryString = decodeURIComponent(
-      'file=/' + request.url.split('://')[1].split(/\/(.+)/)[1]
-    );
-  }
-  if (queryString) querySplited = queryString.split('=');
-  if (querySplited && querySplited[0] === 'file') {
-    const file = querySplited[1];
+  const requestUrl = new URL(request.url);
+  const file = requestUrl.searchParams.get('file') || (requestUrl.pathname.split('/').filter(Boolean).length === 0 ? '' : requestUrl.pathname);
+  if (file) {
     const fileName = file.split('/').pop();
     if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase())
       return Response.redirect(
@@ -67,8 +60,8 @@ async function handleRequest(request) {
     requestPath = file.replace('/' + fileName, '');
     const url = await fetchFiles(requestPath, fileName);
     return Response.redirect(url, 302);
-  } else if (querySplited && querySplited[0] === 'upload') {
-    requestPath = querySplited[1];
+  } else if (requestUrl.searchParams.get('upload')) {
+    requestPath = requestUrl.searchParams.get('upload');
     const uploadAllow = await fetchFiles(requestPath, '.upload');
     const fileList = await request.json();
     const pwAttack = fileList['files'].some(
