@@ -2,13 +2,9 @@
 <html>
   <head>
     <script>
-      /**
-       * SCF_GATEWAY：SCF 云函数网关地址
-       * SITE_NAME：站点名称
-       */
       window.GLOBAL_CONFIG = {
-        SCF_GATEWAY: '//tight-bar-e3b3.logi.workers.dev',
-        SITE_NAME: 'FODI',
+        SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // Worker 或云函数网关地址
+        SITE_NAME: `FODI`, // 站点名称
         IS_CF: true,
       };
       // if (window.GLOBAL_CONFIG.SCF_GATEWAY.indexOf("workers") === -1) {
