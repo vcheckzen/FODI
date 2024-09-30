@@ -528,6 +528,10 @@
         margin-left: auto;
       }
 
+      .size * {
+        display: inline;
+      }
+
       @media screen and (max-width: 1000px) {
         .left {
           display: none;
@@ -704,39 +708,16 @@
       function renderFileList(files) {
         switchRightDisplay();
 
-        const createFileWrapper = (type, name, time, size, path, url) => {
-          let fileWrapper = document
-            .getElementById('file-wrapper-templete')
-            .content.cloneNode(true);
-          fileWrapper.querySelector('ion-icon').setAttribute('name', type);
-          fileWrapper.querySelector('.name').innerHTML = name;
-          fileWrapper.querySelector('.time').innerHTML = time;
-          fileWrapper.querySelector('.size').innerHTML = size;
-          addFileListLineListener(
-            fileWrapper.querySelector('.row.file-wrapper'),
-            path,
-            url,
-            size
-          );
-          return fileWrapper;
-        };
-
         const formatDate = (date) => {
-          const addZero = (num) => (num > 9 ? num : '0' + num);
           date = new Date(date);
+          const addZero = (num) => `${num}`.padStart(2, '0');
           const year = date.getFullYear();
           const month = addZero(date.getMonth() + 1);
           const day = addZero(date.getDate());
           const hour = addZero(date.getHours());
           const minute = addZero(date.getMinutes());
           const second = addZero(date.getSeconds());
-          return 'yyyy-MM-dd HH:mm:ss'
-            .replace('yyyy', year)
-            .replace('MM', month)
-            .replace('dd', day)
-            .replace('HH', hour)
-            .replace('mm', minute)
-            .replace('ss', second);
+          return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
         };
 
         const formatSize = (size) => {
@@ -745,27 +726,26 @@
             size /= 1024;
             count++;
           }
-          size = size.toFixed(2);
-          switch (count) {
-            case 1:
-              size += ' KB';
-              break;
-            case 2:
-              size += ' MB';
-              break;
-            case 3:
-              size += ' GB';
-              break;
-            case 4:
-              size += ' TB';
-              break;
-            case 5:
-              size += ' PB';
-              break;
-            default:
-              size += ' B';
-          }
-          return size;
+          return `${size.toFixed(2)} ${
+            ['<pre> </pre>', 'K', 'M', 'G', 'T', 'P'][count]
+          }B`;
+        };
+
+        const createFileWrapper = (type, name, time, size, path, url) => {
+          const fileWrapper = document
+            .getElementById('file-wrapper-templete')
+            .content.cloneNode(true);
+          fileWrapper.querySelector('ion-icon').setAttribute('name', type);
+          fileWrapper.querySelector('.name').innerHTML = name;
+          fileWrapper.querySelector('.time').innerHTML = formatDate(time);
+          fileWrapper.querySelector('.size').innerHTML = formatSize(size);
+          addFileListLineListener(
+            fileWrapper.querySelector('.row.file-wrapper'),
+            path,
+            url,
+            size
+          );
+          return fileWrapper;
         };
 
         let fileList = document.getElementById('file-list');
@@ -806,8 +786,8 @@
               createFileWrapper(
                 file.url ? 'document' : 'folder',
                 file.name,
-                formatDate(file.time),
-                formatSize(file.size),
+                file.time,
+                file.size,
                 parent + '/' + file.name,
                 file.url
               )
@@ -1126,7 +1106,9 @@
                     'groovy',
                     'asm',
                     'c',
+                    'h',
                     'cpp',
+                    'hpp',
                     'cs',
                     'd',
                     'rs',
@@ -1345,10 +1327,7 @@
                   content.innerHTML = '';
                   content.append(pre);
                   pre.textContent = data;
-                  if (
-                    size.indexOf(' B') >= 0 ||
-                    (size.indexOf(' KB') && size.split(' ')[0] < 100)
-                  ) {
+                  if (size >= 0 && size <= 512000) {
                     hljs.highlightElement(pre);
                   }
                 });
@@ -1861,16 +1840,19 @@
           url: window.GLOBAL_CONFIG.SCF_GATEWAY,
           method: 'POST',
           formatPayload: (path, passwd) => {
-            return (
-              '?path=' +
-              encodeURIComponent(path) +
-              '&encrypted=' +
-              window.api.accessToken.encrypted +
-              '&plain=' +
-              window.api.accessToken.plain +
-              '&passwd=' +
-              passwd
-            );
+            const payload = {
+              path,
+              passwd,
+              ...window.api.accessToken,
+            };
+            const form = new URLSearchParams();
+            for (const k in payload) {
+              const v = payload[k];
+              if (v) {
+                form.append(k, v);
+              }
+            }
+            return `?${form.toString()}`;
           },
           headers: {
             'Content-type': 'application/x-www-form-urlencoded',
