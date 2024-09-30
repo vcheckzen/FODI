@@ -1080,24 +1080,13 @@
                 return result;
               },
               fileType: (suffix) => {
-                Array.prototype.contains = function (search) {
-                  const object = this;
-                  for (const key in object) {
-                    if (object.hasOwnProperty(key)) {
-                      if (eval('/^' + search + '$/i').test(object[key])) {
-                        return true;
-                      }
-                    }
-                  }
-                  return false;
-                };
-                if (['mp3', 'flac', 'wav'].contains(suffix)) {
+                if (['mp3', 'flac', 'wav'].includes(suffix)) {
                   return 'audio';
                 } else if (
-                  ['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].contains(suffix)
+                  ['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].includes(suffix)
                 ) {
                   return 'image';
-                } else if (['md'].contains(suffix)) {
+                } else if (['md'].includes(suffix)) {
                   return 'markdown';
                 } else if (
                   [
@@ -1111,38 +1100,74 @@
                     'rtf',
                     'vsd',
                     'vsdx',
-                  ].contains(suffix)
+                  ].includes(suffix)
                 ) {
                   return 'office';
-                } else if (['pdf'].contains(suffix)) {
+                } else if (['pdf'].includes(suffix)) {
                   return 'pdf';
                 } else if (
                   [
                     'txt',
+                    'ini',
+                    'conf',
                     'js',
+                    'ts',
                     'json',
                     'css',
                     'html',
+                    'xml',
+                    'yml',
+                    'yaml',
+                    'toml',
                     'java',
+                    'kt',
+                    'clj',
+                    'scala',
+                    'groovy',
+                    'asm',
                     'c',
                     'cpp',
+                    'cs',
+                    'd',
+                    'rs',
+                    'swift',
+                    'm',
+                    'r',
+                    'ml',
+                    'fs',
+                    'erl',
+                    'dart',
+                    'lisp',
                     'php',
+                    'pas',
+                    'f90',
+                    'cbl',
                     'cmd',
+                    'vb',
+                    'vbs',
                     'ps1',
                     'bat',
                     'sh',
+                    'awk',
+                    'vim',
+                    'pl',
                     'py',
+                    'rb',
                     'go',
                     'asp',
-                  ].contains(suffix)
+                    'hs',
+                    'rkt',
+                    'lua',
+                    'sql',
+                  ].includes(suffix)
                 ) {
                   return 'text';
-                } else if (['videomagnet'].contains(suffix)) {
+                } else if (['videomagnet'].includes(suffix)) {
                   return 'videomagnet';
-                } else if (['upload'].contains(suffix)) {
+                } else if (['upload'].includes(suffix)) {
                   return 'upload';
                 } else if (
-                  ['mp4', 'avi', 'mkv', 'flv', 'm3u8'].contains(suffix)
+                  ['mp4', 'avi', 'mkv', 'flv', 'm3u8'].includes(suffix)
                 ) {
                   return 'video';
                 }
@@ -1227,7 +1252,7 @@
 
             const name = path.split('/').pop();
             const suffix = name.includes('.')
-              ? name.split('.').pop()
+              ? name.split('.').pop().toLowerCase()
               : '__no_suffix__';
 
             let content = document.querySelector('.content');
