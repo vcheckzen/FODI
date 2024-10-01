@@ -22,29 +22,10 @@
       src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.esm.js"
     ></script>
     <script
-      nomodule=""
+      nomodule
       src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.js"
     ></script>
-    <script src="//s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
-    <link
-      href="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/styles/github.min.css"
-      type="text/css"
-      rel="stylesheet"
-    />
-    <script
-      src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/highlight.min.js"
-      type="application/javascript"
-    ></script>
-    <link
-      href="//s0.pstatp.com/cdn/expire-1-M/github-markdown-css/3.0.1/github-markdown.min.css"
-      rel="stylesheet"
-    />
-    <script src="//s0.pstatp.com/cdn/expire-1-M/jquery/3.4.0/jquery.min.js"></script>
-    <script src="//s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.js"></script>
-    <link
-      href="//s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.css"
-      rel="stylesheet"
-    />
+    <script src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/marked/4.0.2/marked.min.js"></script>
     <style>
       .sk-folding-cube {
         margin: 20px auto;
@@ -696,13 +677,12 @@
         pathSpanWrapper.innerHTML = '';
         pathSpanWrapper.appendChild(createPathSpan(window.api.root));
         let continualPath = '/';
-        for (let i = 1; i < paths.length - 1; i++) {
+        for (let i = 1; i < paths.length; i++) {
           continualPath += paths[i];
           pathSpanWrapper.appendChild(createPathSpan(paths[i], continualPath));
-          pathSpanWrapper.appendChild(createPathSpan('/'));
+          if (i !== paths.length-1) pathSpanWrapper.appendChild(createPathSpan("/"));
           continualPath += '/';
         }
-        pathSpanWrapper.appendChild(createPathSpan(paths[paths.length - 1]));
       }
 
       function renderFileList(files) {
@@ -903,7 +883,7 @@
 
       async function renderMarkdown(path, url) {
         const render = (text) => {
-          const markedText = marked(text, {
+          const markedText = marked.parse(text, {
             gfm: true,
             highlight: (code, language, callback) => {
               try {
@@ -1144,14 +1124,14 @@
                   ].includes(suffix)
                 ) {
                   return 'text';
-                } else if (['videomagnet'].includes(suffix)) {
-                  return 'videomagnet';
                 } else if (['upload'].includes(suffix)) {
                   return 'upload';
                 } else if (
                   ['mp4', 'avi', 'mkv', 'flv', 'm3u8'].includes(suffix)
                 ) {
                   return 'video';
+                } else if (['videomagnet'].includes(suffix)) {
+                  return 'videomagnet';
                 }
               },
               loadResource: (resource, callback) => {
@@ -1198,35 +1178,40 @@
                 document.getElementsByTagName('head')[0].appendChild(element);
               },
 
+              loadEachResource: (resources, host, callback) => {
+                let unloadedResourceCount = resources.length;
+                resources.forEach((resource) => {
+                  previewHandler.loadResource(host + resource, () => {
+                    if (!--unloadedResourceCount) {
+                      if (typeof callback === 'function') {
+                        callback();
+                      }
+                    }
+                  });
+                });
+              },
+
               createDplayer: (video, type, elem) => {
-                const host = '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M';
-                const resources = [
+                resources = [
                   '/hls.js/1.1.5/hls.light.min.js',
                   '/flv.js/1.6.2/flv.min.js',
                   '/dplayer/1.25.0/DPlayer.min.css',
                   '/dplayer/1.25.0/DPlayer.min.js',
                 ];
 
-                let unloadedResourceCount = resources.length;
-                resources.forEach((resource) => {
-                  previewHandler.loadResource(host + resource, () => {
-                    if (!--unloadedResourceCount) {
-                      let option = {
-                        url: video,
-                      };
-                      if (type === 'flv') {
-                        option.type = 'flv';
-                      } else if (type === 'm3u8') {
-                        option.type = 'hls';
-                      } /* else if (type === 'videomagnet') {
-                        option.type = 'webtorrent';
-                      }*/
-                      new DPlayer({
-                        container: elem,
-                        screenshot: true,
-                        video: option,
-                      });
-                    }
+                previewHandler.loadEachResource(resources, host, () => {
+                  let option = {
+                    url: video,
+                  };
+                  if (type === 'flv') {
+                    option.type = 'flv';
+                  } else if (type === 'm3u8') {
+                    option.type = 'hls';
+                  }
+                  new DPlayer({
+                    container: elem,
+                    screenshot: true,
+                    video: option,
                   });
                 });
               },
@@ -1245,6 +1230,8 @@
             );
 
             let contentType = previewHandler.fileType(suffix);
+            const host = '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M';
+            let resources;
             switch (contentType) {
               case 'audio':
                 let audio = new Audio();
@@ -1257,18 +1244,30 @@
                 content.append(audio);
                 break;
               case 'image':
-                let img = new Image();
-                img.style.maxWidth = '100%';
-                img.src = url;
-                let fancy = document.createElement('a');
-                fancy.setAttribute('data-fancybox', 'image');
-                fancy.href = img.src;
-                fancy.append(img);
-                content.innerHTML = '';
-                content.append(fancy);
+                resources = [
+                  '/jquery/3.6.0/jquery.min.js',
+                  '/fancybox/3.5.7/jquery.fancybox.min.css',
+                  '/fancybox/3.5.7/jquery.fancybox.min.js'
+                ];
+                previewHandler.loadEachResource(resources, host, () => {
+                  let img = new Image();
+                  img.style.maxWidth = '100%';
+                  img.src = url;
+                  let fancy = document.createElement('a');
+                  fancy.setAttribute('data-fancybox', 'image');
+                  fancy.href = img.src;
+                  fancy.append(img);
+                  content.innerHTML = '';
+                  content.append(fancy);
+                });
                 break;
               case 'markdown':
-                renderMarkdown(path, url);
+                resources = [
+                  '/github-markdown-css/5.1.0/github-markdown.min.css'
+                ]
+                previewHandler.loadEachResource(resources, host, () => {
+                  renderMarkdown(path, url);
+                });
                 break;
               case 'office':
                 const officeOnline =
@@ -1318,19 +1317,31 @@
                 }
                 break;
               case 'text':
-                sendRequest('GET', url, null, null, (data) => {
-                  const pre = document.createElement('pre');
-                  pre.style.background = 'rgb(245,245,245)';
-                  pre.style.padding = '5px';
-                  // pre.style['overflow-x'] = 'auto';
-                  content.style.textAlign = 'initial';
-                  content.innerHTML = '';
-                  content.append(pre);
-                  pre.textContent = data;
-                  if (size >= 0 && size <= 512000) {
-                    hljs.highlightElement(pre);
-                  }
+                resources = [
+                  '/highlight.js/11.4.0/highlight.min.js',
+                  '/highlight.js/11.4.0/styles/github.min.css'
+                ];
+                previewHandler.loadEachResource(resources, host, () => {
+                  sendRequest('GET', url, null, null, (data) => {
+                    const pre = document.createElement('pre');
+                    pre.style.background = 'rgb(245,245,245)';
+                    pre.style.padding = '5px';
+                    // pre.style['overflow-x'] = 'auto';
+                    content.style.textAlign = 'initial';
+                    content.innerHTML = '';
+                    content.append(pre);
+                    pre.textContent = data;
+                    if (size >= 0 && size <= 512000) {
+                      hljs.highlightElement(pre);
+                    }
+                  });
                 });
+                break;
+              case 'video':
+                let video = document.createElement('div');
+                previewHandler.createDplayer(url, suffix, video);
+                content.innerHTML = '';
+                content.append(video);
                 break;
               case 'videomagnet':
                 fetch(url)
@@ -1363,12 +1374,6 @@
                     content.innerHTML = '';
                     content.appendChild(textWrapper);
                   });
-                break;
-              case 'video':
-                let video = document.createElement('div');
-                previewHandler.createDplayer(url, suffix, video);
-                content.innerHTML = '';
-                content.append(video);
                 break;
               default:
                 let textWrapper = document.createElement('div');
