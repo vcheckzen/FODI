@@ -739,9 +739,6 @@
           }
           renderTreeNode(files);
         }
-        if (document.body.getAttribute('hidden')) {
-          document.body.removeAttribute('hidden');
-        }
         document.querySelector('.loading-wrapper').style.display = 'none';
       }
 
@@ -1326,7 +1323,6 @@
                     const pre = document.createElement('pre');
                     pre.style.background = 'rgb(245,245,245)';
                     pre.style.padding = '5px';
-                    content.style.textAlign = 'initial';
                     content.innerHTML = '';
                     content.append(pre);
                     pre.textContent = data;
@@ -1427,6 +1423,7 @@
           switchBackForwardStatus(window.api.root);
         });
       }
+
       function addFileUploadListener() {
         const fileInput = document.querySelector('.file-upload-input');
         const fileNameDisplay = document.querySelector('.file-upload-name');
@@ -1442,6 +1439,7 @@
           }
         });
       }
+
       function switchRightDisplay(display) {
         for (const c of document.querySelector('.right').children) {
           c.dataset.hidden = '1';
