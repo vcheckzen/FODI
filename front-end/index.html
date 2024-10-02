@@ -661,48 +661,51 @@
         return Promise.all(resources.map(load));
 
         async function load(resource) {
-          return new Promise((resolve, reject) => {
-            const rid = btoa(encodeURIComponent(resource));
-            if (document.getElementById(rid)) {
-              return resolve();
-            }
+          if (!window.resourceCache[resource]) {
+            window.resourceCache[resource] = handle();
+          }
+          return window.resourceCache[resource];
 
-            const timeout = 5000;
-            let element;
-            switch (resource.split('.').pop()) {
-              case 'css':
-                element = document.createElement('link');
-                element.href = resource;
-                element.rel = 'stylesheet';
-                break;
-              case 'js':
-                element = document.createElement('script');
-                element.src = resource;
-                break;
-              default:
-                return reject(new Error('Unsupported resource type'));
-            }
-            element.id = rid;
-
-            let loaded = false;
-            element.onload = () => {
-              loaded = true;
-              resolve();
-            };
-            element.onerror = () => {
-              reject(new Error(`Failed to load resource: ${resource}`));
-            };
-            setTimeout(() => {
-              if (!loaded) {
-                reject(new Error(`Resource loading timed out: ${resource}`));
+          function handle() {
+            return new Promise((resolve, reject) => {
+              const timeout = 5000;
+              let element;
+              switch (resource.split('.').pop()) {
+                case 'css':
+                  element = document.createElement('link');
+                  element.href = resource;
+                  element.rel = 'stylesheet';
+                  break;
+                case 'js':
+                  element = document.createElement('script');
+                  element.src = resource;
+                  break;
+                default:
+                  return reject(new Error('Unsupported resource type'));
               }
-            }, timeout);
 
-            document.head.insertBefore(
-              element,
-              document.head.firstElementChild
-            );
-          });
+              let loaded = false;
+              element.onload = () => {
+                loaded = true;
+                resolve();
+              };
+
+              function error(reason) {
+                if (!loaded) {
+                  document.head.removeChild(element);
+                  delete window.resourceCache[resource];
+                  reject(new Error(`${reason}: ${resource}`));
+                }
+              }
+              element.onerror = () => error('Failed to load resource');
+              setTimeout(() => error('Resource loading timed out'), timeout);
+
+              document.head.insertBefore(
+                element,
+                document.head.firstElementChild
+              );
+            });
+          }
         }
       }
 
@@ -1849,6 +1852,7 @@
           preview: false,
         };
         window.fileCache = new Map();
+        window.resourceCache = Object.create(null);
         const initialPath =
           new URLSearchParams(window.location.search).get('path') ||
           window.api.root;
