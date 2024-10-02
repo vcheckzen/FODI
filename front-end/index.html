@@ -7,10 +7,6 @@
         SITE_NAME: `FODI`, // 站点名称
         IS_CF: true,
       };
-      // if (window.GLOBAL_CONFIG.SCF_GATEWAY.indexOf("workers") === -1) {
-      //   window.GLOBAL_CONFIG.SCF_GATEWAY += "/fodi/";
-      //   window.GLOBAL_CONFIG.IS_CF = false;
-      // }
     </script>
     <meta charset="utf-8" />
     <meta
@@ -22,29 +18,9 @@
       src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.esm.js"
     ></script>
     <script
-      nomodule=""
+      nomodule
       src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.js"
     ></script>
-    <script src="//s0.pstatp.com/cdn/expire-1-M/marked/0.6.2/marked.min.js"></script>
-    <link
-      href="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/styles/github.min.css"
-      type="text/css"
-      rel="stylesheet"
-    />
-    <script
-      src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/highlight.min.js"
-      type="application/javascript"
-    ></script>
-    <link
-      href="//s0.pstatp.com/cdn/expire-1-M/github-markdown-css/3.0.1/github-markdown.min.css"
-      rel="stylesheet"
-    />
-    <script src="//s0.pstatp.com/cdn/expire-1-M/jquery/3.4.0/jquery.min.js"></script>
-    <script src="//s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.js"></script>
-    <link
-      href="//s0.pstatp.com/cdn/expire-1-M/fancybox/3.5.7/jquery.fancybox.min.css"
-      rel="stylesheet"
-    />
     <style>
       .sk-folding-cube {
         margin: 20px auto;
@@ -64,6 +40,7 @@
         -ms-transform: scale(1.1);
         transform: scale(1.1);
       }
+
       .sk-folding-cube .sk-cube:before {
         content: '';
         position: absolute;
@@ -78,30 +55,37 @@
         -ms-transform-origin: 100% 100%;
         transform-origin: 100% 100%;
       }
+
       .sk-folding-cube .sk-cube2 {
         -webkit-transform: scale(1.1) rotateZ(90deg);
         transform: scale(1.1) rotateZ(90deg);
       }
+
       .sk-folding-cube .sk-cube3 {
         -webkit-transform: scale(1.1) rotateZ(180deg);
         transform: scale(1.1) rotateZ(180deg);
       }
+
       .sk-folding-cube .sk-cube4 {
         -webkit-transform: scale(1.1) rotateZ(270deg);
         transform: scale(1.1) rotateZ(270deg);
       }
+
       .sk-folding-cube .sk-cube2:before {
         -webkit-animation-delay: 0.3s;
         animation-delay: 0.3s;
       }
+
       .sk-folding-cube .sk-cube3:before {
         -webkit-animation-delay: 0.6s;
         animation-delay: 0.6s;
       }
+
       .sk-folding-cube .sk-cube4:before {
         -webkit-animation-delay: 0.9s;
         animation-delay: 0.9s;
       }
+
       @-webkit-keyframes sk-foldCubeAngle {
         0%,
         10% {
@@ -109,12 +93,14 @@
           transform: perspective(140px) rotateX(-180deg);
           opacity: 0;
         }
+
         25%,
         75% {
           -webkit-transform: perspective(140px) rotateX(0deg);
           transform: perspective(140px) rotateX(0deg);
           opacity: 1;
         }
+
         90%,
         100% {
           -webkit-transform: perspective(140px) rotateY(180deg);
@@ -130,12 +116,14 @@
           transform: perspective(140px) rotateX(-180deg);
           opacity: 0;
         }
+
         25%,
         75% {
           -webkit-transform: perspective(140px) rotateX(0deg);
           transform: perspective(140px) rotateX(0deg);
           opacity: 1;
         }
+
         90%,
         100% {
           -webkit-transform: perspective(140px) rotateY(180deg);
@@ -152,8 +140,14 @@
         aspect-ratio: 16 / 9;
       }
 
-      .list-header .upload-entry-wrapper {
+      .list-header {
         padding: 0;
+      }
+
+      .upload-entry-wrapper {
+        height: 2.5em;
+        display: flex;
+        border-bottom: solid rgb(218, 215, 215) 1px;
       }
 
       .upload-entry-btn {
@@ -177,8 +171,6 @@
 
       .password {
         margin: 0 auto;
-        /* margin-top: 1em; */
-        /* display: none; */
       }
 
       .password input {
@@ -206,7 +198,6 @@
       }
 
       .file-upload-wrapper {
-        /* display: none; */
         font-size: 0.8em;
         padding: 0 1em;
       }
@@ -349,7 +340,7 @@
         width: 100%;
         margin: 0 auto;
         padding: 0.7em 1em;
-        font-size: 0.8em;
+        font-size: 0.9em;
       }
 
       .markdown-body h1,
@@ -403,8 +394,6 @@
 
       .site {
         white-space: nowrap;
-        /* margin-left: auto;
-                padding-left: 2em; */
       }
 
       .nav {
@@ -448,7 +437,6 @@
 
       .left {
         position: absolute;
-        /* display: inline-grid; */
         width: 20%;
         height: 100%;
         font-size: 0.8em;
@@ -620,7 +608,7 @@
       }
 
       function sendRequest(method, url, data, headers, callback, error, times) {
-        let xhr = createCORSRequest(method, url, 2500);
+        const xhr = createCORSRequest(method, url, 2500);
         xhr.onreadystatechange = () => {
           if (xhr.readyState == 4 && xhr.status == 200) {
             callback(xhr.responseText);
@@ -642,7 +630,7 @@
           }
         };
         if (headers) {
-          for (key in headers) {
+          for (const key in headers) {
             if (headers.hasOwnProperty(key)) {
               xhr.setRequestHeader(key, headers[key]);
             }
@@ -652,6 +640,84 @@
           xhr.send(data);
         } else {
           xhr.send();
+        }
+      }
+
+      function fromByteDance(...resources) {
+        return resources.map(
+          (r) => `//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M${r}`
+        );
+      }
+
+      function fromTaobao(...resources) {
+        return resources.map((r) => `//registry.npmmirror.com${r}`);
+      }
+
+      function fromJsDelivr(...resources) {
+        return resources.map((r) => `//cdn.jsdelivr.net/npm${r}`);
+      }
+
+      async function loadResource(resources) {
+        return Promise.all(resources.map(load));
+
+        async function load(resource) {
+          return new Promise((resolve, reject) => {
+            const rid = btoa(encodeURIComponent(resource));
+            if (document.getElementById(rid)) {
+              return resolve();
+            }
+
+            const timeout = 5000;
+            let element;
+            switch (resource.split('.').pop()) {
+              case 'css':
+                element = document.createElement('link');
+                element.href = resource;
+                element.rel = 'stylesheet';
+                break;
+              case 'js':
+                element = document.createElement('script');
+                element.src = resource;
+                break;
+              default:
+                return reject(new Error('Unsupported resource type'));
+            }
+            element.id = rid;
+
+            let loaded = false;
+            element.onload = () => {
+              loaded = true;
+              resolve();
+            };
+            element.onerror = () => {
+              reject(new Error(`Failed to load resource: ${resource}`));
+            };
+            setTimeout(() => {
+              if (!loaded) {
+                reject(new Error(`Resource loading timed out: ${resource}`));
+              }
+            }, timeout);
+
+            document.head.insertBefore(
+              element,
+              document.head.firstElementChild
+            );
+          });
+        }
+      }
+
+      function putLoadingAnimation(selectorOrElem) {
+        const elem =
+          typeof selectorOrElem === 'string'
+            ? document.querySelector(selectorOrElem)
+            : selectorOrElem;
+        if (!elem.querySelector('.sk-folding-cube')) {
+          elem.innerHTML = '';
+          elem.appendChild(
+            document
+              .getElementById('loading-wrapper-templete')
+              .content.cloneNode(true)
+          );
         }
       }
 
@@ -681,7 +747,7 @@
 
       function renderPath(path) {
         const createPathSpan = (text, path) => {
-          let pathSpan = document.createElement('span');
+          const pathSpan = document.createElement('span');
           pathSpan.innerHTML =
             text.length > 20 ? text.substring(0, 20) + '..' : text;
           pathSpan.className = text === '/' ? 'nav-arr' : 'nav-path';
@@ -692,21 +758,22 @@
         };
 
         const paths = path.split('/');
-        let pathSpanWrapper = document.getElementById('path');
+        const pathSpanWrapper = document.getElementById('path');
         pathSpanWrapper.innerHTML = '';
         pathSpanWrapper.appendChild(createPathSpan(window.api.root));
         let continualPath = '/';
-        for (let i = 1; i < paths.length - 1; i++) {
+        for (let i = 1; i < paths.length; i++) {
           continualPath += paths[i];
           pathSpanWrapper.appendChild(createPathSpan(paths[i], continualPath));
-          pathSpanWrapper.appendChild(createPathSpan('/'));
-          continualPath += '/';
+          if (i !== paths.length - 1) {
+            pathSpanWrapper.appendChild(createPathSpan('/'));
+            continualPath += '/';
+          }
         }
-        pathSpanWrapper.appendChild(createPathSpan(paths[paths.length - 1]));
       }
 
       function renderFileList(files) {
-        switchRightDisplay();
+        switchRightDisplay('list');
 
         const formatDate = (date) => {
           date = new Date(date);
@@ -748,10 +815,10 @@
           return fileWrapper;
         };
 
-        let fileList = document.getElementById('file-list');
+        const fileList = document.getElementById('file-list');
         fileList.innerHTML = '';
         files.files.forEach((file) => {
-          if (file.name.split('.').pop() === 'md') {
+          if (file.name.endsWith('.md')) {
             if (file.url) {
               renderMarkdown(
                 files.parent + (files.parent === '/' ? '' : '/') + file.name,
@@ -760,26 +827,11 @@
             }
           }
           if (file.name === '.upload') {
-            const entryWrapper = document.querySelector(
-              '.upload-entry-wrapper'
-            );
-            if (entryWrapper) {
-              entryWrapper.dataset.hidden = '0';
-              return;
-            }
-
-            const listHeader = document.querySelector('.list-header');
-            const row = listHeader.firstElementChild;
-            const uploadEntry = row.cloneNode(false);
-            uploadEntry.classList.add('upload-entry-wrapper');
-            uploadEntry.innerHTML = `<button class="upload-entry-btn">在此上传文件</button>`;
-            uploadEntry
-              .querySelector('button')
-              .addEventListener('click', () => {
-                window.backFordwardCache.preview = true;
-                switchRightDisplay('upload');
-              });
-            listHeader.insertBefore(uploadEntry, row);
+            document.querySelector('.upload-entry-wrapper').dataset.hidden = 0;
+            document.querySelector('.upload-entry-btn').onclick = () => {
+              window.backFordwardCache.preview = true;
+              switchRightDisplay('upload');
+            };
           } else if (file.name !== 'README.md') {
             const parent = files.parent === window.api.root ? '' : files.parent;
             fileList.appendChild(
@@ -798,10 +850,10 @@
 
       async function renderTreeNode(files) {
         const createTreeNodeWrapper = (array, type, name, path) => {
-          let treeNodeWrapper = document
+          const treeNodeWrapper = document
             .getElementById('tree-node-wrapper-template')
             .content.cloneNode(true);
-          let icons = treeNodeWrapper.querySelectorAll('ion-icon');
+          const icons = treeNodeWrapper.querySelectorAll('ion-icon');
           icons[0].setAttribute('name', array);
           icons[1].setAttribute('name', type);
           treeNodeWrapper.querySelector('.tree-node-name').innerText = name;
@@ -815,14 +867,14 @@
         };
 
         const paths = files.parent.split('/');
-        let absolutePath = (max) => {
-          let absolutePath = '';
+        const absolutePath = (max) => {
+          let absPath = '';
           for (let j = 1; j <= max; j++) {
-            absolutePath += '/' + paths[j];
+            absPath += '/' + paths[j];
           }
-          return absolutePath;
+          return absPath;
         };
-        let maxIndex = paths.length - 1;
+        const maxIndex = paths.length - 1;
         let currentTreeNode = createTreeNodeWrapper(
           'arrow-dropdown',
           'folder-open',
@@ -844,13 +896,13 @@
 
         for (let i = maxIndex - 1; i > 0; i--) {
           const currentTreeNodeParentAbsolutePath = absolutePath(i);
-          let currentTreeNodeParent = createTreeNodeWrapper(
+          const currentTreeNodeParent = createTreeNodeWrapper(
             'arrow-dropdown',
             'folder',
             paths[i],
             currentTreeNodeParentAbsolutePath
           );
-          let cache = window.fileCache.get(currentTreeNodeParentAbsolutePath);
+          const cache = window.fileCache.get(currentTreeNodeParentAbsolutePath);
           if (cache) {
             cache.files.forEach((file) => {
               if (!file.url) {
@@ -902,13 +954,39 @@
       }
 
       async function renderMarkdown(path, url) {
+        const isReadMe = () =>
+          window.backFordwardCache.current +
+            (window.backFordwardCache.current === '/' ? '' : '/') +
+            'README.md' ===
+          path;
+
+        if (isReadMe()) {
+          putLoadingAnimation('#readme');
+        }
+
+        await loadResource(
+          fromByteDance(
+            '/github-markdown-css/3.0.1/github-markdown.min.css',
+            '/highlight.js/11.4.0/styles/github.min.css',
+            '/highlight.js/11.4.0/highlight.min.js',
+            '/marked/4.0.2/marked.min.js'
+          )
+        );
+
         const render = (text) => {
-          const markedText = marked(text, {
+          const cache = window.fileCache.get(path);
+          if (!cache || cache === true) {
+            window.fileCache.set(path, text);
+          }
+
+          text = marked.parse(text, {
             gfm: true,
             highlight: (code, language, callback) => {
               try {
-                return hljs.highlight(code, { language, ignoreIllegals: true })
-                  .value;
+                return hljs.highlight(code, {
+                  language,
+                  ignoreIllegals: true,
+                }).value;
               } catch (e) {
                 return hljs.highlight(code, {
                   language: 'plaintext',
@@ -918,62 +996,23 @@
             },
           });
 
-          if (
-            window.backFordwardCache.current +
-              (window.backFordwardCache.current === '/' ? '' : '/') +
-              'README.md' ===
-            path
-          ) {
-            if (!window.backFordwardCache.preview) {
-              document.getElementById('readme').innerHTML = markedText;
-              // document.querySelector('.markdown-body').style.display = 'block';
-            }
+          if (isReadMe()) {
+            document.getElementById('readme').innerHTML = text;
           } else if (window.backFordwardCache.preview) {
             const markdownBody = document.createElement('div');
             markdownBody.classList.add('markdown-body');
-            markdownBody.innerHTML = markedText;
+            markdownBody.innerHTML = text;
             const content = document.querySelector('.content');
             content.innerHTML = '';
             content.appendChild(markdownBody);
           }
-          let cache = window.fileCache.get(path);
-          if (!cache || cache === true) {
-            window.fileCache.set(path, text);
-          }
         };
 
-        if (
-          window.backFordwardCache.current +
-            (window.backFordwardCache.current === '/' ? '' : '/') +
-            'README.md' ===
-          path
-        ) {
-          const readme = document.getElementById('readme');
-          if (!readme.querySelector('.sk-folding-cube')) {
-            readme.innerHTML = '';
-            readme.appendChild(
-              document
-                .getElementById('loading-wrapper-templete')
-                .content.cloneNode(true)
-            );
-            // document.querySelector('.markdown-body').style.display = 'block';
-          }
-        }
-
-        let text = window.fileCache.get(path);
+        const text = window.fileCache.get(path);
         if (text === true) {
           setTimeout(() => renderMarkdown(path, url), 200);
-          // let cacheWaitReadmeFetch = setInterval(() => {
-          //   text = window.fileCache.get(path);
-          //   if (typeof text === "object") {
-          //     render(text, path);
-          //     clearInterval(cacheWaitReadmeFetch);
-          //   } else if (text === false) {
-          //     clearInterval(cacheWaitReadmeFetch);
-          //   }
-          // }, 100);
         } else if (text) {
-          render(text, path);
+          render(text);
         } else {
           window.fileCache.set(path, true);
           sendRequest(
@@ -1016,8 +1055,7 @@
                 window.fileCache.set(newFiles.parent, newFiles);
                 fetchFileList(newFiles.parent);
               }
-            },
-            () => window.fileCache.set(newFiles.parent, false)
+            }
           );
         });
       }
@@ -1040,15 +1078,19 @@
         if (url) {
           elem.addEventListener('click', (event) => {
             window.backFordwardCache.preview = true;
+            const content = document.querySelector('.content');
+            putLoadingAnimation(content);
+            switchRightDisplay('preview');
+
             const previewHandler = {
               copyTextContent: (source, text) => {
                 let result = false;
-                let target = document.createElement('pre');
+                const target = document.createElement('pre');
                 target.style.opacity = '0';
                 target.textContent = text || source.textContent;
                 document.body.appendChild(target);
                 try {
-                  let range = document.createRange();
+                  const range = document.createRange();
                   range.selectNode(target);
                   window.getSelection().removeAllRanges();
                   window.getSelection().addRange(range);
@@ -1144,91 +1186,60 @@
                   ].includes(suffix)
                 ) {
                   return 'text';
-                } else if (['videomagnet'].includes(suffix)) {
-                  return 'videomagnet';
                 } else if (['upload'].includes(suffix)) {
                   return 'upload';
                 } else if (
                   ['mp4', 'avi', 'mkv', 'flv', 'm3u8'].includes(suffix)
                 ) {
                   return 'video';
+                } else if (['videomagnet'].includes(suffix)) {
+                  return 'videomagnet';
                 }
               },
-              loadResource: (resource, callback) => {
-                const rid = btoa(resource);
-                if (document.getElementById(rid)) {
-                  if (typeof callback === 'function') {
-                    callback();
-                  }
-                  return;
-                }
-
-                let type;
-                switch (resource.split('.').pop()) {
-                  case 'css':
-                    type = 'link';
-                    break;
-                  case 'js':
-                    type = 'script';
-                    break;
-                }
-                const element = document.createElement(type);
-                element.id = rid;
-
-                let loaded = false;
-                if (typeof callback === 'function') {
-                  element.onload = element.onreadystatechange = () => {
-                    if (
-                      !loaded &&
-                      (!element.readyState ||
-                        /loaded|complete/.test(element.readyState))
-                    ) {
-                      element.onload = element.onreadystatechange = null;
-                      loaded = true;
-                      callback();
-                    }
+              createDplayer: async (video, type, elem) => {
+                return loadResource(
+                  fromByteDance(
+                    '/hls.js/1.1.5/hls.light.min.js',
+                    '/flv.js/1.6.2/flv.min.js',
+                    '/dplayer/1.25.0/DPlayer.min.css',
+                    '/dplayer/1.25.0/DPlayer.min.js'
+                  )
+                ).then(() => {
+                  const option = {
+                    url: video,
                   };
-                }
-                if (type === 'link') {
-                  element.href = resource;
-                  element.rel = 'stylesheet';
-                } else {
-                  element.src = resource;
-                }
-                document.getElementsByTagName('head')[0].appendChild(element);
-              },
-
-              createDplayer: (video, type, elem) => {
-                const host = '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M';
-                const resources = [
-                  '/hls.js/1.1.5/hls.light.min.js',
-                  '/flv.js/1.6.2/flv.min.js',
-                  '/dplayer/1.25.0/DPlayer.min.css',
-                  '/dplayer/1.25.0/DPlayer.min.js',
-                ];
-
-                let unloadedResourceCount = resources.length;
-                resources.forEach((resource) => {
-                  previewHandler.loadResource(host + resource, () => {
-                    if (!--unloadedResourceCount) {
-                      let option = {
-                        url: video,
-                      };
-                      if (type === 'flv') {
-                        option.type = 'flv';
-                      } else if (type === 'm3u8') {
-                        option.type = 'hls';
-                      } /* else if (type === 'videomagnet') {
-                        option.type = 'webtorrent';
-                      }*/
-                      new DPlayer({
-                        container: elem,
-                        screenshot: true,
-                        video: option,
-                      });
-                    }
+                  if (type === 'flv') {
+                    option.type = 'flv';
+                  } else if (type === 'm3u8') {
+                    option.type = 'hls';
+                  }
+                  new DPlayer({
+                    container: elem,
+                    screenshot: true,
+                    video: option,
                   });
                 });
+              },
+              fallback: (msg) => {
+                const textWrapper = document.createElement('div');
+                textWrapper.style.textAlign = 'center';
+                textWrapper.innerHTML = msg;
+                content.innerHTML = '';
+                content.appendChild(textWrapper);
+              },
+              scrollToBottom: () => {
+                let start = null;
+                const right = document.querySelector('.right');
+                const scrollToBottom = (timestamp) => {
+                  if (!start) start = timestamp;
+                  const progress = timestamp - start;
+                  const last = right.scrollTop;
+                  right.scrollTo(0, right.scrollTop + 14);
+                  if (right.scrollTop !== last && progress < 1000 * 2) {
+                    window.requestAnimationFrame(scrollToBottom);
+                  }
+                };
+                window.requestAnimationFrame(scrollToBottom);
               },
             };
 
@@ -1237,17 +1248,10 @@
               ? name.split('.').pop().toLowerCase()
               : '__no_suffix__';
 
-            let content = document.querySelector('.content');
-            content.appendChild(
-              document
-                .getElementById('loading-wrapper-templete')
-                .content.cloneNode(true)
-            );
-
-            let contentType = previewHandler.fileType(suffix);
+            const contentType = previewHandler.fileType(suffix);
             switch (contentType) {
               case 'audio':
-                let audio = new Audio();
+                const audio = new Audio();
                 audio.style.outline = 'none';
                 audio.preload = 'auto';
                 audio.controls = 'controls';
@@ -1257,125 +1261,116 @@
                 content.append(audio);
                 break;
               case 'image':
-                let img = new Image();
-                img.style.maxWidth = '100%';
-                img.src = url;
-                let fancy = document.createElement('a');
-                fancy.setAttribute('data-fancybox', 'image');
-                fancy.href = img.src;
-                fancy.append(img);
-                content.innerHTML = '';
-                content.append(fancy);
+                const firstLoad = typeof Fancybox === 'undefined';
+                loadResource(
+                  fromTaobao(
+                    '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.css',
+                    '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.umd.js'
+                  )
+                ).then(() => {
+                  if (firstLoad) {
+                    Fancybox.bind('[data-fancybox]');
+                  }
+                  const img = new Image();
+                  img.style.maxWidth = '100%';
+                  img.src = url;
+                  const fancy = document.createElement('a');
+                  fancy.setAttribute('data-fancybox', '');
+                  fancy.dataset.src = url;
+                  fancy.append(img);
+                  content.innerHTML = '';
+                  content.append(fancy);
+                });
                 break;
               case 'markdown':
                 renderMarkdown(path, url);
                 break;
               case 'office':
-                const officeOnline =
-                  '//view.officeapps.live.com/op/view.aspx?src=' +
+              case 'pdf':
+                const onlineViewerUrl =
+                  (contentType === 'office'
+                    ? '//view.officeapps.live.com/op/view.aspx?src='
+                    : '//mozilla.github.io/pdf.js/web/viewer.html?file=') +
                   encodeURIComponent(url);
-                let div = document.createElement('div');
+                const div = document.createElement('div');
                 div.style.lineHeight = '2em';
                 div.style.background = 'rgba(218, 215, 215, 0.21)';
                 div.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
                 div.style.cursor = 'pointer';
                 div.style.textAlign = 'center';
                 div.innerHTML = '新窗口打开';
-                div.addEventListener('click', () => window.open(officeOnline));
+                div.addEventListener('click', () =>
+                  window.open(onlineViewerUrl)
+                );
                 content.innerHTML = '';
                 content.appendChild(div);
                 if (document.body.clientWidth >= 480) {
-                  let iframe = document.createElement('iframe');
+                  const iframe = document.createElement('iframe');
                   iframe.width = '100%';
                   iframe.style.aspectRatio = '16 / 9';
                   iframe.style.border = '0';
-                  iframe.src = officeOnline;
+                  iframe.src = onlineViewerUrl;
                   content.appendChild(iframe);
                 }
                 break;
-              case 'pdf':
-                const pdfOnline =
-                  // "pdfjs/web/viewer.html?file=" +
-                  '//mozilla.github.io/pdf.js/web/viewer.html?file=' +
-                  encodeURIComponent(url);
-                let pdfDiv = document.createElement('div');
-                pdfDiv.style.lineHeight = '2em';
-                pdfDiv.style.background = 'rgba(218, 215, 215, 0.21)';
-                pdfDiv.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
-                pdfDiv.style.cursor = 'pointer';
-                pdfDiv.style.textAlign = 'center';
-                pdfDiv.innerHTML = '新窗口打开';
-                pdfDiv.addEventListener('click', () => window.open(pdfOnline));
-                content.innerHTML = '';
-                content.appendChild(pdfDiv);
-                if (document.body.clientWidth >= 480) {
-                  let pdfIframe = document.createElement('iframe');
-                  pdfIframe.width = '100%';
-                  pdfIframe.style.aspectRatio = '16 / 9';
-                  pdfIframe.style.border = '0';
-                  pdfIframe.src = pdfOnline;
-                  content.appendChild(pdfIframe);
-                }
-                break;
+
               case 'text':
-                sendRequest('GET', url, null, null, (data) => {
-                  const pre = document.createElement('pre');
-                  pre.style.background = 'rgb(245,245,245)';
-                  pre.style.padding = '5px';
-                  // pre.style['overflow-x'] = 'auto';
-                  content.style.textAlign = 'initial';
+                loadResource(
+                  fromByteDance(
+                    '/highlight.js/11.4.0/styles/github.min.css',
+                    '/highlight.js/11.4.0/highlight.min.js'
+                  )
+                ).then(() => {
+                  sendRequest('GET', url, null, null, (data) => {
+                    const pre = document.createElement('pre');
+                    pre.style.background = 'rgb(245,245,245)';
+                    pre.style.padding = '5px';
+                    content.style.textAlign = 'initial';
+                    content.innerHTML = '';
+                    content.append(pre);
+                    pre.textContent = data;
+                    if (size <= 512000) {
+                      hljs.highlightElement(pre);
+                    }
+                  });
+                });
+                break;
+              case 'video':
+                const video = document.createElement('div');
+                previewHandler.createDplayer(url, suffix, video).then(() => {
                   content.innerHTML = '';
-                  content.append(pre);
-                  pre.textContent = data;
-                  if (size >= 0 && size <= 512000) {
-                    hljs.highlightElement(pre);
-                  }
+                  content.append(video);
+                  previewHandler.scrollToBottom();
                 });
                 break;
               case 'videomagnet':
                 fetch(url)
                   .then((resp) => resp.text())
                   .then((magnetUrl) => {
-                    previewHandler.loadResource(
-                      '//cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js',
-                      () => {
-                        const torrent = document.createElement('div');
-                        torrent.id = 'player';
-                        torrent.className = 'webtor';
-                        torrent.style.textAlign = 'center';
-                        torrent.style.aspectRatio = '16 / 9';
-                        torrent.style.backgroundColor = '#101417';
-                        content.innerHTML = '';
-                        content.appendChild(torrent);
-                        window.webtor = window.webtor || [];
-                        window.webtor.push({
-                          id: 'player',
-                          width: '100%',
-                          magnet: magnetUrl.trim(),
-                        });
-                      }
-                    );
+                    loadResource(
+                      fromJsDelivr('/@webtor/embed-sdk-js/dist/index.min.js')
+                    ).then(() => {
+                      const torrent = document.createElement('div');
+                      torrent.id = 'player';
+                      torrent.className = 'webtor';
+                      torrent.style.textAlign = 'center';
+                      torrent.style.aspectRatio = '16 / 9';
+                      torrent.style.backgroundColor = '#101417';
+                      content.innerHTML = '';
+                      content.appendChild(torrent);
+                      window.webtor = window.webtor || [];
+                      window.webtor.push({
+                        id: 'player',
+                        width: '100%',
+                        magnet: magnetUrl.trim(),
+                      });
+                      previewHandler.scrollToBottom();
+                    });
                   })
-                  .catch((e) => {
-                    let textWrapper = document.createElement('div');
-                    textWrapper.style.textAlign = 'center';
-                    textWrapper.innerHTML = '预览失败';
-                    content.innerHTML = '';
-                    content.appendChild(textWrapper);
-                  });
-                break;
-              case 'video':
-                let video = document.createElement('div');
-                previewHandler.createDplayer(url, suffix, video);
-                content.innerHTML = '';
-                content.append(video);
+                  .catch((e) => previewHandler.fallback('预览失败'));
                 break;
               default:
-                let textWrapper = document.createElement('div');
-                textWrapper.style.textAlign = 'center';
-                textWrapper.innerHTML = '该文件不支持预览';
-                content.innerHTML = '';
-                content.appendChild(textWrapper);
+                previewHandler.fallback('该文件不支持预览');
                 break;
             }
             document.querySelector('.file-name').innerHTML = path;
@@ -1385,11 +1380,7 @@
             document
               .querySelector('.btn.quote')
               .addEventListener('click', (event) => {
-                previewHandler.copyTextContent(
-                  null,
-                  // window.api.url + "?file=" + encodeURI(path)
-                  window.api.url + path
-                );
+                previewHandler.copyTextContent(null, window.api.url + path);
                 const btn = document.querySelector('.btn.quote');
                 btn.innerHTML = '已复制';
                 setTimeout(() => (btn.innerHTML = '引用'), 250);
@@ -1398,7 +1389,7 @@
               .querySelector('.btn.share')
               .addEventListener('click', (event) => {
                 const sharePath = () => {
-                  let arr = window.backFordwardCache.current.split('/');
+                  const arr = window.backFordwardCache.current.split('/');
                   let r = '';
                   for (let i = 1; i < arr.length; i++) {
                     r += '/' + arr[i];
@@ -1410,28 +1401,12 @@
                   window.location.origin +
                     window.location.pathname +
                     '?path=' +
-                    encodeURI(sharePath())
+                    sharePath()
                 );
                 const btn = document.querySelector('.btn.share');
                 btn.innerHTML = '已复制';
                 setTimeout(() => (btn.innerHTML = '分享'), 250);
               });
-            switchRightDisplay('preview');
-
-            if (contentType !== 'video') return;
-
-            let start = null;
-            let right = document.querySelector('.right');
-            const scrollToBottom = (timestamp) => {
-              if (!start) start = timestamp;
-              let progress = timestamp - start;
-              let last = right.scrollTop;
-              right.scrollTo(0, right.scrollTop + 14);
-              if (right.scrollTop !== last && progress < 1000 * 2) {
-                window.requestAnimationFrame(scrollToBottom);
-              }
-            };
-            window.requestAnimationFrame(scrollToBottom);
           });
         } else {
           elem.addEventListener('click', (event) => {
@@ -1451,21 +1426,28 @@
           switchBackForwardStatus(window.api.root);
         });
       }
-
+      function addFileUploadListener() {
+        const fileInput = document.querySelector('.file-upload-input');
+        const fileNameDisplay = document.querySelector('.file-upload-name');
+        fileInput.addEventListener('change', function () {
+          if (fileInput.files.length === 1) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+          } else if (fileInput.files.length > 1) {
+            fileNameDisplay.textContent =
+              fileInput.files[0].webkitRelativePath?.split('/')[0] ||
+              `共 ${fileInput.files.length} 个文件`;
+          } else {
+            fileNameDisplay.textContent = '未选择文件';
+          }
+        });
+      }
       function switchRightDisplay(display) {
-        const entryWrapper = document.querySelector('.upload-entry-wrapper');
-        if (entryWrapper) {
-          entryWrapper.dataset.hidden = '1';
-        }
-
-        document.querySelector('#readme').innerHTML = '';
-        if (display !== 'preview') {
-          const previewContent = document.querySelector('.preview .content');
-          if (previewContent) previewContent.innerHTML = '';
-        }
-
         for (const c of document.querySelector('.right').children) {
           c.dataset.hidden = '1';
+        }
+
+        if (display !== 'preview') {
+          document.querySelector('.preview .content').innerHTML = '';
         }
 
         if (display === 'preview') {
@@ -1476,7 +1458,8 @@
           document.querySelector('.file-upload-progress').innerHTML = '';
           document.querySelector('.file-upload-progress').dataset.hidden = '1';
           document.querySelector('.file-upload-wrapper').dataset.hidden = '0';
-        } else {
+        } else if (display === 'list') {
+          document.querySelector('#readme').innerHTML = '';
           document.querySelector('.list-header').dataset.hidden = '0';
           document.querySelector('#file-list').dataset.hidden = '0';
           document.querySelector('.markdown-body').dataset.hidden = '0';
@@ -1519,7 +1502,7 @@
           fetchFileList(window.backFordwardCache.current);
         } else {
           let former = (() => {
-            let formerEndIndex =
+            const formerEndIndex =
               window.backFordwardCache.current.lastIndexOf('/');
             return window.backFordwardCache.current.substring(
               0,
@@ -1571,7 +1554,7 @@
               },
               () => window.fileCache.set(path, false)
             );
-          } else if (file.name.split('.').pop() === 'md') {
+          } else if (file.name.endsWith('.md')) {
             // console.log('caching ' + path + ', level ' + level);
             window.fileCache.set(path, true);
             sendRequest(
@@ -1610,7 +1593,7 @@
             } else if (pathCache.files) {
               preCacheCheck(pathCache, nextPath);
             }
-          } else if (file.name.split('.').pop() === 'md') {
+          } else if (file.name.endsWith('.md')) {
             if (!pathCache && pathCache !== true) {
               // console.log('inner caching ' + nextPath);
               window.fileCache.set(nextPath, true);
@@ -1629,12 +1612,12 @@
 
       function fetchFileList(path) {
         // console.log('fetching ' + path);
-        let loading = document.querySelector('.loading-wrapper');
+        const loading = document.querySelector('.loading-wrapper');
         loading.style.display = 'initial';
         window.backFordwardCache.preview = false;
         window.backFordwardCache.current = path;
 
-        let cache = window.fileCache.get(path);
+        const cache = window.fileCache.get(path);
         if (cache === true) {
           setTimeout(() => fetchFileList(path), 200);
         } else if (cache) {
@@ -1877,6 +1860,7 @@
           };
           fetchFileList(initialPath);
           addBackForwardListener();
+          addFileUploadListener();
         } else {
           sendRequest(
             window.api.method,
@@ -1891,12 +1875,14 @@
               };
               fetchFileList(initialPath);
               addBackForwardListener();
+              addFileUploadListener();
             }
           );
         }
       });
     </script>
   </head>
+
   <body>
     <template id="tree-node-wrapper-template">
       <div class="tree-node-wrapper">
@@ -1949,6 +1935,9 @@
           <div id="tree-root"></div>
         </div>
         <div class="right">
+          <div class="upload-entry-wrapper">
+            <button class="upload-entry-btn">在此上传文件</button>
+          </div>
           <div class="list-header">
             <div class="row">
               <div class="file">
@@ -2002,20 +1991,5 @@
         </div>
       </div>
     </div>
-    <script>
-      const fileInput = document.querySelector('.file-upload-input');
-      const fileNameDisplay = document.querySelector('.file-upload-name');
-      fileInput.addEventListener('change', function () {
-        if (fileInput.files.length === 1) {
-          fileNameDisplay.textContent = fileInput.files[0].name;
-        } else if (fileInput.files.length > 1) {
-          fileNameDisplay.textContent =
-            fileInput.files[0].webkitRelativePath?.split('/')[0] ||
-            `共 ${fileInput.files.length} 个文件`;
-        } else {
-          fileNameDisplay.textContent = '未选择文件';
-        }
-      });
-    </script>
   </body>
 </html>
