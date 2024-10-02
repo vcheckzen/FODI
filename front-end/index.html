@@ -913,6 +913,13 @@
       }
 
       async function renderMarkdown(path, url) {
+        resources = [
+          '/highlight.js/11.4.0/highlight.min.js',
+          '/highlight.js/11.4.0/styles/github.min.css',
+          '/marked/4.0.2/marked.min.js',
+          '/github-markdown-css/5.1.0/github-markdown.min.css'
+        ];
+        loadResource(resources, '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M');
         const render = (text) => {
           const markedText = marked.parse(text, {
             gfm: true,
@@ -1220,7 +1227,6 @@
                 break;
               case 'image':
                 resources = [
-                  '/jquery/3.6.0/jquery.min.js',
                   '/fancybox/3.5.7/jquery.fancybox.min.css',
                   '/fancybox/3.5.7/jquery.fancybox.min.js'
                 ];
@@ -1237,15 +1243,7 @@
                 });
                 break;
               case 'markdown':
-                resources = [
-                  '/marked/4.0.2/marked.min.js',
-                  '/highlight.js/11.4.0/highlight.min.js',
-                  '/github-markdown-css/5.1.0/github-markdown.min.css',
-                  '/highlight.js/11.4.0/styles/github.min.css'
-                ]
-                loadResource(resources, host, () => {
-                  renderMarkdown(path, url);
-                });
+                renderMarkdown(path, url);
                 break;
               case 'office':
                 const officeOnline =
