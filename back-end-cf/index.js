@@ -49,7 +49,7 @@ async function handleRequest(request) {
     'Content-Type': 'application/json; charset=utf-8',
   };
   const requestUrl = new URL(request.url);
-  const file = requestUrl.searchParams.get('file') || (requestUrl.pathname.split('/').filter(Boolean).length === 0 ? '' : requestUrl.pathname);
+  const file = requestUrl.searchParams.get('file') || (requestUrl.pathname.split('/').filter(Boolean).length === 0 ? '' : decodeURIComponent(requestUrl.pathname));
   if (file) {
     const fileName = file.split('/').pop();
     if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase())

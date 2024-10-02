@@ -25,7 +25,7 @@
       nomodule
       src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/ionicons/4.6.3/ionicons/ionicons.js"
     ></script>
-    <script src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/marked/4.0.2/marked.min.js"></script>
+    <script src="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery/3.6.0/jquery.min.js"></script>
     <style>
       .sk-folding-cube {
         margin: 20px auto;
@@ -636,6 +636,37 @@
         }
       }
 
+      function loadResource(resources, host, callback) {
+        if (!Array.isArray(resources)) {
+          resources = [resources];
+        }
+        $.ajaxSetup({
+          cache: true,
+        });
+        let unloadedResourceCount = resources.length;
+        resources.forEach((resource) => {
+          if (resource.endsWith(".css")) {
+            $("<link>")
+              .attr({ rel: "stylesheet", href: host + resource })
+              .appendTo("head");
+            unloadedResourceCount--;
+            if (unloadedResourceCount === 0 && typeof callback === "function") {
+              callback();
+            }
+          } else if (resource.endsWith(".js")) {
+            $.getScript(host + resource, () => {
+              unloadedResourceCount--;
+              if (
+                unloadedResourceCount === 0 &&
+                typeof callback === "function"
+              ) {
+                callback();
+              }
+            });
+          }
+        });
+      }
+
       function renderPage(data, cache) {
         let files;
         if (data) {
@@ -1134,62 +1165,6 @@
                   return 'videomagnet';
                 }
               },
-              loadResource: (resource, callback) => {
-                const rid = btoa(resource);
-                if (document.getElementById(rid)) {
-                  if (typeof callback === 'function') {
-                    callback();
-                  }
-                  return;
-                }
-
-                let type;
-                switch (resource.split('.').pop()) {
-                  case 'css':
-                    type = 'link';
-                    break;
-                  case 'js':
-                    type = 'script';
-                    break;
-                }
-                const element = document.createElement(type);
-                element.id = rid;
-
-                let loaded = false;
-                if (typeof callback === 'function') {
-                  element.onload = element.onreadystatechange = () => {
-                    if (
-                      !loaded &&
-                      (!element.readyState ||
-                        /loaded|complete/.test(element.readyState))
-                    ) {
-                      element.onload = element.onreadystatechange = null;
-                      loaded = true;
-                      callback();
-                    }
-                  };
-                }
-                if (type === 'link') {
-                  element.href = resource;
-                  element.rel = 'stylesheet';
-                } else {
-                  element.src = resource;
-                }
-                document.getElementsByTagName('head')[0].appendChild(element);
-              },
-
-              loadEachResource: (resources, host, callback) => {
-                let unloadedResourceCount = resources.length;
-                resources.forEach((resource) => {
-                  previewHandler.loadResource(host + resource, () => {
-                    if (!--unloadedResourceCount) {
-                      if (typeof callback === 'function') {
-                        callback();
-                      }
-                    }
-                  });
-                });
-              },
 
               createDplayer: (video, type, elem) => {
                 resources = [
@@ -1199,7 +1174,7 @@
                   '/dplayer/1.25.0/DPlayer.min.js',
                 ];
 
-                previewHandler.loadEachResource(resources, host, () => {
+                loadResource(resources, host, () => {
                   let option = {
                     url: video,
                   };
@@ -1249,7 +1224,7 @@
                   '/fancybox/3.5.7/jquery.fancybox.min.css',
                   '/fancybox/3.5.7/jquery.fancybox.min.js'
                 ];
-                previewHandler.loadEachResource(resources, host, () => {
+                loadResource(resources, host, () => {
                   let img = new Image();
                   img.style.maxWidth = '100%';
                   img.src = url;
@@ -1263,9 +1238,12 @@
                 break;
               case 'markdown':
                 resources = [
-                  '/github-markdown-css/5.1.0/github-markdown.min.css'
+                  '/marked/4.0.2/marked.min.js',
+                  '/highlight.js/11.4.0/highlight.min.js',
+                  '/github-markdown-css/5.1.0/github-markdown.min.css',
+                  '/highlight.js/11.4.0/styles/github.min.css'
                 ]
-                previewHandler.loadEachResource(resources, host, () => {
+                loadResource(resources, host, () => {
                   renderMarkdown(path, url);
                 });
                 break;
@@ -1321,7 +1299,7 @@
                   '/highlight.js/11.4.0/highlight.min.js',
                   '/highlight.js/11.4.0/styles/github.min.css'
                 ];
-                previewHandler.loadEachResource(resources, host, () => {
+                loadResource(resources, host, () => {
                   sendRequest('GET', url, null, null, (data) => {
                     const pre = document.createElement('pre');
                     pre.style.background = 'rgb(245,245,245)';
@@ -1347,8 +1325,9 @@
                 fetch(url)
                   .then((resp) => resp.text())
                   .then((magnetUrl) => {
-                    previewHandler.loadResource(
+                    loadResource(
                       '//cdn.jsdelivr.net/npm/@webtor/embed-sdk-js/dist/index.min.js',
+                      null,
                       () => {
                         const torrent = document.createElement('div');
                         torrent.id = 'player';
