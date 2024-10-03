@@ -308,7 +308,6 @@
       }
 
       .loading-wrapper {
-        display: none;
         position: fixed;
         height: 2em;
         line-height: 2em;
@@ -647,7 +646,7 @@
         const cdnMap = {
           jsdelivr: '//cdn.jsdelivr.net/npm',
           taobao: '//registry.npmmirror.com',
-          bytedance: '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M'
+          bytedance: '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M',
         };
         const baseURL = cdnMap[cdnName];
         return resources.map((r) => `${baseURL}${r}`);
@@ -738,7 +737,7 @@
           }
           renderTreeNode(files);
         }
-        document.querySelector('.loading-wrapper').style.display = 'none';
+        document.querySelector('.loading-wrapper').dataset.hidden = 1;
       }
 
       function renderPath(path) {
@@ -984,11 +983,8 @@
                   language,
                   ignoreIllegals: true,
                 }).value;
-              } catch (e) {
-                return hljs.highlight(code, {
-                  language: 'plaintext',
-                  ignoreIllegals: true,
-                }).value;
+              } catch (_) {
+                return code;
               }
             },
           });
@@ -1094,7 +1090,7 @@
                   document.execCommand('copy');
                   window.getSelection().removeAllRanges();
                   result = true;
-                } catch (e) {}
+                } catch (_) {}
                 document.body.removeChild(target);
                 return result;
               },
@@ -1219,7 +1215,7 @@
                   });
                 });
               },
-              fallback: (msg) => {
+              fallback: (msg = '预览失败') => {
                 const textWrapper = document.createElement('div');
                 textWrapper.style.textAlign = 'center';
                 textWrapper.innerHTML = msg;
@@ -1267,20 +1263,22 @@
                     '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.css',
                     '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.umd.js'
                   )
-                ).then(() => {
-                  if (firstLoad) {
-                    Fancybox.bind('[data-fancybox]');
-                  }
-                  const img = new Image();
-                  img.style.maxWidth = '100%';
-                  img.src = url;
-                  const fancy = document.createElement('a');
-                  fancy.setAttribute('data-fancybox', '');
-                  fancy.dataset.src = url;
-                  fancy.append(img);
-                  content.innerHTML = '';
-                  content.append(fancy);
-                });
+                )
+                  .then(() => {
+                    if (firstLoad) {
+                      Fancybox.bind('[data-fancybox]');
+                    }
+                    const img = new Image();
+                    img.style.maxWidth = '100%';
+                    img.src = url;
+                    const fancy = document.createElement('a');
+                    fancy.setAttribute('data-fancybox', '');
+                    fancy.dataset.src = url;
+                    fancy.append(img);
+                    content.innerHTML = '';
+                    content.append(fancy);
+                  })
+                  .catch(previewHandler.fallback);
                 break;
               case 'markdown':
                 renderMarkdown(path, url);
@@ -1320,34 +1318,42 @@
                     '/highlight.js/11.4.0/styles/github.min.css',
                     '/highlight.js/11.4.0/highlight.min.js'
                   )
-                ).then(() => {
-                  sendRequest('GET', url, null, null, (data) => {
-                    const pre = document.createElement('pre');
-                    pre.style.background = 'rgb(245,245,245)';
-                    pre.style.padding = '5px';
-                    content.innerHTML = '';
-                    content.append(pre);
-                    pre.textContent = data;
-                    if (size <= 512000) {
-                      hljs.highlightElement(pre);
-                    }
-                  });
-                });
+                )
+                  .then(() => {
+                    sendRequest('GET', url, null, null, (data) => {
+                      const pre = document.createElement('pre');
+                      pre.style.background = 'rgb(245,245,245)';
+                      pre.style.padding = '5px';
+                      content.innerHTML = '';
+                      content.append(pre);
+                      pre.textContent = data;
+                      if (size <= 512000) {
+                        hljs.highlightElement(pre);
+                      }
+                    });
+                  })
+                  .catch(previewHandler.fallback);
                 break;
               case 'video':
                 const video = document.createElement('div');
-                previewHandler.createDplayer(url, suffix, video).then(() => {
-                  content.innerHTML = '';
-                  content.append(video);
-                  previewHandler.scrollToBottom();
-                });
+                previewHandler
+                  .createDplayer(url, suffix, video)
+                  .then(() => {
+                    content.innerHTML = '';
+                    content.append(video);
+                    previewHandler.scrollToBottom();
+                  })
+                  .catch(previewHandler.fallback);
                 break;
               case 'videomagnet':
                 fetch(url)
                   .then((resp) => resp.text())
                   .then((magnetUrl) => {
                     loadResource(
-                      fromCdn('jsdelivr', '/@webtor/embed-sdk-js/dist/index.min.js')
+                      fromCdn(
+                        'jsdelivr',
+                        '/@webtor/embed-sdk-js/dist/index.min.js'
+                      )
                     ).then(() => {
                       const torrent = document.createElement('div');
                       torrent.id = 'player';
@@ -1366,7 +1372,7 @@
                       previewHandler.scrollToBottom();
                     });
                   })
-                  .catch((e) => previewHandler.fallback('预览失败'));
+                  .catch(previewHandler.fallback);
                 break;
               default:
                 previewHandler.fallback('该文件不支持预览');
@@ -1614,7 +1620,7 @@
       function fetchFileList(path) {
         // console.log('fetching ' + path);
         const loading = document.querySelector('.loading-wrapper');
-        loading.style.display = 'initial';
+        loading.dataset.hidden = '0';
         window.backFordwardCache.preview = false;
         window.backFordwardCache.current = path;
 
@@ -1637,7 +1643,7 @@
               const loadingText = loading.querySelector('.loading');
               loadingText.innerText = 'Failed!';
               setTimeout(() => {
-                loading.style.display = 'none';
+                loading.dataset.hidden = '1';
                 loadingText.innerText = 'Loading..';
               }, 2000);
             }
