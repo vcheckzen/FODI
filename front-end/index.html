@@ -643,18 +643,14 @@
         }
       }
 
-      function fromByteDance(...resources) {
-        return resources.map(
-          (r) => `//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M${r}`
-        );
-      }
-
-      function fromTaobao(...resources) {
-        return resources.map((r) => `//registry.npmmirror.com${r}`);
-      }
-
-      function fromJsDelivr(...resources) {
-        return resources.map((r) => `//cdn.jsdelivr.net/npm${r}`);
+      function fromCdn(cdnName, ...resources) {
+        const cdnMap = {
+          jsdelivr: '//cdn.jsdelivr.net/npm',
+          taobao: '//registry.npmmirror.com',
+          bytedance: '//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M'
+        };
+        const baseURL = cdnMap[cdnName];
+        return resources.map((r) => `${baseURL}${r}`);
       }
 
       async function loadResource(resources) {
@@ -965,8 +961,9 @@
         }
 
         await loadResource(
-          fromByteDance(
-            '/github-markdown-css/3.0.1/github-markdown.min.css',
+          fromCdn(
+            'bytedance',
+            '/github-markdown-css/5.1.0/github-markdown-light.min.css',
             '/highlight.js/11.4.0/styles/github.min.css',
             '/highlight.js/11.4.0/highlight.min.js',
             '/marked/4.0.2/marked.min.js'
@@ -1199,7 +1196,8 @@
               },
               createDplayer: async (video, type, elem) => {
                 return loadResource(
-                  fromByteDance(
+                  fromCdn(
+                    'bytedance',
                     '/hls.js/1.1.5/hls.light.min.js',
                     '/flv.js/1.6.2/flv.min.js',
                     '/dplayer/1.25.0/DPlayer.min.css',
@@ -1264,7 +1262,8 @@
               case 'image':
                 const firstLoad = typeof Fancybox === 'undefined';
                 loadResource(
-                  fromTaobao(
+                  fromCdn(
+                    'taobao',
                     '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.css',
                     '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.umd.js'
                   )
@@ -1314,10 +1313,10 @@
                   content.appendChild(iframe);
                 }
                 break;
-
               case 'text':
                 loadResource(
-                  fromByteDance(
+                  fromCdn(
+                    'bytedance',
                     '/highlight.js/11.4.0/styles/github.min.css',
                     '/highlight.js/11.4.0/highlight.min.js'
                   )
@@ -1348,7 +1347,7 @@
                   .then((resp) => resp.text())
                   .then((magnetUrl) => {
                     loadResource(
-                      fromJsDelivr('/@webtor/embed-sdk-js/dist/index.min.js')
+                      fromCdn('jsdelivr', '/@webtor/embed-sdk-js/dist/index.min.js')
                     ).then(() => {
                       const torrent = document.createElement('div');
                       torrent.id = 'player';
