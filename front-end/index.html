@@ -652,10 +652,10 @@
         return resources.map((r) => `${baseURL}${r}`);
       }
 
-      async function loadResource(resources) {
+      function loadResource(resources) {
         return Promise.all(resources.map(load));
 
-        async function load(resource) {
+        function load(resource) {
           if (!window.resourceCache[resource]) {
             window.resourceCache[resource] = handle();
           }
@@ -1190,7 +1190,7 @@
                   return 'videomagnet';
                 }
               },
-              createDplayer: async (video, type, elem) => {
+              createDplayer: (video, type, elem) => {
                 return loadResource(
                   fromCdn(
                     'bytedance',
@@ -1358,9 +1358,11 @@
                       const torrent = document.createElement('div');
                       torrent.id = 'player';
                       torrent.className = 'webtor';
-                      torrent.style.textAlign = 'center';
+                      torrent.style.width = '100%';
+                      torrent.style.display = 'flex';
+                      torrent.style.alignItems = 'center';
                       torrent.style.aspectRatio = '16 / 9';
-                      torrent.style.backgroundColor = '#101417';
+                      torrent.style.backgroundColor = 'black';
                       content.innerHTML = '';
                       content.appendChild(torrent);
                       window.webtor = window.webtor || [];
@@ -1742,7 +1744,7 @@
           }
           progressText.innerHTML += ' Upload completed!';
 
-          async function uploadChunk(start) {
+          function uploadChunk(start) {
             const xhr = new XMLHttpRequest();
             const end = Math.min(start + chunkSize, fileSize);
             const chunk = file.slice(start, end);
