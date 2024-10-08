@@ -975,8 +975,24 @@
             window.fileCache.set(path, text);
           }
 
+          // SCF_GATEWAY must contains protocol and resouces can't be in encrpted path
+          const renderer = new marked.Renderer();
+          renderer.image = (href, title, text) => {
+            if (href.startsWith('./') || href.startsWith('../')) {
+              href = new URL(href, window.GLOBAL_CONFIG.SCF_GATEWAY + path).href;
+            }
+            return `<img src="${href}" alt="${text}">`;
+          };
+          renderer.link = (href, title, text) => {
+            if (href.startsWith('./') || href.startsWith('../')) {
+              href = new URL(href, window.GLOBAL_CONFIG.SCF_GATEWAY + path).href;
+            }
+            return `<a href="${href}">${text}</a>`;
+          };
+
           text = marked.parse(text, {
             gfm: true,
+            renderer: renderer,
             highlight: (code, language, callback) => {
               try {
                 return hljs.highlight(code, {
