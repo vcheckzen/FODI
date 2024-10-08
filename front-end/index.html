@@ -975,7 +975,7 @@
             window.fileCache.set(path, text);
           }
 
-          // SCF_GATEWAY must contains protocol and resouces can't be in encrpted path
+          // SCF_GATEWAY must contains protocol and resources can't be in encrypted path
           const renderer = new marked.Renderer();
           renderer.image = (href, title, text) => {
             if (href.startsWith('./') || href.startsWith('../')) {
