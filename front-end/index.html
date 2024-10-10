@@ -1716,7 +1716,7 @@
           sendRequest(
             window.api.method,
             window.api.url + '?upload=' + odPath,
-            JSON.stringify({ files: currentPage }),
+            JSON.stringify({ secret: 'webupload', files: currentPage }),
             window.api.headers,
             (response) => {
               const uploadLinks = JSON.parse(response).files;
