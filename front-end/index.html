@@ -1077,6 +1077,7 @@
                 input.placeholder = '密码错误';
               } else {
                 window.fileCache.set(newFiles.parent, newFiles);
+                window.fileCache.set(`${newFiles.parent}/.upload`, passwd);
                 fetchFileList(newFiles.parent);
               }
             }
@@ -1716,7 +1717,7 @@
           sendRequest(
             window.api.method,
             window.api.url + '?upload=' + odPath,
-            JSON.stringify({ files: currentPage }),
+            JSON.stringify({ secret: window.fileCache.get(`${odPath}/.upload`) || '', files: currentPage }),
             window.api.headers,
             (response) => {
               const uploadLinks = JSON.parse(response).files;

@@ -62,14 +62,15 @@ async function handleRequest(request) {
     return Response.redirect(url, 302);
   } else if (requestUrl.searchParams.get('upload')) {
     requestPath = requestUrl.searchParams.get('upload');
-    const uploadAllow = await fetchFiles(requestPath, '.upload');
+    const upload = await fetchFiles(requestPath, '.upload');
+    const uploadSecret = await fetchFiles(requestPath, PASSWD_FILENAME, null, true) || '';
     const fileList = await request.json();
-    const pwAttack = fileList['files'].some(
+    const uploadAttack = fileList['files'].some(
       (file) =>
         file.remotePath.split('/').pop().toLowerCase() ===
         PASSWD_FILENAME.toLowerCase()
-    );
-    if (uploadAllow && !pwAttack) {
+    ) || fileList['secret'] !== uploadSecret;
+    if (upload && !uploadAttack) {
       const uploadLinks = await uploadFiles(fileList);
       return new Response(uploadLinks, {
         headers: returnHeaders,
