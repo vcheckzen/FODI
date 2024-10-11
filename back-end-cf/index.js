@@ -35,12 +35,6 @@ const OAUTH = {
   scope: apiHost + '/Files.ReadWrite.All offline_access',
 };
 
-const PATH_AUTH_STATES = Object.freeze({
-  NO_PW_FILE: Symbol('NO_PW_FILE'),
-  PW_CORRECT: Symbol('PW_CORRECT'),
-  PW_ERROR: Symbol('PW_ERROR'),
-});
-
 async function handleRequest(request) {
   const requestUrl = new URL(request.url);
   const file =
@@ -69,16 +63,20 @@ async function handleRequest(request) {
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
     const allowUpload = await fetchFiles(requestPath, '.upload');
-    const uploadSecret =
-      (await fetchFiles(requestPath, PASSWD_FILENAME, null, true)) || '';
+    const passwdCorrect = await fetchFiles(
+      requestPath,
+      null,
+      body.passwd,
+      true
+    );
     const uploadAttack =
       !allowUpload ||
+      !passwdCorrect ||
       body.files.some(
         (file) =>
           file.remotePath.split('/').pop().toLowerCase() ===
           PASSWD_FILENAME.toLowerCase()
-      ) ||
-      body.passwd !== uploadSecret;
+      );
     if (uploadAttack) {
       throw new Error('access denied');
     }
@@ -167,7 +165,7 @@ async function fetchAccessToken() {
   return result.access_token;
 }
 
-async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
+async function fetchFiles(path, fileName, passwd, authOnly) {
   const parent = path || '/';
   if (path === '/') path = '';
   if (path || EXPOSE_PATH)
@@ -194,38 +192,26 @@ async function fetchFiles(path, fileName, passwd, viewExposePathPassword) {
   }
 
   const pwFile = children.find((file) => file.name === PASSWD_FILENAME);
-  const PASSWD = pwFile
-    ? await getContent(pwFile['@microsoft.graph.downloadUrl'])
-    : '';
-  if (viewExposePathPassword) {
-    return PASSWD;
-  }
-
-  let authState = PATH_AUTH_STATES.NO_PW_FILE;
+  let authPassed = false;
   if (pwFile) {
-    if (PASSWD === passwd) {
-      authState = PATH_AUTH_STATES.PW_CORRECT;
-    } else {
-      authState = PATH_AUTH_STATES.PW_ERROR;
+    const PASSWD = await getContent(pwFile['@microsoft.graph.downloadUrl']);
+    authPassed = PASSWD === passwd;
+  } else if (parent.split('/').length <= PROTECTED_LAYERS) {
+    if (EXPOSE_PASSWD) {
+      authPassed = EXPOSE_PASSWD === passwd;
+    } else if (parent !== '/') {
+      authPassed = await fetchFiles('/', null, passwd, true);
     }
+  } else {
+    authPassed = true;
   }
 
-  if (
-    authState === PATH_AUTH_STATES.NO_PW_FILE &&
-    parent.split('/').length <= PROTECTED_LAYERS
-  ) {
-    const upperPasswd = EXPOSE_PASSWD
-      ? EXPOSE_PASSWD
-      : parent === '/'
-      ? ''
-      : await fetchFiles('', null, null, true);
-    if (upperPasswd !== passwd) {
-      authState = PATH_AUTH_STATES.PW_ERROR;
-    }
+  if (authOnly) {
+    return authPassed;
   }
 
   // Auth failed
-  if (authState === PATH_AUTH_STATES.PW_ERROR) {
+  if (!authPassed) {
     return JSON.stringify({
       parent,
       files: [],
