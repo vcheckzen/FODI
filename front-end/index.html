@@ -1716,8 +1716,14 @@
           const currentPage = paginatedUpFileList[pageIndex];
           sendRequest(
             window.api.method,
-            window.api.url + '?upload=' + odPath,
-            JSON.stringify({ secret: window.fileCache.get(`${odPath}/.upload`) || '', files: currentPage }),
+            window.api.url + '?upload',
+            window.api.formatPayload(
+              odPath,
+              window.fileCache.get(`${odPath}/.upload`) || '',
+              {
+                files: currentPage,
+              }
+            ),
             window.api.headers,
             (response) => {
               const uploadLinks = JSON.parse(response).files;
@@ -1863,23 +1869,15 @@
           root: '/',
           url: window.GLOBAL_CONFIG.SCF_GATEWAY,
           method: 'POST',
-          formatPayload: (path, passwd) => {
-            const payload = {
+          formatPayload: (path, passwd, kvs) =>
+            JSON.stringify({
               path,
               passwd,
               ...window.api.accessToken,
-            };
-            const form = new URLSearchParams();
-            for (const k in payload) {
-              const v = payload[k];
-              if (v) {
-                form.append(k, v);
-              }
-            }
-            return `?${form.toString()}`;
-          },
+              ...kvs,
+            }),
           headers: {
-            'Content-type': 'application/x-www-form-urlencoded',
+            'Content-type': 'application/json; charset=utf-8',
           },
         };
         window.backFordwardCache = {
@@ -1896,10 +1894,6 @@
           new URLSearchParams(window.location.search).get('path') ||
           window.api.root;
         if (window.GLOBAL_CONFIG.IS_CF) {
-          window.api.accessToken = {
-            encrypted: '',
-            plain: '',
-          };
           fetchFileList(initialPath);
           addBackForwardListener();
           addFileUploadListener();
