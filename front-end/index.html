@@ -5,6 +5,7 @@
       window.GLOBAL_CONFIG = {
         SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // Worker 或云函数网关地址
         SITE_NAME: `FODI`, // 站点名称
+        PRELOAD: false,
         IS_CF: true,
       };
     </script>
@@ -1576,6 +1577,10 @@
       }
 
       async function preCache(files, level) {
+        if (!window.GLOBAL_CONFIG.PRELOAD) {
+          return;
+        }
+
         if (level > 1) return;
         files.files.forEach((file) => {
           const parent = files.parent === '/' ? '' : files.parent;
@@ -1611,6 +1616,10 @@
       }
 
       async function preCacheCheck(cache, path) {
+        if (!window.GLOBAL_CONFIG.PRELOAD) {
+          return;
+        }
+
         cache.files.forEach((file) => {
           const prefix = path === window.api.root ? '' : path;
           const nextPath = prefix + '/' + file.name;

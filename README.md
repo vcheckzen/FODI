@@ -8,7 +8,6 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 功能
 
-- 接近秒速列表
 - 指定展示路径
 - 特定文件夹加密
 - 无需服务器免费部署
