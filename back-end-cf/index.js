@@ -52,6 +52,18 @@ async function handleRequest(request) {
     return Response.redirect(url, 302);
   }
 
+  // preflight
+  if(request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204, 
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400',
+      }
+    });
+  }
+
   const returnHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'max-age=3600',
