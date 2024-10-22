@@ -43,7 +43,7 @@ async function handleRequest(request) {
       ? ''
       : decodeURIComponent(requestUrl.pathname));
   // Download a file
-  if (file) {
+  if (file && request.method === 'GET') {
     const fileName = file.split('/').pop();
     if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
       throw new Error('access denied');
@@ -181,11 +181,11 @@ async function fetchFiles(path, fileName, passwd, authOnly) {
   const parent = path || '/';
   if (path === '/') path = '';
   if (path || EXPOSE_PATH)
-    path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
+    path = ':' + EXPOSE_PATH + path;
 
   const accessToken = await fetchAccessToken();
-  const expand =
-    '/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl&$top=200';
+  const expand = fileName ? `/${fileName}` :
+    ':/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl&$top=200';
   const uri = OAUTH.apiUrl + path + expand;
 
   let pageRes = await getContent(uri, {
@@ -195,12 +195,17 @@ async function fetchFiles(path, fileName, passwd, authOnly) {
     throw new Error('request failed');
   }
 
-  let children = pageRes.value;
+  let children = pageRes?.value || pageRes;
   while (pageRes['@odata.nextLink']) {
     pageRes = await getContent(pageRes['@odata.nextLink'], {
       Authorization: 'Bearer ' + accessToken,
     });
     children = children.concat(pageRes.value);
+  }
+
+  // Download a file
+  if (fileName) {
+    return children?.['@microsoft.graph.downloadUrl'];
   }
 
   const pwFile = children.find((file) => file.name === PASSWD_FILENAME);
@@ -229,13 +234,6 @@ async function fetchFiles(path, fileName, passwd, authOnly) {
       files: [],
       encrypted: true,
     });
-  }
-
-  // Download a file
-  if (fileName) {
-    return children.find(
-      (file) => file.name === decodeURIComponent(fileName)
-    )?.['@microsoft.graph.downloadUrl'];
   }
 
   // List a folder
