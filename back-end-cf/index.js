@@ -4,14 +4,12 @@
  * ONEDRIVE_REFRESHTOKEN: refresh_token
  * PASSWD_FILENAME: 密码文件名
  * PROTECTED_LAYERS: EXPOSE_PATH 目录密码防护层数，防止猜测目录，默认 -1 为关闭，类似 '/Applications' 需要保护填写为 2（保护 EXPOSE_PATH 及其一级子目录），开启需在 EXPORSE_PATH 目录的 PASSWORD_FILENAME 文件中填写密码
- * EXPOSE_PASSWD: 覆盖 EXPOSE_PATH 目录密码，优先级：本目录密码 > EXPOSE_PASSWD > EXPORSE_PATH 目录密码；填写后访问速度稍快，但不便于更改
  */
 const IS_CN = 0;
 const EXPOSE_PATH = '';
 const ONEDRIVE_REFRESHTOKEN = '';
 const PASSWD_FILENAME = '.password';
 const PROTECTED_LAYERS = -1;
-const EXPOSE_PASSWD = '';
 
 addEventListener('scheduled', (event) => {
   event.waitUntil(fetchAccessToken());
@@ -36,23 +34,7 @@ const OAUTH = {
 };
 
 async function handleRequest(request) {
-  const requestUrl = new URL(request.url);
-  const file =
-    requestUrl.searchParams.get('file') ||
-    (requestUrl.pathname.split('/').filter(Boolean).length === 0
-      ? ''
-      : decodeURIComponent(requestUrl.pathname));
-  // Download a file
-  if (file) {
-    const fileName = file.split('/').pop();
-    if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
-      throw new Error('access denied');
-    }
-    const url = await fetchFiles(file.replace('/' + fileName, ''), fileName);
-    return Response.redirect(url, 302);
-  }
-
-  // preflight
+  // Preflight
   if(request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204, 
@@ -62,6 +44,22 @@ async function handleRequest(request) {
         'Access-Control-Max-Age': '86400',
       }
     });
+  }
+
+  const requestUrl = new URL(request.url);
+  const file =
+    requestUrl.searchParams.get('file') ||
+    (requestUrl.pathname.split('/').filter(Boolean).length === 0
+      ? ''
+      : decodeURIComponent(requestUrl.pathname));
+
+  // Download a file
+  if (file) {
+    const fileName = file.split('/').pop();
+    if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
+      throw new Error('access denied');
+    }
+    return downloadFile(file, requestUrl.searchParams.get('format'));
   }
 
   const returnHeaders = {
@@ -74,16 +72,10 @@ async function handleRequest(request) {
 
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
-    const allowUpload = await fetchFiles(requestPath, '.upload');
-    const passwdCorrect = await fetchFiles(
-      requestPath,
-      null,
-      body.passwd,
-      true
-    );
+    const allowUpload = (await downloadFile(`${requestPath}/.upload`)).status === 302;
+    await authenticate();
     const uploadAttack =
       !allowUpload ||
-      !passwdCorrect ||
       body.files.some(
         (file) =>
           file.remotePath.split('/').pop().toLowerCase() ===
@@ -100,7 +92,7 @@ async function handleRequest(request) {
   }
 
   // List a folder
-  const files = await fetchFiles(requestPath, null, body.passwd);
+  const files = await fetchFiles(requestPath, body.passwd);
   return new Response(files, {
     headers: returnHeaders,
   });
@@ -177,14 +169,36 @@ async function fetchAccessToken() {
   return result.access_token;
 }
 
-async function fetchFiles(path, fileName, passwd, authOnly) {
+async function authenticate(path, passwd) {
+  const pwFileContent = await downloadFile(`${path}/${PASSWD_FILENAME}`, null, true)
+    .then(resp => resp.status === 404 ? '' : resp.text());
+
+  if (pwFileContent) {
+    if (passwd !== pwFileContent) {
+      throw new Error("wrong password");
+    }
+  } else if (path !== '/' && path.split('/').length <= PROTECTED_LAYERS) {
+    return authenticate('/', passwd);
+  }
+}
+
+async function fetchFiles(path, passwd) {
   const parent = path || '/';
+  try {
+    await authenticate(path, passwd);
+  } catch(_) {
+    return JSON.stringify({
+      parent,
+      files: [],
+      encrypted: true,
+    });
+  }
+
   if (path === '/') path = '';
-  if (path || EXPOSE_PATH)
-    path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
+  if (path || EXPOSE_PATH) path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
 
   const accessToken = await fetchAccessToken();
-  const expand =
+  const expand = 
     '/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl&$top=200';
   const uri = OAUTH.apiUrl + path + expand;
 
@@ -203,42 +217,6 @@ async function fetchFiles(path, fileName, passwd, authOnly) {
     children = children.concat(pageRes.value);
   }
 
-  const pwFile = children.find((file) => file.name === PASSWD_FILENAME);
-  let authPassed = false;
-  if (pwFile) {
-    const PASSWD = await getContent(pwFile['@microsoft.graph.downloadUrl']);
-    authPassed = PASSWD === passwd;
-  } else if (parent.split('/').length <= PROTECTED_LAYERS) {
-    if (EXPOSE_PASSWD) {
-      authPassed = EXPOSE_PASSWD === passwd;
-    } else if (parent !== '/') {
-      authPassed = await fetchFiles('/', null, passwd, true);
-    }
-  } else {
-    authPassed = true;
-  }
-
-  if (authOnly) {
-    return authPassed;
-  }
-
-  // Auth failed
-  if (!authPassed) {
-    return JSON.stringify({
-      parent,
-      files: [],
-      encrypted: true,
-    });
-  }
-
-  // Download a file
-  if (fileName) {
-    return children.find(
-      (file) => file.name === decodeURIComponent(fileName)
-    )?.['@microsoft.graph.downloadUrl'];
-  }
-
-  // List a folder
   return JSON.stringify({
     parent,
     files: children
@@ -249,6 +227,24 @@ async function fetchFiles(path, fileName, passwd, authOnly) {
         url: file['@microsoft.graph.downloadUrl'],
       }))
       .filter((file) => file.name !== PASSWD_FILENAME),
+  });
+}
+
+async function downloadFile(filePath, format, stream){
+  const supportedFormats = ['glb', 'html', 'jpg', 'pdf'];
+  if (format && !supportedFormats.includes(format.toLowerCase())) {
+    throw new Error('unsupported target format');
+  }
+
+  filePath = encodeURIComponent(`${EXPOSE_PATH}${filePath}`);
+  const uri = `${OAUTH.apiUrl}:${filePath}:/content` + (format ? `?format=${format}` : '');
+  const accessToken = await fetchAccessToken();
+
+  return cacheFetch(uri, {
+    redirect: stream ? 'follow': 'manual',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+    },
   });
 }
 
