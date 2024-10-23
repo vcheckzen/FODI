@@ -34,24 +34,7 @@ const OAUTH = {
 };
 
 async function handleRequest(request) {
-  const requestUrl = new URL(request.url);
-  const file =
-    requestUrl.searchParams.get('file') ||
-    (requestUrl.pathname.split('/').filter(Boolean).length === 0
-      ? ''
-      : decodeURIComponent(requestUrl.pathname));
-  // Download a file
-  if (file) {
-    const fileName = file.split('/').pop();
-    if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
-      throw new Error('access denied');
-    }
-    const url = await downloadFile(file, requestUrl.searchParams.get('format'));
-    const convertedFile = url instanceof Response ? url : Response.redirect(url, 302);
-    return convertedFile;
-  }
-
-  // preflight
+  // Preflight
   if(request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204, 
@@ -61,6 +44,22 @@ async function handleRequest(request) {
         'Access-Control-Max-Age': '86400',
       }
     });
+  }
+
+  const requestUrl = new URL(request.url);
+  const file =
+    requestUrl.searchParams.get('file') ||
+    (requestUrl.pathname.split('/').filter(Boolean).length === 0
+      ? ''
+      : decodeURIComponent(requestUrl.pathname));
+
+  // Download a file
+  if (file) {
+    const fileName = file.split('/').pop();
+    if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
+      throw new Error('access denied');
+    }
+    return downloadFile(file, requestUrl.searchParams.get('format'));
   }
 
   const returnHeaders = {
@@ -73,15 +72,10 @@ async function handleRequest(request) {
 
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
-    const allowUpload = await downloadFile(`${requestPath}/.upload`);
-    const passwdCorrect = await fetchFiles(
-      requestPath,
-      body.passwd,
-      true
-    );
+    const allowUpload = (await downloadFile(`${requestPath}/.upload`)).status === 302;
+    await authenticate();
     const uploadAttack =
       !allowUpload ||
-      !passwdCorrect ||
       body.files.some(
         (file) =>
           file.remotePath.split('/').pop().toLowerCase() ===
@@ -175,11 +169,33 @@ async function fetchAccessToken() {
   return result.access_token;
 }
 
-async function fetchFiles(path, passwd, authOnly) {
+async function authenticate(path, passwd) {
+  const pwFileContent = await downloadFile(`${path}/${PASSWD_FILENAME}`, null, true)
+    .then(resp => resp.status === 404 ? '' : resp.text());
+
+  if (pwFileContent) {
+    if (passwd !== pwFileContent) {
+      throw new Error("wrong password");
+    }
+  } else if (path !== '/' && path.split('/').length <= PROTECTED_LAYERS) {
+    return authenticate('/', passwd);
+  }
+}
+
+async function fetchFiles(path, passwd) {
   const parent = path || '/';
+  try {
+    await authenticate(path, passwd);
+  } catch(_) {
+    return JSON.stringify({
+      parent,
+      files: [],
+      encrypted: true,
+    });
+  }
+
   if (path === '/') path = '';
-  if (path || EXPOSE_PATH)
-    path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
+  if (path || EXPOSE_PATH) path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
 
   const accessToken = await fetchAccessToken();
   const expand = 
@@ -201,31 +217,6 @@ async function fetchFiles(path, passwd, authOnly) {
     children = children.concat(pageRes.value);
   }
 
-  const pwFile = children.find((file) => file.name === PASSWD_FILENAME);
-  let authPassed = false;
-  if (pwFile) {
-    const PASSWD = await getContent(pwFile['@microsoft.graph.downloadUrl']);
-    authPassed = PASSWD === passwd;
-  } else if (parent.split('/').length <= PROTECTED_LAYERS) {
-    authPassed = await fetchFiles(EXPOSE_PATH || '/', passwd, true);
-  } else {
-    authPassed = true;
-  }
-
-  if (authOnly) {
-    return authPassed;
-  }
-
-  // Auth failed
-  if (!authPassed) {
-    return JSON.stringify({
-      parent,
-      files: [],
-      encrypted: true,
-    });
-  }
-
-  // List a folder
   return JSON.stringify({
     parent,
     files: children
@@ -239,26 +230,22 @@ async function fetchFiles(path, passwd, authOnly) {
   });
 }
 
-async function downloadFile(filePath, format){
-  const path = EXPOSE_PATH + filePath;
-  const accessToken = await fetchAccessToken();
+async function downloadFile(filePath, format, stream){
   const supportedFormats = ['glb', 'html', 'jpg', 'pdf'];
-  const uri = `${OAUTH.apiUrl}:${path}:/content` + (format ? `?format=${format}` : '');
   if (format && !supportedFormats.includes(format.toLowerCase())) {
     throw new Error('unsupported target format');
   }
 
-  const downloadRes =  await cacheFetch(uri, {
-    method: format ? 'GET' : 'HEAD',
+  filePath = encodeURIComponent(`${EXPOSE_PATH}${filePath}`);
+  const uri = `${OAUTH.apiUrl}:${filePath}:/content` + (format ? `?format=${format}` : '');
+  const accessToken = await fetchAccessToken();
+
+  return cacheFetch(uri, {
+    redirect: stream ? 'follow': 'manual',
     headers: {
       Authorization: 'Bearer ' + accessToken,
     },
   });
-  if (downloadRes.status >= 400) {
-    throw new Error('download failed');
-  }
-  const location = format ? downloadRes : downloadRes.headers.get('content-location');
-  return location;
 }
 
 async function uploadFiles(fileList) {
