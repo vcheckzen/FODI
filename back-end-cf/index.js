@@ -73,7 +73,7 @@ async function handleRequest(request) {
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
     const allowUpload = (await downloadFile(`${requestPath}/.upload`)).status === 302;
-    await authenticate();
+    await authenticate(requestPath, body.passwd);
     const uploadAttack =
       !allowUpload ||
       body.files.some(
