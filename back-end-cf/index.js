@@ -35,14 +35,14 @@ const OAUTH = {
 
 async function handleRequest(request) {
   // Preflight
-  if(request.method === 'OPTIONS') {
+  if (request.method === 'OPTIONS') {
     return new Response(null, {
-      status: 204, 
+      status: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Max-Age': '86400',
-      }
+      },
     });
   }
 
@@ -72,16 +72,19 @@ async function handleRequest(request) {
 
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
-    const allowUpload = (await downloadFile(`${requestPath}/.upload`)).status === 302;
+    const allowUpload =
+      (await downloadFile(`${requestPath}/.upload`)).status === 302;
+
     await authenticate(requestPath, body.passwd);
-    const uploadAttack =
+
+    if (
       !allowUpload ||
       body.files.some(
         (file) =>
           file.remotePath.split('/').pop().toLowerCase() ===
           PASSWD_FILENAME.toLowerCase()
-      );
-    if (uploadAttack) {
+      )
+    ) {
       throw new Error('access denied');
     }
 
@@ -170,12 +173,15 @@ async function fetchAccessToken() {
 }
 
 async function authenticate(path, passwd) {
-  const pwFileContent = await downloadFile(`${path}/${PASSWD_FILENAME}`, null, true)
-    .then(resp => resp.status === 404 ? '' : resp.text());
+  const pwFileContent = await downloadFile(
+    `${path}/${PASSWD_FILENAME}`,
+    null,
+    true
+  ).then((resp) => (resp.status === 404 ? '' : resp.text()));
 
   if (pwFileContent) {
     if (passwd !== pwFileContent) {
-      throw new Error("wrong password");
+      throw new Error('wrong password');
     }
   } else if (path !== '/' && path.split('/').length <= PROTECTED_LAYERS) {
     return authenticate('/', passwd);
@@ -186,7 +192,7 @@ async function fetchFiles(path, passwd) {
   const parent = path || '/';
   try {
     await authenticate(path, passwd);
-  } catch(_) {
+  } catch (_) {
     return JSON.stringify({
       parent,
       files: [],
@@ -195,10 +201,11 @@ async function fetchFiles(path, passwd) {
   }
 
   if (path === '/') path = '';
-  if (path || EXPOSE_PATH) path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
+  if (path || EXPOSE_PATH)
+    path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
 
   const accessToken = await fetchAccessToken();
-  const expand = 
+  const expand =
     '/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl&$top=200';
   const uri = OAUTH.apiUrl + path + expand;
 
@@ -230,18 +237,20 @@ async function fetchFiles(path, passwd) {
   });
 }
 
-async function downloadFile(filePath, format, stream){
+async function downloadFile(filePath, format, stream) {
   const supportedFormats = ['glb', 'html', 'jpg', 'pdf'];
   if (format && !supportedFormats.includes(format.toLowerCase())) {
     throw new Error('unsupported target format');
   }
 
   filePath = encodeURIComponent(`${EXPOSE_PATH}${filePath}`);
-  const uri = `${OAUTH.apiUrl}:${filePath}:/content` + (format ? `?format=${format}` : '');
+  const uri =
+    `${OAUTH.apiUrl}:${filePath}:/content` +
+    (format ? `?format=${format}` : '');
   const accessToken = await fetchAccessToken();
 
   return cacheFetch(uri, {
-    redirect: stream ? 'follow': 'manual',
+    redirect: stream ? 'follow' : 'manual',
     headers: {
       Authorization: 'Bearer ' + accessToken,
     },

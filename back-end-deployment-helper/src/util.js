@@ -4,23 +4,21 @@ export const generateCode = async (
   apiHost,
   clientId,
   clientSecret,
-  replayURL,
+  replyURL,
   refreshToken,
   exposePath,
   passwordFilename,
-  protectedLayers,
-  exposePw
+  protectedLayers
 ) => {
   const constants = `const EXPOSE_PATH = "${exposePath}";
 const ONEDRIVE_REFRESHTOKEN = "${refreshToken}";
 const PASSWD_FILENAME = "${passwordFilename}";
 const PROTECTED_LAYERS = ${protectedLayers};
-const EXPOSE_PASSWD = "${exposePw}";
 const clientId = "${clientId}";
 const clientSecret = "${clientSecret}";
 const loginHost = "${loginHost}";
 const apiHost = "${apiHost}";
-const redirectUri = "${replayURL}"
+const redirectUri = "${replyURL}"
 
 `;
 

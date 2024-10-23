@@ -6,7 +6,7 @@ import './App.css';
 import { generateCode } from './util';
 
 const defaultConfig = {
-  replayURL: 'http://localhost/onedrive-login',
+  replyURL: 'http://localhost/onedrive-login',
   publicParams:
     '&scope=offline_access%20User.Read%20Files.ReadWrite.All&response_type=code',
   version: {
@@ -31,14 +31,13 @@ function App() {
   const antIcon = <LoadingOutlined spin />;
 
   const [version, setVersion] = useState();
-  const [replayURL, setReplayURL] = useState();
+  const [replyURL, setreplyURL] = useState();
   const [clientID, setClientID] = useState();
   const [clientSecret, setClientSecret] = useState();
   const [redirectURL, setRedirectURL] = useState();
   const [passwordFilename, setPasswordFilename] = useState();
   const [exposedPath, setExposedPath] = useState();
   const [protectedLayers, setProtected] = useState();
-  const [exposePw, setExposePw] = useState();
   const [code, setCode] = useState();
   const [error, setError] = useState();
   const [loading, setLoading] = useState();
@@ -47,7 +46,7 @@ function App() {
   const changeVersion = (v) => {
     if (v === 'select') {
       setVersion(null);
-      setReplayURL(null);
+      setreplyURL(null);
       setClientID(null);
       setClientSecret(null);
       return;
@@ -55,7 +54,7 @@ function App() {
     setRedirectURL(null);
     setVersion(v);
     const config = defaultConfig.version[v];
-    setReplayURL(defaultConfig.replayURL);
+    setreplyURL(defaultConfig.replyURL);
     setClientID(config.clientID);
     setClientSecret(config.clientSecret);
   };
@@ -65,7 +64,7 @@ function App() {
     const config = defaultConfig.version[version];
     window.open(
       `${config.api}/common/oauth2/v2.0/authorize?client_id=` +
-        `${clientID}${defaultConfig.publicParams}&redirect_uri=${replayURL}`
+        `${clientID}${defaultConfig.publicParams}&redirect_uri=${replyURL}`
     );
   };
 
@@ -86,7 +85,7 @@ function App() {
 
     const urlencoded = new URLSearchParams();
     urlencoded.append('client_id', clientID);
-    urlencoded.append('redirect_uri', replayURL);
+    urlencoded.append('redirect_uri', replyURL);
     urlencoded.append('client_secret', clientSecret);
     urlencoded.append('code', code);
     urlencoded.append('grant_type', 'authorization_code');
@@ -115,12 +114,11 @@ function App() {
             defaultConfig.version[version].restApi,
             clientID,
             clientSecret,
-            replayURL,
+            replyURL,
             data.refresh_token,
             exposedPath || '',
             passwordFilename || '.password',
-            protectedLayers || '-1',
-            exposePw || ''
+            protectedLayers || '-1'
           )
             .then((code) => setCode(code))
             .catch((err) => setError(err.message));
@@ -192,9 +190,9 @@ function App() {
 
           <div className="input between">
             <Input
-              placeholder="ReplayURL（自定义 ID、SECRET 时，需要填写）"
-              value={replayURL}
-              onChange={(e) => setReplayURL(e.target.value)}
+              placeholder="replyURL（自定义 ID、SECRET 时，需要填写）"
+              value={replyURL}
+              onChange={(e) => setreplyURL(e.target.value)}
             />
             <Button onClick={login}>前往登录</Button>
           </div>
@@ -207,29 +205,24 @@ function App() {
             />
           </div>
 
-          <div className="input between">
+          <div className="input">
             <Input
               placeholder="展示文件夹（默认根路径）"
               value={exposedPath}
               onChange={(e) => setExposedPath(e.target.value)}
             />
+          </div>
+
+          <div className="input between">
             <Input
               placeholder="密码文件名（默认 .password）"
               value={passwordFilename}
               onChange={(e) => setPasswordFilename(e.target.value)}
             />
-          </div>
-
-          <div className="input between">
             <Input
-              placeholder="保护目录（默认 -1 不开启，保护 /Applications 为 2）"
+              placeholder="展示文件夹下密码保护层级（默认只保护顶层，要保护 /*/* 填 3，全盘加密填 999999999）"
               value={protectedLayers}
               onChange={(e) => setProtected(e.target.value)}
-            />
-            <Input
-              placeholder="保护目录密码，优先级高于密码文件中的密码"
-              value={exposePw}
-              onChange={(e) => setExposePw(e.target.value)}
             />
           </div>
 
