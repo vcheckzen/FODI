@@ -5,8 +5,7 @@
       window.GLOBAL_CONFIG = {
         SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // Worker 或云函数网关地址
         SITE_NAME: `FODI`, // 站点名称
-        PRELOAD: false,
-        IS_CF: true,
+        PRELOAD: false, // 是否预加载文件列表
       };
     </script>
     <meta charset="utf-8" />
@@ -719,7 +718,7 @@
       function renderPage(data, cache) {
         let files;
         if (data) {
-          files = JSON.parse(data);
+          files = typeof data === 'string' ? JSON.parse(data) : data;
           window.fileCache.set(files.parent, files);
           preCache(files, 0);
         } else {
@@ -1074,7 +1073,7 @@
                 input.placeholder = '密码错误';
               } else {
                 window.fileCache.set(newFiles.parent, newFiles);
-                window.fileCache.set(`${newFiles.parent}/.upload`, passwd);
+                window.fileCache.set(`${newFiles.parent}/.password`, passwd);
                 fetchFileList(newFiles.parent);
               }
             }
@@ -1724,7 +1723,7 @@
             window.api.url + '?upload',
             window.api.formatPayload(
               odPath,
-              window.fileCache.get(`${odPath}/.upload`) || '',
+              window.fileCache.get(`${odPath}/.password`),
               {
                 files: currentPage,
               }
@@ -1878,7 +1877,6 @@
             JSON.stringify({
               path,
               passwd,
-              ...window.api.accessToken,
               ...kvs,
             }),
           headers: {
@@ -1898,28 +1896,42 @@
         const initialPath =
           new URLSearchParams(window.location.search).get('path') ||
           window.api.root;
-        if (window.GLOBAL_CONFIG.IS_CF) {
-          fetchFileList(initialPath);
-          addBackForwardListener();
-          addFileUploadListener();
-        } else {
-          sendRequest(
-            window.api.method,
-            window.api.url + '?accessToken',
-            null,
-            window.api.headers,
-            (data) => {
-              const accessToken = JSON.parse(data);
-              window.api.accessToken = {
-                encrypted: accessToken.encrypted,
-                plain: accessToken.plain,
-              };
-              fetchFileList(initialPath);
-              addBackForwardListener();
-              addFileUploadListener();
-            }
-          );
-        }
+        fetchFileList(initialPath);
+        addBackForwardListener();
+        addFileUploadListener();
+        const rightDiv = document.querySelector('div.right');
+        rightDiv.addEventListener('scroll', function() {
+          const scrollPosition = rightDiv.scrollTop + rightDiv.clientHeight;
+          const scrollHeight = rightDiv.scrollHeight;
+          let loadedPages = window.fileCache.get(window.backFordwardCache.current);
+          let isRequestInProgress = false;
+          if (scrollPosition >= scrollHeight && loadedPages.skipToken) {
+            if(isRequestInProgress) return;
+            isRequestInProgress = true;
+            sendRequest(
+              window.api.method,
+              window.api.url,
+              window.api.formatPayload(
+                loadedPages.parent,
+                window.fileCache.get(`${loadedPages.parent}/.password`),
+                { skipToken: loadedPages.skipToken }
+              ),
+              window.api.headers,
+              (data) => {
+                data = JSON.parse(data);
+                loadedPages.files = loadedPages.files.concat(data.files);
+                loadedPages.skipToken = data.skipToken;
+                window.fileCache.set(window.backFordwardCache.current, loadedPages);
+                renderPage(loadedPages);
+                isRequestInProgress = false;
+              },
+              () => {
+                const loadingText = loading.querySelector('.loading');
+                loadingText.innerText = 'Loading NextPage Failed!';
+              }
+            );
+          }
+        });
       });
     </script>
   </head>
