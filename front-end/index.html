@@ -1656,7 +1656,9 @@
       }
 
       function sortList(clickedElem) {
-        let loadedPages = window.fileCache.get(window.backFordwardCache.current);
+        let loadedPages = window.fileCache.get(
+          window.backFordwardCache.current
+        );
         const oldSortOrder = loadedPages?.orderby || 'name asc';
         const sortField = clickedElem.className;
         const sortOrder = oldSortOrder.split(' ')[1] === 'asc' ? 'desc' : 'asc';
@@ -1666,13 +1668,18 @@
         }
         if (loadedPages.skipToken) {
           window.fileCache.set(window.backFordwardCache.current, false);
-          fetchFileList(window.backFordwardCache.current, newSortOrder.replace('time', 'lastModifiedDateTime'));
-        } else{
+          fetchFileList(
+            window.backFordwardCache.current,
+            newSortOrder.replace('time', 'lastModifiedDateTime')
+          );
+        } else {
           alert(newSortOrder);
           loadedPages.orderby = newSortOrder;
           loadedPages.files.sort((a, b) => {
-            if (a[sortField] < b[sortField]) return sortOrder === 'asc' ? -1 : 1;
-            if (a[sortField] > b[sortField]) return sortOrder === 'asc' ? 1 : -1;
+            if (a[sortField] < b[sortField])
+              return sortOrder === 'asc' ? -1 : 1;
+            if (a[sortField] > b[sortField])
+              return sortOrder === 'asc' ? 1 : -1;
             return 0;
           });
           renderPage(loadedPages);
@@ -1925,12 +1932,14 @@
         addFileUploadListener();
         const rightDiv = document.querySelector('div.right');
         let isRequestInProgress = false;
-        rightDiv.addEventListener('scroll', function() {
+        rightDiv.addEventListener('scroll', function () {
           const scrollPosition = rightDiv.scrollTop + rightDiv.clientHeight;
           const scrollHeight = rightDiv.scrollHeight;
-          let loadedPages = window.fileCache.get(window.backFordwardCache.current);
+          let loadedPages = window.fileCache.get(
+            window.backFordwardCache.current
+          );
           if (scrollPosition >= scrollHeight - 20 && loadedPages.skipToken) {
-            if(isRequestInProgress) return;
+            if (isRequestInProgress) return;
             isRequestInProgress = true;
             sendRequest(
               window.api.method,
@@ -1938,14 +1947,20 @@
               window.api.formatPayload(
                 loadedPages.parent,
                 window.fileCache.get(`${loadedPages.parent}/.password`),
-                { skipToken: loadedPages.skipToken, orderby: loadedPages.orderby }
+                {
+                  skipToken: loadedPages.skipToken,
+                  orderby: loadedPages.orderby,
+                }
               ),
               window.api.headers,
               (data) => {
                 data = JSON.parse(data);
                 loadedPages.files = loadedPages.files.concat(data.files);
                 loadedPages.skipToken = data.skipToken;
-                window.fileCache.set(window.backFordwardCache.current, loadedPages);
+                window.fileCache.set(
+                  window.backFordwardCache.current,
+                  loadedPages
+                );
                 renderPage(loadedPages);
                 isRequestInProgress = false;
               },
