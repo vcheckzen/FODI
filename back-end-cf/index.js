@@ -95,7 +95,12 @@ async function handleRequest(request) {
   }
 
   // List a folder
-  const files = await fetchFiles(requestPath, body.passwd, body.skipToken, body.orderby);
+  const files = await fetchFiles(
+    requestPath,
+    body.passwd,
+    body.skipToken,
+    body.orderby
+  );
   return new Response(files, {
     headers: returnHeaders,
   });
@@ -201,14 +206,15 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
   }
 
   if (path === '/') path = '';
-  if (path || EXPOSE_PATH)
-    path = ':' + encodeURIComponent(EXPOSE_PATH + path);
-
+  if (path || EXPOSE_PATH) {
+    // if EXPOSE_PATH + path equals to an empty string, ':' will lead to an error.
+    path = ':' + encodeURIComponent(EXPOSE_PATH + path) + ':';
+  }
   const accessToken = await fetchAccessToken();
-  const expand = ':/children' +
-    '?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl' +
-    `&$top=50${orderby ? '&$orderby=' + orderby : ''}` +
-    (skipToken ? '&skiptoken=' + skipToken : '');
+  const expand = `/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl
+  &$top=200${orderby ? '&$orderby=' + orderby : ''}${
+    skipToken ? '&skiptoken=' + skipToken : ''
+  }`;
   const uri = OAUTH.apiUrl + path + expand;
 
   const pageRes = await getContent(uri, {
@@ -217,8 +223,10 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
   if (pageRes.error) {
     throw new Error('request failed');
   }
-  
-  skipToken = pageRes['@odata.nextLink'] ? new URL(pageRes['@odata.nextLink']).searchParams.get('$skiptoken') : '';
+
+  skipToken = pageRes['@odata.nextLink']
+    ? new URL(pageRes['@odata.nextLink']).searchParams.get('$skiptoken')
+    : '';
   const children = pageRes.value;
 
   return JSON.stringify({
@@ -243,8 +251,9 @@ async function downloadFile(filePath, format, stream) {
   }
 
   filePath = encodeURIComponent(`${EXPOSE_PATH}${filePath}`);
-  const uri = `${OAUTH.apiUrl}:${filePath}:/content` +
-    (format ? `?format=${format}` : '') + 
+  const uri =
+    `${OAUTH.apiUrl}:${filePath}:/content` +
+    (format ? `?format=${format}` : '') +
     (format === 'jpg' ? '&width=30000&height=30000' : '');
   const accessToken = await fetchAccessToken();
 
