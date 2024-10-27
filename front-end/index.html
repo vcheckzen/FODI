@@ -5,8 +5,7 @@
       window.GLOBAL_CONFIG = {
         SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // Worker 或云函数网关地址
         SITE_NAME: `FODI`, // 站点名称
-        PRELOAD: false,
-        IS_CF: true,
+        PRELOAD: false, // 是否预加载文件列表
       };
     </script>
     <meta charset="utf-8" />
@@ -719,7 +718,7 @@
       function renderPage(data, cache) {
         let files;
         if (data) {
-          files = JSON.parse(data);
+          files = typeof data === 'string' ? JSON.parse(data) : data;
           window.fileCache.set(files.parent, files);
           preCache(files, 0);
         } else {
@@ -1074,7 +1073,7 @@
                 input.placeholder = '密码错误';
               } else {
                 window.fileCache.set(newFiles.parent, newFiles);
-                window.fileCache.set(`${newFiles.parent}/.upload`, passwd);
+                window.fileCache.set(`${newFiles.parent}/.password`, passwd);
                 fetchFileList(newFiles.parent);
               }
             }
@@ -1656,7 +1655,38 @@
         });
       }
 
-      function fetchFileList(path) {
+      function sortList(clickedElem) {
+        const loadedPages = window.fileCache.get(
+          window.backFordwardCache.current
+        );
+        const oldSortOrder = loadedPages?.orderby || 'name asc';
+        const sortField = clickedElem.className;
+        const sortOrder = oldSortOrder.split(' ')[1] === 'asc' ? 'desc' : 'asc';
+        const newSortOrder = `${sortField} ${sortOrder}`;
+        if (oldSortOrder === newSortOrder) {
+          return;
+        }
+        if (loadedPages.skipToken) {
+          window.fileCache.set(window.backFordwardCache.current, false);
+          fetchFileList(
+            window.backFordwardCache.current,
+            newSortOrder.replace('time', 'lastModifiedDateTime')
+          );
+        } else {
+          alert(newSortOrder);
+          loadedPages.orderby = newSortOrder;
+          loadedPages.files.sort((a, b) => {
+            if (a[sortField] < b[sortField])
+              return sortOrder === 'asc' ? -1 : 1;
+            if (a[sortField] > b[sortField])
+              return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+          });
+          renderPage(loadedPages);
+        }
+      }
+
+      function fetchFileList(path, orderby) {
         // console.log('fetching ' + path);
         const loading = document.querySelector('.loading-wrapper');
         loading.dataset.hidden = '0';
@@ -1674,7 +1704,7 @@
           sendRequest(
             window.api.method,
             window.api.url,
-            window.api.formatPayload(path),
+            window.api.formatPayload(path, '', { orderby: orderby }),
             window.api.headers,
             renderPage,
             () => {
@@ -1724,7 +1754,7 @@
             window.api.url + '?upload',
             window.api.formatPayload(
               odPath,
-              window.fileCache.get(`${odPath}/.upload`) || '',
+              window.fileCache.get(`${odPath}/.password`),
               {
                 files: currentPage,
               }
@@ -1878,7 +1908,6 @@
             JSON.stringify({
               path,
               passwd,
-              ...window.api.accessToken,
               ...kvs,
             }),
           headers: {
@@ -1898,28 +1927,51 @@
         const initialPath =
           new URLSearchParams(window.location.search).get('path') ||
           window.api.root;
-        if (window.GLOBAL_CONFIG.IS_CF) {
-          fetchFileList(initialPath);
-          addBackForwardListener();
-          addFileUploadListener();
-        } else {
-          sendRequest(
-            window.api.method,
-            window.api.url + '?accessToken',
-            null,
-            window.api.headers,
-            (data) => {
-              const accessToken = JSON.parse(data);
-              window.api.accessToken = {
-                encrypted: accessToken.encrypted,
-                plain: accessToken.plain,
-              };
-              fetchFileList(initialPath);
-              addBackForwardListener();
-              addFileUploadListener();
-            }
+        fetchFileList(initialPath);
+        addBackForwardListener();
+        addFileUploadListener();
+        const rightDiv = document.querySelector('div.right');
+        let isRequestInProgress = false;
+        rightDiv.addEventListener('scroll', function () {
+          const scrollPosition = rightDiv.scrollTop + rightDiv.clientHeight;
+          const scrollHeight = rightDiv.scrollHeight;
+          let loadedPages = window.fileCache.get(
+            window.backFordwardCache.current
           );
-        }
+          if (scrollPosition >= scrollHeight - 20 && loadedPages.skipToken) {
+            if (isRequestInProgress) return;
+            isRequestInProgress = true;
+            sendRequest(
+              window.api.method,
+              window.api.url,
+              window.api.formatPayload(
+                loadedPages.parent,
+                window.fileCache.get(`${loadedPages.parent}/.password`),
+                {
+                  skipToken: loadedPages.skipToken,
+                  orderby: loadedPages.orderby,
+                }
+              ),
+              window.api.headers,
+              (data) => {
+                data = JSON.parse(data);
+                loadedPages.files = loadedPages.files.concat(data.files);
+                loadedPages.skipToken = data.skipToken;
+                window.fileCache.set(
+                  window.backFordwardCache.current,
+                  loadedPages
+                );
+                renderPage(loadedPages);
+                isRequestInProgress = false;
+              },
+              () => {
+                const loadingText = loading.querySelector('.loading');
+                loadingText.innerText = 'Loading NextPage Failed!';
+                isRequestInProgress = false;
+              }
+            );
+          }
+        });
       });
     </script>
   </head>
@@ -1982,9 +2034,9 @@
           <div class="list-header">
             <div class="row">
               <div class="file">
-                <span class="name">ITEMS</span>
-                <span class="time">TIME</span>
-                <span class="size">SIZE</span>
+                <span class="name" onclick="sortList(this)">ITEMS</span>
+                <span class="time" onclick="sortList(this)">TIME</span>
+                <span class="size" onclick="sortList(this)">SIZE</span>
               </div>
             </div>
           </div>
