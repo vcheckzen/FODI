@@ -95,7 +95,7 @@ async function handleRequest(request) {
   }
 
   // List a folder
-  const files = await fetchFiles(requestPath, body.passwd, body.skipToken);
+  const files = await fetchFiles(requestPath, body.passwd, body.skipToken, body.orderby);
   return new Response(files, {
     headers: returnHeaders,
   });
@@ -188,7 +188,7 @@ async function authenticate(path, passwd) {
   }
 }
 
-async function fetchFiles(path, passwd, skipToken, order) {
+async function fetchFiles(path, passwd, skipToken, orderby) {
   const parent = path || '/';
   try {
     await authenticate(path, passwd);
@@ -207,7 +207,7 @@ async function fetchFiles(path, passwd, skipToken, order) {
   const accessToken = await fetchAccessToken();
   const expand = ':/children' +
     '?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl' +
-    `&$top=50${order ? '&$orderby=' + order : ''}` +
+    `&$top=50${orderby ? '&$orderby=' + orderby : ''}` +
     (skipToken ? '&skiptoken=' + skipToken : '');
   const uri = OAUTH.apiUrl + path + expand;
 
@@ -224,6 +224,7 @@ async function fetchFiles(path, passwd, skipToken, order) {
   return JSON.stringify({
     parent,
     skipToken,
+    orderby,
     files: children
       .map((file) => ({
         name: file.name,
