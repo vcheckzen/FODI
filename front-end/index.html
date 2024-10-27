@@ -1656,7 +1656,7 @@
       }
 
       function sortList(clickedElem) {
-        let loadedPages = window.fileCache.get(
+        const loadedPages = window.fileCache.get(
           window.backFordwardCache.current
         );
         const oldSortOrder = loadedPages?.orderby || 'name asc';
