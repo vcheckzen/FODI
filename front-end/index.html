@@ -5,7 +5,7 @@
       window.GLOBAL_CONFIG = {
         SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // Worker 或云函数网关地址
         SITE_NAME: `FODI`, // 站点名称
-        PRELOAD: false, // 是否预加载文件列表
+        PRELOAD: false, // 是否预加载文件列表，文件夹非常少才建议开启
       };
     </script>
     <meta charset="utf-8" />
@@ -542,6 +542,10 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         margin-left: auto;
+        display: grid;
+        grid-template-columns: 1fr 1em;
+        column-gap: 0.5em;
+        justify-items: right;
       }
 
       .size * {
@@ -785,7 +789,11 @@
         loadingWrapper.dataset.hidden = '0';
       }
 
-      function renderPage(data, cache) {
+      function renderPage(data, cache, samePage) {
+        if (!samePage) {
+          document.getElementById('back-to-top').click();
+        }
+
         let files;
         if (data?.parent) {
           files = data;
@@ -867,9 +875,7 @@
             size /= 1024;
             count++;
           }
-          return `${size.toFixed(2)} ${
-            ['<pre> </pre>', 'K', 'M', 'G', 'T', 'P'][count]
-          }B`;
+          return [size.toFixed(2), `${['', 'K', 'M', 'G', 'T', 'P'][count]}B`];
         };
 
         const createFileWrapper = (type, name, time, size, path, url) => {
@@ -877,9 +883,12 @@
             .getElementById('file-wrapper-template')
             .content.cloneNode(true);
           fileWrapper.querySelector('i').className = `zmdi zmdi-${type}`;
-          fileWrapper.querySelector('.name').innerHTML = name;
-          fileWrapper.querySelector('.time').innerHTML = formatDate(time);
-          fileWrapper.querySelector('.size').innerHTML = formatSize(size);
+          fileWrapper.querySelector('.name').innerText = name;
+          fileWrapper.querySelector('.time').innerText = formatDate(time);
+          const formattedSize = formatSize(size);
+          fileWrapper.querySelector('.size .value').innerText =
+            formattedSize[0];
+          fileWrapper.querySelector('.size .unit').innerText = formattedSize[1];
           addFileListLineListener(
             fileWrapper.querySelector('.row.file-wrapper'),
             path,
@@ -889,27 +898,26 @@
           return fileWrapper;
         };
 
-        const fileList = document.getElementById('file-list');
-        fileList.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         page.files.forEach((file) => {
-          if (file.name.endsWith('.md')) {
+          // Only load readme not all .md files for performance reason.
+          if (file.name.toLowerCase() === 'readme.md') {
             if (file.url) {
               renderMarkdown(
                 page.parent + (page.parent === '/' ? '' : '/') + file.name,
                 file.url
               );
             }
-          }
-          if (file.name === '.upload') {
+          } else if (file.name === '.upload') {
             document.querySelector('.upload-entry-wrapper').dataset.hidden =
               '0';
             document.querySelector('.upload-entry-btn').onclick = () => {
               window.backForwardCache.preview = true;
               switchRightDisplay('upload');
             };
-          } else if (file.name !== 'README.md') {
+          } else {
             const parent = page.parent === window.api.root ? '' : page.parent;
-            fileList.appendChild(
+            fragment.append(
               createFileWrapper(
                 file.url ? 'file' : 'folder',
                 file.name,
@@ -921,6 +929,7 @@
             );
           }
         });
+        document.getElementById('file-list').replaceChildren(fragment);
       }
 
       async function renderTreeNode(files) {
@@ -1054,6 +1063,9 @@
           if (!cache || cache === true) {
             window.fileCache.set(path, text);
           }
+          if (!isReadMe() && !window.backForwardCache.preview) {
+            return;
+          }
 
           // It is not possible to load resources that are not cached and in an encrypted path.
           const transformHref = (href) => {
@@ -1114,7 +1126,7 @@
 
         const text = window.fileCache.get(path);
         if (text === true) {
-          setTimeout(() => renderMarkdown(path, url), 200);
+          setTimeout(() => renderMarkdown(path, url), 300);
         } else if (text) {
           render(text);
         } else {
@@ -1427,6 +1439,11 @@
                   }
                   break;
                 case 'text':
+                  if (size > 2048000) {
+                    previewHandler.fallback('文件过大');
+                    break;
+                  }
+
                   loadResource(
                     fromCdn(
                       'bytedance',
@@ -1632,7 +1649,7 @@
                   window.backForwardCache.current,
                   loadedPages
                 );
-                renderPage(loadedPages);
+                renderPage(loadedPages, null, true);
                 isRequestInProgress = false;
               },
               fallback
@@ -1648,7 +1665,8 @@
         backToTopBtn.addEventListener('click', () => right.scrollTo(0, 0));
         right.addEventListener(
           'scroll',
-          () => (backToTopBtn.dataset.hidden = right.scrollTop > 0 ? '0' : '1')
+          () =>
+            (backToTopBtn.dataset.hidden = right.scrollTop > 500 ? '0' : '1')
         );
       }
 
@@ -1864,7 +1882,7 @@
 
         const cache = window.fileCache.get(path);
         if (cache === true) {
-          setTimeout(() => fetchFileList(path), 200);
+          setTimeout(() => fetchFileList(path), 300);
         } else if (cache) {
           renderPage(null, cache);
           preCacheCheck(cache, path);
@@ -2129,7 +2147,10 @@
           <i></i>
           <span class="name"></span>
           <span class="time"></span>
-          <span class="size"></span>
+          <div class="size">
+            <span class="value"></span>
+            <span class="unit"></span>
+          </div>
         </div>
       </div>
     </template>
