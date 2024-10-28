@@ -1877,7 +1877,12 @@
           sendRequest(
             window.api.method,
             window.api.url,
-            window.api.formatPayload(path /*'', { orderby: orderby }*/),
+            window.api.formatPayload(
+              path,
+              window.fileCache.get(`${path}/.password`),
+              // Orderby is not working, do not send it.
+              // { orderby: orderby }
+            ),
             window.api.headers,
             (data) => {
               try {
