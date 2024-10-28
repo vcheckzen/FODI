@@ -1645,11 +1645,8 @@
 
                 loadedPages.files = loadedPages.files.concat(data.files);
                 loadedPages.skipToken = data.skipToken;
-                window.fileCache.set(
-                  window.backForwardCache.current,
-                  loadedPages
-                );
-                renderPage(loadedPages, null, true);
+                window.fileCache.set(loadedPages.parent, loadedPages);
+                renderPage(null, loadedPages, true);
                 isRequestInProgress = false;
               },
               fallback
@@ -1897,7 +1894,7 @@
             window.api.url,
             window.api.formatPayload(
               path,
-              window.fileCache.get(`${path}/.password`),
+              window.fileCache.get(`${path}/.password`)
               // Orderby is not working, do not send it.
               // { orderby: orderby }
             ),
