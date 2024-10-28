@@ -182,7 +182,7 @@ async function authenticate(path, passwd) {
     `${path}/${PASSWD_FILENAME}`,
     null,
     true
-  ).then((resp) => (resp.status === 404 ? '' : resp.text()));
+  ).then((resp) => (resp.status === 404 ? undefined : resp.text()));
 
   if (pwFileContent) {
     if (passwd !== pwFileContent) {
@@ -214,7 +214,7 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
   const expand = [
     '/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl',
     orderby ? `&$orderby=${orderby}` : '',
-    skipToken ? `&skiptoken=${skipToken}` : ''
+    skipToken ? `&skiptoken=${skipToken}` : '',
   ].join('');
   const uri = OAUTH.apiUrl + path + expand;
 
@@ -227,7 +227,7 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
 
   skipToken = pageRes['@odata.nextLink']
     ? new URL(pageRes['@odata.nextLink']).searchParams.get('$skiptoken')
-    : '';
+    : undefined;
   const children = pageRes.value;
 
   return JSON.stringify({
