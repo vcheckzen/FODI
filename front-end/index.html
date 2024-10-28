@@ -1707,7 +1707,8 @@
             window.api.formatPayload(
               path,
               window.fileCache.get(`${path}/.password`),
-              { orderby: orderby }
+              // Orderby is not working, do not send it.
+              // { orderby: orderby }
             ),
             window.api.headers,
             renderPage,
