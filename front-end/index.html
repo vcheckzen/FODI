@@ -1645,7 +1645,6 @@
 
                 loadedPages.files = loadedPages.files.concat(data.files);
                 loadedPages.skipToken = data.skipToken;
-                window.fileCache.set(loadedPages.parent, loadedPages);
                 renderPage(null, loadedPages, true);
                 isRequestInProgress = false;
               },
