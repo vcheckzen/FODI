@@ -6,6 +6,7 @@
         SCF_GATEWAY: '//tight-bar-e3b3.logi.workers.dev', // Worker 或云函数网关地址
         SITE_NAME: 'FODI', // 站点名称
         PRELOAD: false, // 是否预加载文件列表，文件夹非常少才建议开启
+        IS_BUSINESS: false, // 是否为商业版用户
       };
     </script>
     <meta charset="utf-8" />
@@ -1864,12 +1865,13 @@
           ? 'desc'
           : 'asc';
         loadedPages.orderby = `${sortField} ${sortOrder}`;
-        if (loadedPages.skipToken) {
-          window.fileCache.set(window.backForwardCache.current, false);
-          fetchFileList(window.backForwardCache.current, loadedPages.orderby.replace('time', 'lastModifiedDateTime'));
-        } else {
+        const noSortRequest = (window.GLOBAL_CONFIG.IS_BUSINESS && sortField !== 'name') || !loadedPages.skipToken;
+        if (noSortRequest) {
           renderFileList(loadedPages);
+          return;
         }
+        window.fileCache.set(window.backForwardCache.current, false);
+        fetchFileList(window.backForwardCache.current, loadedPages.orderby.replace('time', 'lastModifiedDateTime'));
       }
 
       function fetchFileList(path, orderby) {
