@@ -3,8 +3,8 @@
   <head>
     <script>
       window.GLOBAL_CONFIG = {
-        SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // Worker 或云函数网关地址
-        SITE_NAME: `FODI`, // 站点名称
+        SCF_GATEWAY: '//tight-bar-e3b3.logi.workers.dev', // Worker 或云函数网关地址
+        SITE_NAME: 'FODI', // 站点名称
         PRELOAD: false, // 是否预加载文件列表，文件夹非常少才建议开启
       };
     </script>
@@ -847,8 +847,8 @@
 
         if (page.orderby) {
           // Not changing file cache, so file tree order is untouched.
-          const sortField = page.orderby.split(' ').shift();
-          const files = page.files.toSorted((a, b) =>
+          const sortField = page.orderby.split(' ').shift().replace('lastModifiedDateTime', 'time');
+          const files = page.files.slice().sort((a, b) =>
             a[sortField] < b[sortField] ? -1 : 1
           );
           if (page.orderby.includes('desc')) {
@@ -1627,7 +1627,7 @@
                 window.fileCache.get(`${loadedPages.parent}/.password`),
                 {
                   skipToken: loadedPages.skipToken,
-                  // orderby: loadedPages.orderby,
+                  orderby: loadedPages.orderby?.replace('time', 'lastModifiedDateTime'),
                 }
               ),
               window.api.headers,
@@ -1853,8 +1853,6 @@
         });
       }
 
-      // Currently Microsoft API only supports sort by name, with a broken back end sorting, we only make the UI sorted.
-      // see https://stackoverflow.com/questions/71395284/ordering-the-driveitems-from-the-graph-api-only-possible-on-name-property
       function sortList(clickedElem) {
         const loadedPages = window.fileCache.get(
           window.backForwardCache.current
@@ -1866,7 +1864,12 @@
           ? 'desc'
           : 'asc';
         loadedPages.orderby = `${sortField} ${sortOrder}`;
-        renderFileList(loadedPages);
+        if (loadedPages.skipToken) {
+          window.fileCache.set(window.backForwardCache.current, false);
+          fetchFileList(window.backForwardCache.current, loadedPages.orderby.replace('time', 'lastModifiedDateTime'));
+        } else {
+          renderFileList(loadedPages);
+        }
       }
 
       function fetchFileList(path, orderby) {
@@ -1893,9 +1896,8 @@
             window.api.url,
             window.api.formatPayload(
               path,
-              window.fileCache.get(`${path}/.password`)
-              // Orderby is not working, do not send it.
-              // { orderby: orderby }
+              window.fileCache.get(`${path}/.password`),
+              { orderby: orderby } 
             ),
             window.api.headers,
             (data) => {

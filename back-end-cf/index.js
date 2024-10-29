@@ -213,7 +213,7 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
   const accessToken = await fetchAccessToken();
   const expand = [
     '/children?select=name,size,parentReference,lastModifiedDateTime,@microsoft.graph.downloadUrl',
-    orderby ? `&$orderby=${orderby}` : '',
+    orderby ? `&$orderby=${encodeURIComponent(orderby)}` : '',
     skipToken ? `&skiptoken=${skipToken}` : '',
   ].join('');
   const uri = OAUTH.apiUrl + path + expand;
