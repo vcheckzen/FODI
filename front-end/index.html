@@ -3,8 +3,9 @@
   <head>
     <script>
       window.GLOBAL_CONFIG = {
-        SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // Worker 或云函数网关地址
-        SITE_NAME: `FODI`, // 站点名称
+        SCF_GATEWAY: `//tight-bar-e3b3.logi.workers.dev`, // worker 地址
+        SITE_NAME: `FODI`, // 站点名称，显示在右上角
+        IS_BUSINESS: false, // 是否为商业版，E5 请改为 true
         PRELOAD: false, // 是否预加载文件列表，文件夹非常少才建议开启
       };
     </script>
@@ -885,10 +886,10 @@
           fileWrapper.querySelector('i').className = `zmdi zmdi-${type}`;
           fileWrapper.querySelector('.name').innerText = name;
           fileWrapper.querySelector('.time').innerText = formatDate(time);
-          const formattedSize = formatSize(size);
-          fileWrapper.querySelector('.size .value').innerText =
-            formattedSize[0];
-          fileWrapper.querySelector('.size .unit').innerText = formattedSize[1];
+          [
+            fileWrapper.querySelector('.size .value').innerText,
+            fileWrapper.querySelector('.size .unit').innerText,
+          ] = formatSize(size);
           addFileListLineListener(
             fileWrapper.querySelector('.row.file-wrapper'),
             path,
@@ -1627,7 +1628,7 @@
                 window.fileCache.get(`${loadedPages.parent}/.password`),
                 {
                   skipToken: loadedPages.skipToken,
-                  // orderby: loadedPages.orderby,
+                  orderby: loadedPages.orderby,
                 }
               ),
               window.api.headers,
@@ -1853,8 +1854,6 @@
         });
       }
 
-      // Currently Microsoft API only supports sort by name, with a broken back end sorting, we only make the UI sorted.
-      // see https://stackoverflow.com/questions/71395284/ordering-the-driveitems-from-the-graph-api-only-possible-on-name-property
       function sortList(clickedElem) {
         const loadedPages = window.fileCache.get(
           window.backForwardCache.current
@@ -1866,7 +1865,15 @@
           ? 'desc'
           : 'asc';
         loadedPages.orderby = `${sortField} ${sortOrder}`;
-        renderFileList(loadedPages);
+        const noSortRequest =
+          (window.GLOBAL_CONFIG.IS_BUSINESS && sortField !== 'name') ||
+          !loadedPages.skipToken;
+        if (noSortRequest) {
+          renderFileList(loadedPages);
+          return;
+        }
+        window.fileCache.set(loadedPages.parent, false);
+        fetchFileList(loadedPages.parent, loadedPages.orderby);
       }
 
       function fetchFileList(path, orderby) {
@@ -1893,9 +1900,8 @@
             window.api.url,
             window.api.formatPayload(
               path,
-              window.fileCache.get(`${path}/.password`)
-              // Orderby is not working, do not send it.
-              // { orderby: orderby }
+              window.fileCache.get(`${path}/.password`),
+              { orderby }
             ),
             window.api.headers,
             (data) => {
@@ -2100,12 +2106,19 @@
           root: '/',
           url: window.GLOBAL_CONFIG.SCF_GATEWAY,
           method: 'POST',
-          formatPayload: (path, passwd, kvs) =>
-            JSON.stringify({
-              path,
-              passwd,
-              ...kvs,
-            }),
+          formatPayload: (path, passwd, kvs) => {
+            const payload = { path, passwd, ...kvs };
+            const orderby = payload.orderby;
+            if (
+              window.GLOBAL_CONFIG.IS_BUSINESS &&
+              !orderby?.startsWith('name')
+            ) {
+              delete payload['orderby'];
+            } else if (orderby) {
+              payload.orderby = orderby.replace('time', 'lastModifiedDateTime');
+            }
+            return JSON.stringify(payload);
+          },
           headers: {
             'Content-type': 'application/json; charset=utf-8',
           },
