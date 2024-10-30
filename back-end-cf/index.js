@@ -230,6 +230,9 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
     : undefined;
   const children = pageRes.value;
 
+  if (orderby) {
+    orderby = orderby.replace('lastModifiedDateTime', 'time');
+  }
   return JSON.stringify({
     parent,
     skipToken,
