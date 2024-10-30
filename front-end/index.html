@@ -808,7 +808,7 @@
           if (files.encrypted) {
             handleEncryptedFolder(files);
           } else {
-            renderFileList(files);
+            renderFileList(files, samePage);
           }
           renderTreeNode(files);
         }
@@ -843,9 +843,10 @@
         }
       }
 
-      function renderFileList(page) {
+      function renderFileList(page, renderAllItem) {
         switchRightDisplay('list');
 
+        const pageRef = page;
         if (page.orderby) {
           // Not changing file cache, so file tree order is untouched.
           const sortField = page.orderby.split(' ').shift();
@@ -899,7 +900,7 @@
           return fileWrapper;
         };
 
-        const fragment = document.createDocumentFragment();
+        const children = [];
         page.files.forEach((file) => {
           // Only load readme not all .md files for performance reason.
           if (file.name.toLowerCase() === 'readme.md') {
@@ -918,8 +919,9 @@
             };
           } else {
             const parent = page.parent === window.api.root ? '' : page.parent;
-            fragment.append(
-              createFileWrapper(
+            children.push(
+              createFileWrapper.bind(
+                null,
                 file.url ? 'file' : 'folder',
                 file.name,
                 file.time,
@@ -930,7 +932,71 @@
             );
           }
         });
-        document.getElementById('file-list').replaceChildren(fragment);
+
+        const listContainer = document.getElementById('file-list');
+        if (children.length <= 200 || renderAllItem) {
+          const fragment = document.createDocumentFragment();
+          fragment.append(...children.map((create) => create()));
+          listContainer.replaceChildren(fragment);
+
+          // Delete obsolete stat when the page is still loading.
+          pageRef.lazyRenderStat = undefined;
+          return;
+        }
+
+        if (!pageRef.lazyRenderStat) {
+          pageRef.lazyRenderStat = { batchSize: 200 };
+          const stat = pageRef.lazyRenderStat;
+          stat.observer = new IntersectionObserver((entries) => {
+            if (
+              pageRef.skipToken /* conflicts with loading next page */ ||
+              stat.renderedItems >= stat.children.length ||
+              Date.now() - stat.lastRenderedTs <= 800 /* 0.8s */
+            ) {
+              return;
+            }
+
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                renderItems();
+                return;
+              }
+            });
+          });
+        }
+        const stat = pageRef.lazyRenderStat;
+        stat.renderedItems = 0;
+        stat.children = children;
+        renderItems();
+
+        function renderItems() {
+          const lastRenderedIndex = stat.renderedItems - 1;
+
+          stat.lastRenderedTs = Date.now();
+          stat.renderedItems += stat.batchSize;
+          stat.renderedItems = Math.min(
+            stat.renderedItems,
+            stat.children.length
+          );
+          const fragment = document.createDocumentFragment();
+          fragment.append(
+            ...stat.children
+              .slice(0, stat.renderedItems)
+              .map((create) => create())
+          );
+          listContainer.replaceChildren(fragment);
+          if (stat.renderedItems !== stat.batchSize) {
+            listContainer.querySelectorAll('.row')[
+              lastRenderedIndex
+            ].style.backgroundColor = '#f1f1f1';
+            stat.observer.disconnect();
+          }
+          if (stat.renderedItems < stat.children.length) {
+            const loadingMarker = document.createElement('div');
+            listContainer.appendChild(loadingMarker);
+            stat.observer.observe(loadingMarker);
+          }
+        }
       }
 
       async function renderTreeNode(files) {
