@@ -951,7 +951,7 @@
             if (
               pageRef.skipToken /* conflicts with loading next page */ ||
               stat.renderedItems >= stat.children.length ||
-              Date.now() - stat.lastRenderedTs <= 800 /* 0.8s */
+              Date.now() - stat.lastRenderedTs <= 500 /* 0.5s */
             ) {
               return;
             }
@@ -970,7 +970,7 @@
         renderItems();
 
         function renderItems() {
-          const lastRenderedIndex = stat.renderedItems - 1;
+          const startIndex = stat.renderedItems;
 
           stat.lastRenderedTs = Date.now();
           stat.renderedItems += stat.batchSize;
@@ -981,20 +981,18 @@
           const fragment = document.createDocumentFragment();
           fragment.append(
             ...stat.children
-              .slice(0, stat.renderedItems)
+              .slice(startIndex, stat.renderedItems)
               .map((create) => create())
           );
-          listContainer.replaceChildren(fragment);
-          if (stat.renderedItems !== stat.batchSize) {
-            listContainer.querySelectorAll('.row')[
-              lastRenderedIndex
-            ].style.backgroundColor = '#f1f1f1';
+          if (startIndex === 0) {
+            listContainer.replaceChildren(fragment);
+          } else {
             stat.observer.disconnect();
+            listContainer.lastElementChild.style.backgroundColor = '#f1f1f1';
+            listContainer.appendChild(fragment);
           }
           if (stat.renderedItems < stat.children.length) {
-            const loadingMarker = document.createElement('div');
-            listContainer.appendChild(loadingMarker);
-            stat.observer.observe(loadingMarker);
+            stat.observer.observe(listContainer.lastElementChild);
           }
         }
       }
