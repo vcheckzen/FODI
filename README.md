@@ -17,7 +17,6 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 - 功能简单，界面简陋
 - 不支持巨硬家的 IE 和 UWP 版 EDGE 浏览器
-- 可能不支持包含千级数量以上文件的文件夹展示
 
 #### 更新
 
