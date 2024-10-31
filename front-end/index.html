@@ -14,6 +14,7 @@
       content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
       name="viewport"
     />
+    <link rel="icon" href="data:;base64,=" type="image/x-icon">
     <link
       href="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/material-design-iconic-font/2.2.0/css/material-design-iconic-font.min.css"
       type="text/css"
@@ -530,7 +531,7 @@
         padding-left: 0;
       }
 
-      .time {
+      .lastModifiedDateTime {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -599,7 +600,7 @@
           width: 75%;
         }
 
-        .time {
+        .lastModifiedDateTime {
           display: none !important;
         }
 
@@ -646,14 +647,9 @@
         let xhr = new XMLHttpRequest();
         if ('withCredentials' in xhr) {
           xhr.open(method, url, true);
-        } else if (typeof XDomainRequest !== 'undefined') {
-          xhr = new XDomainRequest();
-          xhr.open(method, url);
+          xhr.timeout = timeout;
         } else {
           xhr = null;
-        }
-        if (xhr) {
-          xhr.timeout = timeout;
         }
         return xhr;
       }
@@ -850,9 +846,12 @@
         if (page.orderby) {
           // Not changing file cache, so file tree order is untouched.
           const sortField = page.orderby.split(' ').shift();
-          const files = page.files.toSorted((a, b) =>
-            a[sortField] < b[sortField] ? -1 : 1
-          );
+          const files = page.files.sort(function(a, b) {
+            return a[sortField].toString().localeCompare(b[sortField].toString(), undefined, {
+              numeric: true,
+              sensitivity: 'base',
+            });
+          });
           if (page.orderby.includes('desc')) {
             files.reverse();
           }
@@ -886,7 +885,7 @@
             .content.cloneNode(true);
           fileWrapper.querySelector('i').className = `zmdi zmdi-${type}`;
           fileWrapper.querySelector('.name').innerText = name;
-          fileWrapper.querySelector('.time').innerText = formatDate(time);
+          fileWrapper.querySelector('.lastModifiedDateTime').innerText = formatDate(time);
           [
             fileWrapper.querySelector('.size .value').innerText,
             fileWrapper.querySelector('.size .unit').innerText,
@@ -924,7 +923,7 @@
                 null,
                 file.url ? 'file' : 'folder',
                 file.name,
-                file.time,
+                file.lastModifiedDateTime,
                 file.size,
                 parent + '/' + file.name,
                 file.url
@@ -2144,7 +2143,7 @@
             ) {
               delete payload['orderby'];
             } else if (orderby) {
-              payload.orderby = orderby.replace('time', 'lastModifiedDateTime');
+              payload.orderby = orderby;
             }
             return JSON.stringify(payload);
           },
@@ -2188,7 +2187,7 @@
         <div class="file">
           <i></i>
           <span class="name"></span>
-          <span class="time"></span>
+          <span class="lastModifiedDateTime"></span>
           <div class="size">
             <span class="value"></span>
             <span class="unit"></span>
@@ -2234,7 +2233,7 @@
                   <span>ITEMS</span>
                   <i class="zmdi zmdi-chevron-up"></i>
                 </div>
-                <div class="time" onclick="sortList(this)">
+                <div class="lastModifiedDateTime" onclick="sortList(this)">
                   <span>TIME</span>
                   <i class="zmdi zmdi-chevron-up"></i>
                 </div>

@@ -230,9 +230,6 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
     : undefined;
   const children = pageRes.value;
 
-  if (orderby) {
-    orderby = orderby.replace('lastModifiedDateTime', 'time');
-  }
   return JSON.stringify({
     parent,
     skipToken,
@@ -241,7 +238,7 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
       .map((file) => ({
         name: file.name,
         size: file.size,
-        time: file.lastModifiedDateTime,
+        lastModifiedDateTime: file.lastModifiedDateTime,
         url: file['@microsoft.graph.downloadUrl'],
       }))
       .filter((file) => file.name !== PASSWD_FILENAME),
