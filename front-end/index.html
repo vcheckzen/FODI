@@ -944,6 +944,7 @@
 
             entries.forEach((entry) => {
               if (entry.isIntersecting) {
+                stat.lastRenderedTs = Date.now();
                 if (pageRef.skipToken) {
                   loadNextPage(pageRef);
                 } else {
@@ -963,7 +964,6 @@
 
         function renderItems() {
           const startIndex = stat.renderedItems;
-          stat.lastRenderedTs = Date.now();
           stat.renderedItems += stat.pageSize;
           stat.renderedItems = Math.min(
             stat.renderedItems,
