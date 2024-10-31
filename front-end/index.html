@@ -778,7 +778,7 @@
         if (loadingWrapper.dataset.hidden === '0') {
           if (msg) {
             loadingWrapper.querySelector('.loading').innerText = msg;
-            setTimeout(() => (loadingWrapper.dataset.hidden = '1'), 2000);
+            setTimeout(() => (loadingWrapper.dataset.hidden = '1'), 3000);
           } else {
             loadingWrapper.dataset.hidden = '1';
           }
@@ -790,8 +790,10 @@
         loadingWrapper.dataset.hidden = '0';
       }
 
-      function renderPage(data, cache, samePage) {
-        if (!samePage) {
+      function renderPage(data, cache, fromLoadNextPage) {
+        switchGlobalLoadingIndicator();
+
+        if (!fromLoadNextPage) {
           document.getElementById('back-to-top').click();
         }
 
@@ -808,12 +810,10 @@
           if (files.encrypted) {
             handleEncryptedFolder(files);
           } else {
-            renderFileList(files, samePage);
+            renderFileList(files, fromLoadNextPage);
           }
           renderTreeNode(files);
         }
-
-        switchGlobalLoadingIndicator();
       }
 
       function renderPath(path) {
@@ -843,7 +843,7 @@
         }
       }
 
-      function renderFileList(page, renderAllItem) {
+      function renderFileList(page, fromLoadNextPage) {
         switchRightDisplay('list');
 
         const pageRef = page;
@@ -934,46 +934,37 @@
         });
 
         const listContainer = document.getElementById('file-list');
-        if (children.length <= 200 || renderAllItem) {
-          const fragment = document.createDocumentFragment();
-          fragment.append(...children.map((create) => create()));
-          listContainer.replaceChildren(fragment);
-
-          // Delete obsolete stat when the page is still loading.
-          pageRef.lazyRenderStat = undefined;
-          return;
-        }
-
         if (!pageRef.lazyRenderStat) {
-          pageRef.lazyRenderStat = { batchSize: 200 };
+          pageRef.lazyRenderStat = { pageSize: 200 };
           const stat = pageRef.lazyRenderStat;
           stat.observer = new IntersectionObserver((entries) => {
-            if (
-              pageRef.skipToken /* conflicts with loading next page */ ||
-              stat.renderedItems >= stat.children.length ||
-              Date.now() - stat.lastRenderedTs <= 500 /* 0.5s */
-            ) {
+            if (Date.now() - stat.lastRenderedTs <= 500 /* 0.5s */) {
               return;
             }
 
             entries.forEach((entry) => {
               if (entry.isIntersecting) {
-                renderItems();
+                if (pageRef.skipToken) {
+                  loadNextPage(pageRef);
+                } else {
+                  renderItems();
+                }
                 return;
               }
             });
           });
         }
         const stat = pageRef.lazyRenderStat;
-        stat.renderedItems = 0;
+        if (!fromLoadNextPage) {
+          stat.renderedItems = 0;
+        }
         stat.children = children;
         renderItems();
 
         function renderItems() {
           const startIndex = stat.renderedItems;
-
           stat.lastRenderedTs = Date.now();
-          stat.renderedItems += stat.batchSize;
+          stat.renderedItems += stat.pageSize;
           stat.renderedItems = Math.min(
             stat.renderedItems,
             stat.children.length
@@ -991,7 +982,7 @@
             listContainer.lastElementChild.style.backgroundColor = '#f1f1f1';
             listContainer.appendChild(fragment);
           }
-          if (stat.renderedItems < stat.children.length) {
+          if (pageRef.skipToken || stat.renderedItems < stat.children.length) {
             stat.observer.observe(listContainer.lastElementChild);
           }
         }
@@ -1649,76 +1640,6 @@
         });
       }
 
-      function addLoadingNextPageListener() {
-        const rightDiv = document.querySelector('div.right');
-        let isRequestInProgress = false;
-        rightDiv.addEventListener('scroll', function () {
-          if (window.backForwardCache.preview) {
-            return;
-          }
-
-          const scrollPosition = rightDiv.scrollTop + rightDiv.clientHeight;
-          const scrollHeight = rightDiv.scrollHeight;
-          const loadedPages = window.fileCache.get(
-            window.backForwardCache.current
-          );
-
-          if (scrollPosition >= scrollHeight - 20) {
-            if (isRequestInProgress || loadedPages.noMoreDataPrompted) {
-              return;
-            }
-            if (!loadedPages.skipToken) {
-              if (rightDiv.scrollTop > 0) {
-                switchGlobalLoadingIndicator('No more data!');
-                switchGlobalLoadingIndicator('No more data!');
-                loadedPages.noMoreDataPrompted = true;
-              }
-              return;
-            }
-
-            isRequestInProgress = true;
-            switchGlobalLoadingIndicator('Loading next page...');
-
-            const fallback = () => {
-              isRequestInProgress = false;
-              switchGlobalLoadingIndicator('Failed!');
-            };
-
-            sendRequest(
-              window.api.method,
-              window.api.url,
-              window.api.formatPayload(
-                loadedPages.parent,
-                window.fileCache.get(`${loadedPages.parent}/.password`),
-                {
-                  skipToken: loadedPages.skipToken,
-                  orderby: loadedPages.orderby,
-                }
-              ),
-              window.api.headers,
-              (data) => {
-                try {
-                  data = JSON.parse(data);
-                } catch (_) {
-                  fallback();
-                  return;
-                }
-                if (data.error || data.files === undefined) {
-                  fallback();
-                  return;
-                }
-
-                loadedPages.files = loadedPages.files.concat(data.files);
-                loadedPages.skipToken = data.skipToken;
-                renderPage(null, loadedPages, true);
-                isRequestInProgress = false;
-              },
-              fallback
-            );
-          }
-        });
-      }
-
       function addBackToTopListener() {
         const right = document.querySelector('.main .right');
         const backToTopBtn = document.getElementById('back-to-top');
@@ -1986,6 +1907,50 @@
         }
       }
 
+      function loadNextPage(loadedPages) {
+        if (loadedPages.loadingInProgress) {
+          return;
+        }
+
+        switchGlobalLoadingIndicator('Loading next page...');
+        loadedPages.loadingInProgress = true;
+        const fallback = () => {
+          switchGlobalLoadingIndicator('Failed!');
+          loadedPages.loadingInProgress = false;
+        };
+        sendRequest(
+          window.api.method,
+          window.api.url,
+          window.api.formatPayload(
+            loadedPages.parent,
+            window.fileCache.get(`${loadedPages.parent}/.password`),
+            {
+              skipToken: loadedPages.skipToken,
+              orderby: loadedPages.orderby,
+            }
+          ),
+          window.api.headers,
+          (data) => {
+            try {
+              data = JSON.parse(data);
+            } catch (_) {
+              fallback();
+              return;
+            }
+            if (data.error || data.files === undefined) {
+              fallback();
+              return;
+            }
+
+            loadedPages.files = loadedPages.files.concat(data.files);
+            loadedPages.skipToken = data.skipToken;
+            loadedPages.loadingInProgress = false;
+            renderPage(null, loadedPages, true);
+          },
+          fallback
+        );
+      }
+
       function uploadFiles() {
         const pageSize = 20;
         const fileInput = Array.from(
@@ -2203,7 +2168,6 @@
         fetchFileList(initialPath);
         addBackForwardListener();
         addFileUploadListener();
-        addLoadingNextPageListener();
         addBackToTopListener();
       });
     </script>
