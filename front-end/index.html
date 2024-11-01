@@ -181,14 +181,17 @@
         justify-content: center;
         column-gap: 0.6em;
         margin-top: 1em;
+        height: 2.5em;
       }
 
       .password {
-        margin: 0 auto;
+        display: flex;
+        column-gap: 0.6em;
+        height: 100%;
       }
 
       .password input {
-        height: 2em;
+        padding: 0 0.5em;
         outline: none;
         border: solid rgb(218, 215, 215) 1px;
       }
@@ -198,7 +201,7 @@
       .file-upload-chooser select,
       .file-upload-label {
         background: white;
-        height: 2em;
+        height: 100%;
         outline: none;
         border: solid rgb(218, 215, 215) 1px;
       }
@@ -211,6 +214,7 @@
         background: rgb(218, 215, 215);
       }
 
+      .password-wrapper,
       .file-upload-wrapper {
         font-size: 0.8em;
         padding: 0 1em;
@@ -221,8 +225,9 @@
       }
 
       .file-upload-label {
-        display: inline-block;
-        line-height: 2em;
+        display: flex;
+        align-items: center;
+        padding: 0 0.5em;
       }
 
       .file-upload-name {
@@ -318,7 +323,14 @@
 
       #arrow-back,
       #arrow-forward {
+        color: black;
+        cursor: pointer;
+      }
+
+      #arrow-back[disabled],
+      #arrow-forward[disabled] {
         color: rgb(218, 215, 215);
+        cursor: initial;
       }
 
       .loading-wrapper {
@@ -516,7 +528,6 @@
       }
 
       .name {
-        margin-right: 1em;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -544,14 +555,12 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         margin-left: auto;
-        display: grid;
-        grid-template-columns: 1fr 1em;
-        column-gap: 0.6em;
-        justify-items: right;
+        display: flex;
+        text-align: right;
       }
 
-      .size * {
-        display: inline;
+      .size .unit {
+        width: 1.7em;
       }
 
       #back-to-top {
@@ -597,7 +606,7 @@
 
       @media screen and (max-width: 600px) {
         .name {
-          width: 75%;
+          width: 70%;
         }
 
         .lastModifiedDateTime {
@@ -1713,21 +1722,21 @@
         }
         if (window.backForwardCache.root !== window.backForwardCache.current) {
           window.backForwardCache.backable = true;
-          document.getElementById('arrow-back').style.color = 'black';
+          document.getElementById('arrow-back').removeAttribute('disabled');
         } else {
           window.backForwardCache.backable = false;
-          document.getElementById('arrow-back').style.color =
-            'rgb(218, 215, 215)';
+          document.getElementById('arrow-back').setAttribute('disabled', true);
         }
         if (
           window.backForwardCache.deepest !== window.backForwardCache.current
         ) {
           window.backForwardCache.forwardable = true;
-          document.getElementById('arrow-forward').style.color = 'black';
+          document.getElementById('arrow-forward').removeAttribute('disabled');
         } else {
           window.backForwardCache.forwardable = false;
-          document.getElementById('arrow-forward').style.color =
-            'rgb(218, 215, 215)';
+          document
+            .getElementById('arrow-forward')
+            .setAttribute('disabled', true);
         }
       }
 
@@ -1984,6 +1993,10 @@
         const fileInput = Array.from(
           document.getElementById('file-upload-input').files
         );
+        if (!fileInput.length) {
+          return;
+        }
+
         const odPath = window.backForwardCache.current;
         const upFileList = fileInput.map((f) => ({
           remotePath: `${odPath}/${relativePath(f)}`,
@@ -2231,8 +2244,8 @@
     </div>
     <div class="header-wrapper">
       <div class="header">
-        <i id="arrow-back" class="zmdi zmdi-arrow-left logo"></i>
-        <i id="arrow-forward" class="zmdi zmdi-arrow-right logo"></i>
+        <i id="arrow-back" disabled class="zmdi zmdi-arrow-left logo"></i>
+        <i id="arrow-forward" disabled class="zmdi zmdi-arrow-right logo"></i>
         <i id="main-page" class="zmdi zmdi-folder logo"></i>
         <div class="nav">
           <span id="path"> </span>
