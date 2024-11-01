@@ -1,11 +1,9 @@
 /**
- * IS_CN: 如果为世纪互联版本，请将 0 改为 1
  * EXPOSE_PATH：暴露路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
  * ONEDRIVE_REFRESHTOKEN: refresh_token
  * PASSWD_FILENAME: 密码文件名
  * PROTECTED_LAYERS: EXPOSE_PATH 目录密码防护层数，防止猜测目录，默认 -1 为关闭，类似 '/Applications' 需要保护填写为 2（保护 EXPOSE_PATH 及其一级子目录），开启需在 EXPORSE_PATH 目录的 PASSWORD_FILENAME 文件中填写密码
  */
-const IS_CN = 0;
 const EXPOSE_PATH = '';
 const ONEDRIVE_REFRESHTOKEN = '';
 const PASSWD_FILENAME = '.password';
@@ -230,9 +228,6 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
     : undefined;
   const children = pageRes.value;
 
-  if (orderby) {
-    orderby = orderby.replace('lastModifiedDateTime', 'time');
-  }
   return JSON.stringify({
     parent,
     skipToken,
@@ -241,7 +236,7 @@ async function fetchFiles(path, passwd, skipToken, orderby) {
       .map((file) => ({
         name: file.name,
         size: file.size,
-        time: file.lastModifiedDateTime,
+        lastModifiedDateTime: file.lastModifiedDateTime,
         url: file['@microsoft.graph.downloadUrl'],
       }))
       .filter((file) => file.name !== PASSWD_FILENAME),

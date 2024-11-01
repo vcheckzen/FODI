@@ -14,6 +14,7 @@
       content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
       name="viewport"
     />
+    <link rel="icon" href="data:;base64,=" type="image/x-icon" />
     <link
       href="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/material-design-iconic-font/2.2.0/css/material-design-iconic-font.min.css"
       type="text/css"
@@ -530,7 +531,7 @@
         padding-left: 0;
       }
 
-      .time {
+      .lastModifiedDateTime {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -545,7 +546,7 @@
         margin-left: auto;
         display: grid;
         grid-template-columns: 1fr 1em;
-        column-gap: 0.5em;
+        column-gap: 0.6em;
         justify-items: right;
       }
 
@@ -599,7 +600,7 @@
           width: 75%;
         }
 
-        .time {
+        .lastModifiedDateTime {
           display: none !important;
         }
 
@@ -646,14 +647,9 @@
         let xhr = new XMLHttpRequest();
         if ('withCredentials' in xhr) {
           xhr.open(method, url, true);
-        } else if (typeof XDomainRequest !== 'undefined') {
-          xhr = new XDomainRequest();
-          xhr.open(method, url);
+          xhr.timeout = timeout;
         } else {
           xhr = null;
-        }
-        if (xhr) {
-          xhr.timeout = timeout;
         }
         return xhr;
       }
@@ -846,19 +842,6 @@
       function renderFileList(page, fromLoadNextPage) {
         switchRightDisplay('list');
 
-        const pageRef = page;
-        if (page.orderby) {
-          // Not changing file cache, so file tree order is untouched.
-          const sortField = page.orderby.split(' ').shift();
-          const files = page.files.toSorted((a, b) =>
-            a[sortField] < b[sortField] ? -1 : 1
-          );
-          if (page.orderby.includes('desc')) {
-            files.reverse();
-          }
-          page = { ...page, files };
-        }
-
         const formatDate = (date) => {
           date = new Date(date);
           const addZero = (num) => `${num}`.padStart(2, '0');
@@ -886,7 +869,8 @@
             .content.cloneNode(true);
           fileWrapper.querySelector('i').className = `zmdi zmdi-${type}`;
           fileWrapper.querySelector('.name').innerText = name;
-          fileWrapper.querySelector('.time').innerText = formatDate(time);
+          fileWrapper.querySelector('.lastModifiedDateTime').innerText =
+            formatDate(time);
           [
             fileWrapper.querySelector('.size .value').innerText,
             fileWrapper.querySelector('.size .unit').innerText,
@@ -901,6 +885,7 @@
         };
 
         const children = [];
+        const parent = page.parent === window.api.root ? '' : page.parent;
         page.files.forEach((file) => {
           // Only load readme not all .md files for performance reason.
           if (file.name.toLowerCase() === 'readme.md') {
@@ -918,25 +903,24 @@
               switchRightDisplay('upload');
             };
           } else {
-            const parent = page.parent === window.api.root ? '' : page.parent;
-            children.push(
-              createFileWrapper.bind(
+            if (!file.toFragment) {
+              file.toFragment = createFileWrapper.bind(
                 null,
                 file.url ? 'file' : 'folder',
                 file.name,
-                file.time,
+                file.lastModifiedDateTime,
                 file.size,
                 parent + '/' + file.name,
                 file.url
-              )
-            );
+              );
+            }
+            children.push(file);
           }
         });
 
-        const listContainer = document.getElementById('file-list');
-        if (!pageRef.lazyRenderStat) {
-          pageRef.lazyRenderStat = { pageSize: 200 };
-          const stat = pageRef.lazyRenderStat;
+        if (!page.lazyRenderStat) {
+          page.lazyRenderStat = { pageSize: 200 };
+          const stat = page.lazyRenderStat;
           stat.observer = new IntersectionObserver((entries) => {
             if (Date.now() - stat.lastRenderedTs <= 500 /* 0.5s */) {
               return;
@@ -945,8 +929,12 @@
             entries.forEach((entry) => {
               if (entry.isIntersecting) {
                 stat.lastRenderedTs = Date.now();
-                if (pageRef.skipToken) {
-                  loadNextPage(pageRef);
+                // Do not load next page before all the data loaded being rendered.
+                if (
+                  stat.renderedItems >= stat.children.length &&
+                  page.skipToken
+                ) {
+                  loadNextPage(page);
                 } else {
                   renderItems();
                 }
@@ -955,34 +943,59 @@
             });
           });
         }
-        const stat = pageRef.lazyRenderStat;
-        if (!fromLoadNextPage) {
-          stat.renderedItems = 0;
-        }
+        const stat = page.lazyRenderStat;
         stat.children = children;
-        renderItems();
+        if (page.compare && !page.skipToken && !fromLoadNextPage) {
+          // All data loaded before this call, sort them all.
+          stat.children.sort(page.compare);
+        }
+        if (!fromLoadNextPage) {
+          // Rendering from start, sort all loaded data for business version even if there is data unloaded.
+          stat.renderedItems = 0;
+          if (
+            page.compare &&
+            page.skipToken &&
+            window.GLOBAL_CONFIG.IS_BUSINESS
+          ) {
+            stat.children.sort(page.compare);
+          }
+        }
+        renderItems(fromLoadNextPage);
 
-        function renderItems() {
+        // The arg is necessary, or it will always be the value captured at the first time.
+        function renderItems(fromLoadNextPage) {
           const startIndex = stat.renderedItems;
           stat.renderedItems += stat.pageSize;
           stat.renderedItems = Math.min(
             stat.renderedItems,
             stat.children.length
           );
+          const toBeRendered = stat.children.slice(
+            startIndex,
+            stat.renderedItems
+          );
+          if (
+            page.compare &&
+            window.GLOBAL_CONFIG.IS_BUSINESS &&
+            fromLoadNextPage
+          ) {
+            // Sort the new loaded slice for business version.
+            toBeRendered.sort(page.compare);
+          }
+
           const fragment = document.createDocumentFragment();
           fragment.append(
-            ...stat.children
-              .slice(startIndex, stat.renderedItems)
-              .map((create) => create())
+            ...toBeRendered.map(({ toFragment }) => toFragment())
           );
+          const listContainer = document.getElementById('file-list');
           if (startIndex === 0) {
             listContainer.replaceChildren(fragment);
           } else {
-            stat.observer.disconnect();
             listContainer.lastElementChild.style.backgroundColor = '#f1f1f1';
             listContainer.appendChild(fragment);
           }
-          if (pageRef.skipToken || stat.renderedItems < stat.children.length) {
+          stat.observer?.disconnect();
+          if (page.skipToken || stat.renderedItems < stat.children.length) {
             stat.observer.observe(listContainer.lastElementChild);
           }
         }
@@ -1670,9 +1683,9 @@
           document.querySelector('.file-upload-progress').dataset.hidden = '1';
           document.querySelector('.file-upload-wrapper').dataset.hidden = '0';
         } else if (display === 'list') {
-          const sortOrder =
-            window.fileCache.get(window.backForwardCache.current)?.orderby ||
-            'name asc';
+          const sortOrder = window.fileCache.get(
+            window.backForwardCache.current
+          )?.orderby;
           document
             .querySelectorAll('.list-header .row .file > div')
             .forEach((field) => {
@@ -1839,6 +1852,15 @@
         });
       }
 
+      /**
+       * 1. 不对左侧目录树排序，仅对右侧文件列表排序。
+       * 2. 若页面已加载完毕，前端对缓存拷贝整体排序。
+       * 3. 若页面未加载完毕：
+       *  A. 个人版完全依赖 API 序，前端不排序。
+       *  B. 商业版完全抛弃 API 序：
+       *    a. 从头渲染列表时（打开新文件夹或点击排序按钮），前端对已加载数据的拷贝整体排序，向下滑动时，保证已加载数据显示完再加载新页，确保新页数据渲染到已加载数据后面。
+       *    b. 加载出新页时，前端对新页拷贝单独排序，保证新页数据渲染到已加载数据之后。
+       */
       function sortList(clickedElem) {
         const loadedPages = window.fileCache.get(
           window.backForwardCache.current
@@ -1849,11 +1871,17 @@
           .className.includes('up')
           ? 'desc'
           : 'asc';
+        const reverseFactor = sortOrder === 'asc' ? 1 : -1;
         loadedPages.orderby = `${sortField} ${sortOrder}`;
-        const noSortRequest =
-          (window.GLOBAL_CONFIG.IS_BUSINESS && sortField !== 'name') ||
-          !loadedPages.skipToken;
-        if (noSortRequest) {
+        loadedPages.compare = (a, b) =>
+          reverseFactor *
+          a[sortField]
+            .toString()
+            .localeCompare(b[sortField].toString(), undefined, {
+              numeric: true,
+              sensitivity: 'base',
+            });
+        if (!loadedPages.skipToken || window.GLOBAL_CONFIG.IS_BUSINESS) {
           renderFileList(loadedPages);
           return;
         }
@@ -2137,14 +2165,8 @@
           method: 'POST',
           formatPayload: (path, passwd, kvs) => {
             const payload = { path, passwd, ...kvs };
-            const orderby = payload.orderby;
-            if (
-              window.GLOBAL_CONFIG.IS_BUSINESS &&
-              !orderby?.startsWith('name')
-            ) {
+            if (window.GLOBAL_CONFIG.IS_BUSINESS) {
               delete payload['orderby'];
-            } else if (orderby) {
-              payload.orderby = orderby.replace('time', 'lastModifiedDateTime');
             }
             return JSON.stringify(payload);
           },
@@ -2188,7 +2210,7 @@
         <div class="file">
           <i></i>
           <span class="name"></span>
-          <span class="time"></span>
+          <span class="lastModifiedDateTime"></span>
           <div class="size">
             <span class="value"></span>
             <span class="unit"></span>
@@ -2234,7 +2256,7 @@
                   <span>ITEMS</span>
                   <i class="zmdi zmdi-chevron-up"></i>
                 </div>
-                <div class="time" onclick="sortList(this)">
+                <div class="lastModifiedDateTime" onclick="sortList(this)">
                   <span>TIME</span>
                   <i class="zmdi zmdi-chevron-up"></i>
                 </div>
