@@ -1848,11 +1848,15 @@
           .className.includes('up')
           ? 'desc'
           : 'asc';
+        const noNeedSort =
+          window.GLOBAL_CONFIG.IS_BUSINESS &&
+          sortField !== 'name' &&
+          loadedPages.skipToken;
+        if (noNeedSort) {
+          return;
+        }
         loadedPages.orderby = `${sortField} ${sortOrder}`;
-        const noSortRequest =
-          (window.GLOBAL_CONFIG.IS_BUSINESS && sortField !== 'name') ||
-          !loadedPages.skipToken;
-        if (noSortRequest) {
+        if (!loadedPages.skipToken) {
           renderFileList(loadedPages);
           return;
         }
