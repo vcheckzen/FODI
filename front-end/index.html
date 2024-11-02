@@ -150,8 +150,10 @@
         font-weight: bold;
         column-gap: 0.3em;
         user-select: none;
-        -webkit-tap-highlight-color: transparent; /* Removes touch background */
-        -webkit-touch-callout: none; /* Removes the callout on touch */
+      }
+
+      .list-header .file > div:active {
+        color: rgb(90, 101, 133);
       }
 
       .list-header i {
@@ -206,10 +208,10 @@
         border: solid rgb(218, 215, 215) 1px;
       }
 
-      .password button:hover,
-      .upload-entry-btn:hover,
-      .file-upload-chooser button:hover,
-      .file-upload-label:hover {
+      .password button:active,
+      .upload-entry-btn:active,
+      .file-upload-chooser button:active,
+      .file-upload-label:active {
         color: white;
         background: rgb(218, 215, 215);
       }
@@ -312,25 +314,13 @@
         -ms-user-select: none;
       }
 
-      .btn:hover {
+      .btn:active {
         color: white;
         background: rgb(218, 215, 215);
       }
 
       .btn.download {
         margin-right: 1em;
-      }
-
-      #arrow-back,
-      #arrow-forward {
-        color: black;
-        cursor: pointer;
-      }
-
-      #arrow-back[disabled],
-      #arrow-forward[disabled] {
-        color: rgb(218, 215, 215);
-        cursor: initial;
       }
 
       .loading-wrapper {
@@ -365,6 +355,9 @@
       * {
         box-sizing: border-box;
         font-family: serif;
+        outline: none;
+        -webkit-tap-highlight-color: transparent; /* Removes touch background */
+        -webkit-touch-callout: none; /* Removes the callout on touch */
       }
 
       .markdown-body {
@@ -446,10 +439,24 @@
         cursor: default;
       }
 
-      #main-page:hover,
-      .nav-path:hover,
-      .tree-node:hover,
-      .row.file-wrapper:hover {
+      #arrow-back,
+      #arrow-forward {
+        color: black;
+        cursor: pointer;
+      }
+
+      #arrow-back[disabled],
+      #arrow-forward[disabled] {
+        color: rgb(218, 215, 215);
+        cursor: initial;
+      }
+
+      #arrow-back:not([disabled]):active,
+      #arrow-forward:not([disabled]):active,
+      #main-page:active,
+      .nav-path:active,
+      .tree-node:active,
+      .row.file-wrapper:active {
         color: rgb(90, 101, 133);
         cursor: pointer;
       }
@@ -570,12 +577,36 @@
         font-size: 2em;
         color: rgb(90 90 90 / 30%);
         cursor: pointer;
-        -webkit-tap-highlight-color: transparent; /* Removes touch background */
-        -webkit-touch-callout: none; /* Removes the callout on touch */
       }
 
-      #back-to-top:hover {
+      #back-to-top:active {
         color: rgb(0 0 0);
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .password button:hover,
+        .upload-entry-btn:hover,
+        .file-upload-chooser button:hover,
+        .file-upload-label:hover,
+        .btn:hover {
+          color: white;
+          background: rgb(218, 215, 215);
+        }
+
+        #arrow-back:not([disabled]):hover,
+        #arrow-forward:not([disabled]):hover,
+        #main-page:hover,
+        .nav-path:hover,
+        .tree-node:hover,
+        .list-header .file > div:hover,
+        .row.file-wrapper:hover {
+          color: rgb(90, 101, 133);
+          cursor: pointer;
+        }
+
+        #back-to-top:hover {
+          color: rgb(0 0 0);
+        }
       }
 
       @media screen and (max-width: 1000px) {
