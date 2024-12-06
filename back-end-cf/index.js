@@ -176,11 +176,23 @@ async function fetchAccessToken() {
 }
 
 async function authenticate(path, passwd) {
-  const pwFileContent = await downloadFile(
+  const pwFileRes = await downloadFile(
     `${path}/${PASSWD_FILENAME}`,
     null,
     true
-  ).then((resp) => (resp.status === 404 ? undefined : resp.text()));
+  );
+  let pwFileContent;
+  switch (pwFileRes.status) {
+    case 302:
+      pwFileContent = pwFileRes.text();
+      break;
+    case 401:
+      pwFileContent = await getContent(pwFileRes.url);
+      break;
+    default:
+      pwFileContent = undefined;
+      break;
+  }
 
   if (pwFileContent) {
     if (passwd !== pwFileContent) {
