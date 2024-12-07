@@ -180,7 +180,9 @@ async function authenticate(path, passwd) {
     `${path}/${PASSWD_FILENAME}`,
     null,
     true
-  ).then((resp) => (resp.status === 404 ? undefined : resp.text()));
+  )
+    .then((resp) => (resp.status === 401 ? cacheFetch(resp.url) : resp))
+    .then((resp) => (resp.status === 404 ? undefined : resp.text()));
 
   if (pwFileContent) {
     if (passwd !== pwFileContent) {
