@@ -343,6 +343,13 @@ async function handleWebdav(filePath, method, davHeader, davBody) {
 }
 
 function davPathSplit(filePath) {
+  if (!filePath) {
+    return {
+      parent: '',
+      fileName: '',
+      isDirectory: true
+    }
+  }
   const normalizedPath = filePath.endsWith('/') ? filePath.slice(0, -1) : filePath;
   const pathParts = normalizedPath.includes('://') 
     ? new URL(normalizedPath).pathname.split('/') 
@@ -394,7 +401,9 @@ async function handlePropfind(filePath, davAuthHeader) {
     await fetchFiles(fetchPath, null, null, null, davAuthHeader)
   );
 
-  const encodedPath = fetchPath.split('/').map(encodeURIComponent).join('/');
+  const encodedPath = fetchPath === '/' 
+    ? ''
+    : fetchPath.split('/').map(encodeURIComponent).join('/');
 
   if (!isDirectory || filesData.error) {
     return JSON.stringify({ davXml: '', davStatus: 404 });
