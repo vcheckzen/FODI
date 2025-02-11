@@ -456,7 +456,9 @@ async function handleDelete(filePath){
   });
 
   const davStatus = res.status;
-  const responseXML = createReturnXml(uriPath, davStatus, res);
+  const responseXML = davStatus === 204 
+    ? null
+    : createReturnXml(uriPath, davStatus, res);
 
   return {
     davXml: responseXML,
@@ -465,7 +467,7 @@ async function handleDelete(filePath){
 }
 
 async function handleMkcol(filePath){
-  const uriPath = davPathSplit(filePath).path;
+  const uriPath = davPathSplit(filePath).parent;
   const uri = `${OAUTH.apiUrl}:${encodeURIComponent(EXPOSE_PATH + uriPath)}:/children`;
   const accessToken = await fetchAccessToken();
 
