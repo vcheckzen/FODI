@@ -31,7 +31,13 @@ const OAUTH = {
   scope: apiHost + '/Files.ReadWrite.All offline_access',
 };
 
-async function handleRequest(request) {
+export default {
+  async fetch(request, env, ctx) {
+    return handleRequest(request, env);
+  }
+}
+
+async function handleRequest(request, env) {
   // Preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -40,6 +46,7 @@ async function handleRequest(request) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Max-Age': '86400',
+        'DAV': '1, 3',
       },
     });
   }
@@ -52,12 +59,34 @@ async function handleRequest(request) {
       : decodeURIComponent(requestUrl.pathname));
 
   // Download a file
-  if (file) {
+  if (request.method === 'GET' && file) {
     const fileName = file.split('/').pop();
     if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
       throw new Error('access denied');
     }
     return downloadFile(file, requestUrl.searchParams.get('format'));
+  }
+
+  // Webdav
+  const davMethods = ['COPY', 'DELETE', 'MKCOL', 'MOVE', 'PROPFIND', 'PROPPATCH', 'PUT'];
+  if (davMethods.includes(request.method)) {
+    const davHeader = request.headers;
+    const davAuth = await authenticate(null, null, davHeader.get('Authorization'), env.WEBDAV);
+    if (!davAuth) {
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: {
+          'WWW-Authenticate': 'Basic realm="WebDAV"',
+        },
+      });
+    }
+    const davRes = await handleWebdav(file, request.method, davHeader, request.body);
+    return new Response(davRes.davXml, {
+      status: davRes.davStatus,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+      },
+    });
   }
 
   const returnHeaders = {
@@ -73,10 +102,10 @@ async function handleRequest(request) {
     const allowUpload =
       (await downloadFile(`${requestPath}/.upload`)).status === 302;
 
-    await authenticate(requestPath, body.passwd);
+    const uploadAuth = await authenticate(requestPath, body.passwd);
 
     if (
-      !allowUpload ||
+      !allowUpload || !uploadAuth ||
       body.files.some(
         (file) =>
           file.remotePath.split('/').pop().toLowerCase() ===
@@ -93,12 +122,16 @@ async function handleRequest(request) {
   }
 
   // List a folder
-  const files = await fetchFiles(
+  const listAuth = await authenticate(requestPath, body.passwd);
+  const files = listAuth ? await fetchFiles(
     requestPath,
-    body.passwd,
     body.skipToken,
     body.orderby
-  );
+  ) : JSON.stringify({
+    requestPath,
+    files: [],
+    encrypted: true,
+  });
   return new Response(files, {
     headers: returnHeaders,
   });
@@ -175,7 +208,17 @@ async function fetchAccessToken() {
   return result.access_token;
 }
 
-async function authenticate(path, passwd) {
+async function authenticate(path, passwd, davAuthHeader, WEBDAV) {
+  if (davAuthHeader) {
+    const encoder = new TextEncoder();
+    const header = encoder.encode(davAuthHeader);
+    const isValid = Object.entries(JSON.parse(WEBDAV)).some(([key, value]) => {
+      const expected = encoder.encode(`Basic ${btoa(`${key}:${value}`)}`);
+      return header.byteLength === expected.byteLength && crypto.subtle.timingSafeEqual(header, expected);
+    });
+    return isValid;
+  }
+
   const pwFileContent = await downloadFile(
     `${path}/${PASSWD_FILENAME}`,
     null,
@@ -185,25 +228,15 @@ async function authenticate(path, passwd) {
     .then((resp) => (resp.status === 404 ? undefined : resp.text()));
 
   if (pwFileContent) {
-    if (passwd !== pwFileContent) {
-      throw new Error('wrong password');
-    }
+    return passwd === pwFileContent;
   } else if (path !== '/' && path.split('/').length <= PROTECTED_LAYERS) {
     return authenticate('/', passwd);
   }
+  return true;
 }
 
-async function fetchFiles(path, passwd, skipToken, orderby) {
+async function fetchFiles(path, skipToken, orderby) {
   const parent = path || '/';
-  try {
-    await authenticate(path, passwd);
-  } catch (_) {
-    return JSON.stringify({
-      parent,
-      files: [],
-      encrypted: true,
-    });
-  }
 
   if (path === '/') path = '';
   if (path || EXPOSE_PATH) {
@@ -295,4 +328,162 @@ async function uploadFiles(fileList) {
     }
   });
   return JSON.stringify({ files: fileList });
+}
+
+async function handleWebdav(filePath, method, davHeader, davBody) {
+  if (method === 'COPY' || method === 'MOVE') {
+    return await handleCopyMove(filePath, method, davHeader);
+  }
+  if (method === 'DELETE') {
+    return await handleDelete(filePath);
+  }
+    // if (method === 'PUT') {
+    //   return await handlePut(filePath, davHeader, davBody);
+    // }
+  return handlePropfind(filePath);
+}
+
+function davPathSplit(filePath) {
+  filePath = filePath.includes('://') 
+    ? new URL(filePath).pathname
+    : filePath;
+  if (!filePath) filePath = '/';
+  const isDirectory = filePath.endsWith('/');
+  const nomalizePath = isDirectory ? filePath.slice(0, -1) : filePath;
+  return {
+    parent: nomalizePath.split('/').slice(0, -1).join('/') || '/',
+    tail: nomalizePath.split('/').pop(),
+    isDirectory: isDirectory,
+    path: nomalizePath || '/'
+  };
+}
+
+function createReturnXml(uriPath, davStatus, res){
+  return`<?xml version="1.0" encoding="utf-8"?>
+  <d:multistatus xmlns:d="DAV:">
+    <d:response>
+      <d:href>${uriPath.split('/').map(encodeURIComponent).join('/')}</d:href>
+      <d:status>HTTP/1.1 ${davStatus} ${res.statusText}</d:status>
+    </d:response>
+  </d:multistatus>`;
+}
+
+function createPropfindXml(parent, files){
+  if (parent === '/') parent = '';
+  parent = parent.split('/').map(encodeURIComponent).join('/');
+  const xmlHeader = '<?xml version="1.0" encoding="utf-8"?>\n<multistatus xmlns="DAV:">\n';
+  const currentDirXml = 
+  `\n<response>
+    <href>${parent}/</href>
+    <propstat>
+      <prop>
+        <resourcetype><collection/></resourcetype>
+        <getcontentlength></getcontentlength>
+        <getlastmodified></getlastmodified>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>\n`;
+
+  let fullXml = xmlHeader + currentDirXml;
+  if (!files) {
+    fullXml += '</multistatus>';
+    return fullXml;
+  }
+
+  for (const file of files) {
+    const isDirectory = !file.url;
+    const modifiedDate = new Date(file.lastModifiedDateTime).toUTCString();
+    const fileXml = 
+    `\n<response>
+      <href>${parent}/${encodeURIComponent(file.name)}${isDirectory ? '/' : ''}</href>
+      <propstat>
+        <prop>
+          <resourcetype>${isDirectory ? '<collection/>' : ''}</resourcetype>
+          <getcontentlength>${file.size}</getcontentlength>
+          <getlastmodified>${modifiedDate}</getlastmodified>
+        </prop>
+        <status>HTTP/1.1 200 OK</status>
+      </propstat>
+    </response>\n`;
+    fullXml += fileXml;
+  }
+  fullXml += '</multistatus>';
+  return fullXml;
+}
+
+async function handleCopyMove(filePath, method, davHeader){
+  const uriPath = davPathSplit(filePath).path;
+  const uri = `${OAUTH.apiUrl}:${encodeURIComponent(EXPOSE_PATH + uriPath)}`;
+  const accessToken = await fetchAccessToken();
+  const newParent = davPathSplit(davHeader.get('Destination')).parent;
+
+  const res = await cacheFetch(uri, {
+    method: method === 'COPY' ? 'POST' : 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      parentReference: {
+        path: `/drive/root:${EXPOSE_PATH}${newParent}`
+      }
+    })
+  });
+
+  const davStatus = res.status === 200 ? 201 : res.status;
+  const responseXML = createReturnXml(uriPath, davStatus, res);
+
+  return {
+    davXml: responseXML,
+    davStatus: davStatus
+  };
+}
+
+async function handleDelete(filePath){
+  const uriPath = davPathSplit(filePath).path;
+  const uri = `${OAUTH.apiUrl}:${encodeURIComponent(EXPOSE_PATH + uriPath)}`;
+  const accessToken = await fetchAccessToken();
+
+  const res = await cacheFetch(uri, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    }
+  });
+
+  const davStatus = res.status === 204 ? 204 : res.status;
+  const responseXML = createReturnXml(uriPath, davStatus, res);
+
+  return {
+    davXml: responseXML,
+    davStatus: davStatus
+  };
+}
+
+async function handlePropfind(filePath) {
+  const {parent, tail, isDirectory, path } = davPathSplit(filePath);
+  const fetchPath = isDirectory ? path : parent;
+  const fetchData = JSON.parse(
+    await fetchFiles(fetchPath, null, null)
+  );
+
+  const notFound = fetchData.error || 
+    (!isDirectory && fetchData.files.every(file => file.name !== tail));
+  if (notFound) {
+    return {
+      davXml: createReturnXml(path, 404, fetchData),
+      davStatus: 404
+    }
+  }
+
+  const responseXML = createPropfindXml(fetchPath, fetchData.files);
+  return {
+    davXml: responseXML,
+    davStatus: 207
+  };
+}
+
+async function handlePut(filePath, davHeader, davBody){
+
 }
