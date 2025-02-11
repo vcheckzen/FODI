@@ -80,7 +80,7 @@ async function handleRequest(request, env) {
         },
       });
     }
-    const davRes = await handleWebdav(file, request.method, davHeader, request.body);
+    const davRes = await handleWebdav(file, request.method, request);
     return new Response(davRes.davXml, {
       status: davRes.davStatus,
       headers: {
@@ -330,16 +330,19 @@ async function uploadFiles(fileList) {
   return JSON.stringify({ files: fileList });
 }
 
-async function handleWebdav(filePath, method, davHeader, davBody) {
+async function handleWebdav(filePath, method, request) {
   if (method === 'COPY' || method === 'MOVE') {
-    return await handleCopyMove(filePath, method, davHeader);
+    return await handleCopyMove(filePath, method, request.headers.get('Destination'));
   }
   if (method === 'DELETE') {
     return await handleDelete(filePath);
   }
-    // if (method === 'PUT') {
-    //   return await handlePut(filePath, davHeader, davBody);
-    // }
+  if (method === 'MKCOL') {
+    return await handleMkcol(filePath);
+  }
+  if (method === 'PUT') {
+    return await handlePut(filePath, request);
+  }
   return handlePropfind(filePath);
 }
 
@@ -412,11 +415,11 @@ function createPropfindXml(parent, files){
   return fullXml;
 }
 
-async function handleCopyMove(filePath, method, davHeader){
+async function handleCopyMove(filePath, method, destination){
   const uriPath = davPathSplit(filePath).path;
-  const uri = `${OAUTH.apiUrl}:${encodeURIComponent(EXPOSE_PATH + uriPath)}`;
+  const uri = `${OAUTH.apiUrl}:${encodeURIComponent(EXPOSE_PATH + uriPath)}` + (method === 'COPY' ? ':/copy' : '');
   const accessToken = await fetchAccessToken();
-  const newParent = davPathSplit(davHeader.get('Destination')).parent;
+  const newParent = davPathSplit(destination).parent;
 
   const res = await cacheFetch(uri, {
     method: method === 'COPY' ? 'POST' : 'PATCH',
@@ -452,7 +455,34 @@ async function handleDelete(filePath){
     }
   });
 
-  const davStatus = res.status === 204 ? 204 : res.status;
+  const davStatus = res.status;
+  const responseXML = createReturnXml(uriPath, davStatus, res);
+
+  return {
+    davXml: responseXML,
+    davStatus: davStatus
+  };
+}
+
+async function handleMkcol(filePath){
+  const uriPath = davPathSplit(filePath).path;
+  const uri = `${OAUTH.apiUrl}:${encodeURIComponent(EXPOSE_PATH + uriPath)}:/children`;
+  const accessToken = await fetchAccessToken();
+
+  const res = await cacheFetch(uri, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: davPathSplit(filePath).tail,
+      folder: {},
+      "@microsoft.graph.conflictBehavior": "rename"
+    })
+  });
+
+  const davStatus = res.status;
   const responseXML = createReturnXml(uriPath, davStatus, res);
 
   return {
@@ -472,7 +502,7 @@ async function handlePropfind(filePath) {
     (!isDirectory && fetchData.files.every(file => file.name !== tail));
   if (notFound) {
     return {
-      davXml: createReturnXml(path, 404, fetchData),
+      davXml: createReturnXml(path, 404, 'Not Found'),
       davStatus: 404
     }
   }
@@ -484,6 +514,27 @@ async function handlePropfind(filePath) {
   };
 }
 
-async function handlePut(filePath, davHeader, davBody){
+async function handlePut(filePath, request){
+  let body = await request.arrayBuffer();
+  const uploadList = [{
+    remotePath: filePath,
+    fileSize: request.headers.get('Content-Length'),
+  }];
+  const uploadUrl = JSON.parse(await uploadFiles(uploadList)).files[0].uploadUrl;
+  const fileLength = parseInt(request.headers.get('Content-Length'));
 
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: body,
+    headers: {
+      'Content-Length': String(fileLength),
+      'Content-Range': `bytes 0-${fileLength-1}/${fileLength}`,
+    }
+  });
+  const davStatus = res.status;
+
+  return {
+    davXml: createReturnXml(filePath, davStatus, res),
+    davStatus: davStatus
+  };
 }
