@@ -255,7 +255,9 @@ async function fetchFiles(path, skipToken, orderby) {
     Authorization: 'Bearer ' + accessToken,
   });
   if (pageRes.error) {
-    throw new Error('request failed');
+    return JSON.stringify({
+      error: 'request failed'
+    });
   }
 
   skipToken = pageRes['@odata.nextLink']
@@ -361,12 +363,12 @@ function davPathSplit(filePath) {
   };
 }
 
-function createReturnXml(uriPath, davStatus, res){
+function createReturnXml(uriPath, davStatus, statusText){
   return`<?xml version="1.0" encoding="utf-8"?>
   <d:multistatus xmlns:d="DAV:">
     <d:response>
       <d:href>${uriPath.split('/').map(encodeURIComponent).join('/')}</d:href>
-      <d:status>HTTP/1.1 ${davStatus} ${res.statusText}</d:status>
+      <d:status>HTTP/1.1 ${davStatus} ${statusText}</d:status>
     </d:response>
   </d:multistatus>`;
 }
@@ -435,7 +437,7 @@ async function handleCopyMove(filePath, method, destination){
   });
 
   const davStatus = res.status === 200 ? 201 : res.status;
-  const responseXML = createReturnXml(uriPath, davStatus, res);
+  const responseXML = createReturnXml(uriPath, davStatus, res.statusText);
 
   return {
     davXml: responseXML,
@@ -458,7 +460,7 @@ async function handleDelete(filePath){
   const davStatus = res.status;
   const responseXML = davStatus === 204 
     ? null
-    : createReturnXml(uriPath, davStatus, res);
+    : createReturnXml(uriPath, davStatus, res.statusText);
 
   return {
     davXml: responseXML,
@@ -485,7 +487,7 @@ async function handleMkcol(filePath){
   });
 
   const davStatus = res.status;
-  const responseXML = createReturnXml(uriPath, davStatus, res);
+  const responseXML = createReturnXml(uriPath, davStatus, res.statusText);
 
   return {
     davXml: responseXML,
@@ -502,10 +504,11 @@ async function handlePropfind(filePath) {
 
   const notFound = fetchData.error || 
     (!isDirectory && fetchData.files.every(file => file.name !== tail));
-  if (notFound) {
+  const isFile = !notFound && !isDirectory;
+  if (notFound || isFile) {
     return {
-      davXml: createReturnXml(path, 404, 'Not Found'),
-      davStatus: 404
+      davXml: isFile ? createReturnXml(path, 200, 'OK') : createReturnXml(path, 404, 'Not Found'),
+      davStatus: isFile ? 207 : 404
     }
   }
 
@@ -536,7 +539,7 @@ async function handlePut(filePath, request){
   const davStatus = res.status;
 
   return {
-    davXml: createReturnXml(filePath, davStatus, res),
+    davXml: createReturnXml(filePath, davStatus, res.statusText),
     davStatus: davStatus
   };
 }
