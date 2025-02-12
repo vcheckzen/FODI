@@ -345,7 +345,7 @@ async function handleWebdav(filePath, method, request) {
   if (method === 'PUT') {
     return await handlePut(filePath, request);
   }
-  return handlePropfind(filePath);
+  return await handlePropfind(filePath);
 }
 
 function davPathSplit(filePath) {
@@ -519,8 +519,7 @@ async function handlePropfind(filePath) {
   };
 }
 
-async function handlePut(filePath, request){
-  let body = await request.arrayBuffer();
+async function handlePut(filePath, request) {
   const uploadList = [{
     remotePath: filePath,
     fileSize: request.headers.get('Content-Length'),
@@ -528,18 +527,51 @@ async function handlePut(filePath, request){
   const uploadUrl = JSON.parse(await uploadFiles(uploadList)).files[0].uploadUrl;
   const fileLength = parseInt(request.headers.get('Content-Length'));
 
-  const res = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: body,
-    headers: {
-      'Content-Length': String(fileLength),
-      'Content-Range': `bytes 0-${fileLength-1}/${fileLength}`,
+  const chunkSize = 1024 * 1024 * 10;
+  let start = 0, newStart;
+  const reader = request.body.getReader();
+
+  while (start < fileLength) {
+    const end = Math.min(start + chunkSize, fileLength);
+    const chunkLength = end - start;
+
+    let chunk = new Uint8Array(chunkLength);
+    let bytesRead = 0;
+
+    while (bytesRead < chunkLength) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunk.set(value.subarray(0, chunkLength - bytesRead), bytesRead);
+      bytesRead += value.length;
     }
-  });
-  const davStatus = res.status;
+
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: chunk,
+      headers: {
+        'Content-Range': `bytes ${start}-${end - 1}/${fileLength}`,
+      },
+    });
+
+    if (res.status !== 202 && res.status !== 201) {
+      const data = await cacheFetch(uploadUrl);
+      const jsonData = await data.json();
+      newStart = parseInt(jsonData.nextExpectedRanges[0].split('-')[0]);
+
+      if (!newStart) {
+        return {
+          davXml: createReturnXml(filePath, res.status, res.statusText),
+          davStatus: res.status,
+        };
+      }
+    }
+
+    start = newStart || end;
+    newStart = undefined;
+  }
 
   return {
-    davXml: createReturnXml(filePath, davStatus, res.statusText),
-    davStatus: davStatus
+    davXml: createReturnXml(filePath, 201, 'Created'),
+    davStatus: 201,
   };
 }
