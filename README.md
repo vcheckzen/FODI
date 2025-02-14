@@ -47,7 +47,7 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 ##### WEBDAV
 
-账号在 **变量和机密** 设置 **秘钥**，变量名为 `WEBDAV`, 形如
+- 账号密码设置: 在 **变量和机密** 设置 **秘钥**，变量名为 `WEBDAV`, 形如
 
 ```json
 {
@@ -55,6 +55,8 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
   "user2": "password"
 }
 ```
+
+- 文件上传限制: FreePlan 100MB, BusinessPlan 200MB, EnterprisePlan 500MB
 
 ##### 预览
 

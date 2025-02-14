@@ -46,7 +46,6 @@ async function handleRequest(request, env) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Max-Age': '86400',
-        'DAV': '1, 3',
       },
     });
   }
@@ -373,47 +372,47 @@ function createReturnXml(uriPath, davStatus, statusText){
   </d:multistatus>`;
 }
 
-function createPropfindXml(parent, files){
+function createPropfindXml(parent, files, isDirectory){
   if (parent === '/') parent = '';
   parent = parent.split('/').map(encodeURIComponent).join('/');
-  const xmlHeader = '<?xml version="1.0" encoding="utf-8"?>\n<multistatus xmlns="DAV:">\n';
+  const xmlHeader = '<?xml version="1.0" encoding="utf-8"?>\n<d:multistatus xmlns:d="DAV:">\n';
   const currentDirXml = 
-  `\n<response>
-    <href>${parent}/</href>
-    <propstat>
-      <prop>
-        <resourcetype><collection/></resourcetype>
-        <getcontentlength></getcontentlength>
-        <getlastmodified></getlastmodified>
-      </prop>
-      <status>HTTP/1.1 200 OK</status>
-    </propstat>
-  </response>\n`;
+  `\n<d:response>
+    <d:href>${parent}/</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:resourcetype><d:collection/></d:resourcetype>
+        <d:getcontentlength>0</d:getcontentlength>
+        <d:getlastmodified></d:getlastmodified>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>\n`;
 
-  let fullXml = xmlHeader + currentDirXml;
+  let fullXml = xmlHeader + (isDirectory ? currentDirXml : '');
   if (!files) {
-    fullXml += '</multistatus>';
+    fullXml += '</d:multistatus>';
     return fullXml;
   }
 
   for (const file of files) {
-    const isDirectory = !file.url;
+    const isDir = !file.url;
     const modifiedDate = new Date(file.lastModifiedDateTime).toUTCString();
     const fileXml = 
-    `\n<response>
-      <href>${parent}/${encodeURIComponent(file.name)}${isDirectory ? '/' : ''}</href>
-      <propstat>
-        <prop>
-          <resourcetype>${isDirectory ? '<collection/>' : ''}</resourcetype>
-          <getcontentlength>${file.size}</getcontentlength>
-          <getlastmodified>${modifiedDate}</getlastmodified>
-        </prop>
-        <status>HTTP/1.1 200 OK</status>
-      </propstat>
-    </response>\n`;
+    `\n<d:response>
+      <d:href>${parent}/${encodeURIComponent(file.name)}${isDir ? '/' : ''}</d:href>
+      <d:propstat>
+        <d:prop>
+          <d:resourcetype>${isDir ? '<d:collection/>' : ''}</d:resourcetype>
+          <d:getcontentlength>${file.size}</d:getcontentlength>
+          <d:getlastmodified>${modifiedDate}</d:getlastmodified>
+        </d:prop>
+        <d:status>HTTP/1.1 200 OK</d:status>
+      </d:propstat>
+    </d:response>\n`;
     fullXml += fileXml;
   }
-  fullXml += '</multistatus>';
+  fullXml += '</d:multistatus>';
   return fullXml;
 }
 
@@ -457,9 +456,9 @@ async function handleDelete(filePath){
     }
   });
 
-  const davStatus = res.status;
-  const responseXML = davStatus === 204 
-    ? null
+  const davStatus = res.status === 204 ? 207 : res.status;
+  const responseXML = davStatus === 204
+    ? createReturnXml(uriPath, 207, res.statusText)
     : createReturnXml(uriPath, davStatus, res.statusText);
 
   return {
@@ -504,15 +503,17 @@ async function handlePropfind(filePath) {
 
   const notFound = fetchData.error || 
     (!isDirectory && fetchData.files.every(file => file.name !== tail));
-  const isFile = !notFound && !isDirectory;
-  if (notFound || isFile) {
+  if (notFound) {
     return {
-      davXml: isFile ? createReturnXml(path, 200, 'OK') : createReturnXml(path, 404, 'Not Found'),
-      davStatus: isFile ? 207 : 404
+      davXml: createReturnXml(path, 404, 'Not Found'),
+      davStatus: 404
     }
   }
 
-  const responseXML = createPropfindXml(fetchPath, fetchData.files);
+  const sourceFiles = isDirectory 
+    ? fetchData.files 
+    : fetchData.files.filter(file => file.name === tail);
+  const responseXML = createPropfindXml(fetchPath, sourceFiles, isDirectory);
   return {
     davXml: responseXML,
     davStatus: 207
@@ -520,30 +521,29 @@ async function handlePropfind(filePath) {
 }
 
 async function handlePut(filePath, request) {
+  const fileLength = parseInt(request.headers.get('Content-Length'));
+  if (fileLength > 1024 * 1024 * 100) {
+    return {
+      davXml: createReturnXml(filePath, 413, 'Cloudflare Size Limit'),
+      davStatus: 413,
+    };
+  }
+
+  const body = await request.arrayBuffer();
   const uploadList = [{
     remotePath: filePath,
-    fileSize: request.headers.get('Content-Length'),
+    fileSize: fileLength,
   }];
   const uploadUrl = JSON.parse(await uploadFiles(uploadList)).files[0].uploadUrl;
-  const fileLength = parseInt(request.headers.get('Content-Length'));
 
   const chunkSize = 1024 * 1024 * 10;
-  let start = 0, newStart;
-  const reader = request.body.getReader();
+  let start = 0, newStart, retryCount = 0;
+  const maxRetries = 3;
+  const initialDelay = 4000;
 
   while (start < fileLength) {
     const end = Math.min(start + chunkSize, fileLength);
-    const chunkLength = end - start;
-
-    let chunk = new Uint8Array(chunkLength);
-    let bytesRead = 0;
-
-    while (bytesRead < chunkLength) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunk.set(value.subarray(0, chunkLength - bytesRead), bytesRead);
-      bytesRead += value.length;
-    }
+    const chunk = body.slice(start, end);
 
     const res = await fetch(uploadUrl, {
       method: 'PUT',
@@ -553,7 +553,7 @@ async function handlePut(filePath, request) {
       },
     });
 
-    if (res.status !== 202 && res.status !== 201) {
+    if (res.status >= 400) {
       const data = await cacheFetch(uploadUrl);
       const jsonData = await data.json();
       newStart = parseInt(jsonData.nextExpectedRanges[0].split('-')[0]);
@@ -564,8 +564,21 @@ async function handlePut(filePath, request) {
           davStatus: res.status,
         };
       }
+
+      if (retryCount < maxRetries) {
+        const delay = initialDelay * Math.pow(2, retryCount);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        retryCount++;
+        continue;
+      } else {
+        return {
+          davXml: createReturnXml(filePath, res.status, 'Max retries exceeded'),
+          davStatus: res.status,
+        };
+      }
     }
 
+    retryCount = 0;
     start = newStart || end;
     newStart = undefined;
   }
