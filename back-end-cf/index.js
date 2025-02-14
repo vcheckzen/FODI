@@ -522,13 +522,6 @@ async function handlePropfind(filePath) {
 
 async function handlePut(filePath, request) {
   const fileLength = parseInt(request.headers.get('Content-Length'));
-  if (fileLength > 1024 * 1024 * 100) {
-    return {
-      davXml: createReturnXml(filePath, 413, 'Cloudflare Size Limit'),
-      davStatus: 413,
-    };
-  }
-
   const body = await request.arrayBuffer();
   const uploadList = [{
     remotePath: filePath,
@@ -536,10 +529,10 @@ async function handlePut(filePath, request) {
   }];
   const uploadUrl = JSON.parse(await uploadFiles(uploadList)).files[0].uploadUrl;
 
-  const chunkSize = 1024 * 1024 * 10;
+  const chunkSize = 1024 * 1024 * 60;
   let start = 0, newStart, retryCount = 0;
   const maxRetries = 3;
-  const initialDelay = 4000;
+  const initialDelay = 2000;
 
   while (start < fileLength) {
     const end = Math.min(start + chunkSize, fileLength);
