@@ -127,7 +127,7 @@ async function handleRequest(request, env) {
     body.skipToken,
     body.orderby
   ) : JSON.stringify({
-    requestPath,
+    parent: requestPath,
     files: [],
     encrypted: true,
   });
@@ -481,7 +481,7 @@ async function handleMkcol(filePath){
     body: JSON.stringify({
       name: davPathSplit(filePath).tail,
       folder: {},
-      "@microsoft.graph.conflictBehavior": "rename"
+      "@microsoft.graph.conflictBehavior": "fail"
     })
   });
 
