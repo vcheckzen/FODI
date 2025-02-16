@@ -20,7 +20,11 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 更新
 
-#### 2024.09.15
+##### 2025.02.12
+
+- 实现部分 Webdav 功能（列表，上传，下载，复制，移动）
+
+##### 2024.09.15
 
 - 支持上传（在上传目录创建 `.upload` 文件）
 
@@ -41,4 +45,25 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 #### 说明
 
-- 如果需要使用本地 pdf 预览，请前往 [PDF.js](https://mozilla.github.io/pdf.js/) 下载文件并解压命名为 `pdfjs` ，注释掉 `viewer.mjs` 的 `fileOrigin !== viewerOrigin` 条件
+##### WEBDAV
+
+- 账号密码设置: 在 **变量和机密** 设置 **秘钥**，变量名为 `WEBDAV`, 形如
+
+```json
+{
+  "user1": "password",
+  "user2": "password"
+}
+```
+
+- 文件上传限制: FreePlan 100MB, BusinessPlan 200MB, EnterprisePlan 500MB
+
+##### 预览
+
+- pdf: 如果需要使用本地 pdf 预览，请前往 [PDF.js](https://mozilla.github.io/pdf.js/) 下载文件并解压命名为 `pdfjs` ，注释掉 `viewer.mjs` 的 `fileOrigin !== viewerOrigin` 条件，并修改 `//mozilla.github.io/pdf.js/web/viewer.html?file=`
+- markdown: 网页在 `Optional Markdown extensions` 可选择是否启用 github alert 与 katex 格式
+
+##### 下载
+
+- `return downloadFile(file, requestUrl.searchParams.get('format'), true);` 可加上第三个参数让 worker 代理
+- 访问 `https://example.com/a.html?format=` 可添加转换的目标格式，[支持转换格式](https://learn.microsoft.com/zh-cn/onedrive/developer/rest-api/api/driveitem_get_content_format?view=odsp-graph-online#format-options)
