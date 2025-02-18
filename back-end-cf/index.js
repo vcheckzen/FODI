@@ -41,11 +41,12 @@ async function handleRequest(request, env) {
   // Preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
-      status: 204,
+      status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Max-Age': '86400',
+        'DAV': '1, 3',
       },
     });
   }
@@ -456,9 +457,9 @@ async function handleDelete(filePath){
     }
   });
 
-  const davStatus = res.status === 204 ? 207 : res.status;
+  const davStatus = res.status;
   const responseXML = davStatus === 204
-    ? createReturnXml(uriPath, 207, res.statusText)
+    ? null
     : createReturnXml(uriPath, davStatus, res.statusText);
 
   return {
@@ -481,12 +482,14 @@ async function handleMkcol(filePath){
     body: JSON.stringify({
       name: davPathSplit(filePath).tail,
       folder: {},
-      "@microsoft.graph.conflictBehavior": "fail"
+      "@microsoft.graph.conflictBehavior": "replace"
     })
   });
 
-  const davStatus = res.status;
-  const responseXML = createReturnXml(uriPath, davStatus, res.statusText);
+  const davStatus = res.status === 200 ? 201 : res.status;
+  const responseXML = davStatus === 201
+    ? null
+    : createReturnXml(uriPath, davStatus, res.statusText);
 
   return {
     davXml: responseXML,
@@ -577,7 +580,7 @@ async function handlePut(filePath, request) {
   }
 
   return {
-    davXml: createReturnXml(filePath, 201, 'Created'),
+    davXml: null,
     davStatus: 201,
   };
 }
