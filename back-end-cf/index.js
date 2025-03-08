@@ -385,24 +385,17 @@ function createPropfindXml(parent, files, isDirectory) {
   ];
 
   if (isDirectory) {
-    xmlParts.push(
-      `\n<d:response>
-        <d:href>${encodedParent}/</d:href>
-        <d:propstat>
-          <d:prop>
-            <d:resourcetype><d:collection/></d:resourcetype>
-            <d:getcontenttype>httpd/unix-directory</d:getcontenttype>
-            <d:getcontentlength>0</d:getcontentlength>
-          </d:prop>
-          <d:status>HTTP/1.1 200 OK</d:status>
-        </d:propstat>
-      </d:response>\n`
-    );
+    const directory = {
+      name: '',
+      size: 0,
+      lastModifiedDateTime: 0
+    };
+    xmlParts.push(createResourceXml(encodedParent, directory, true));
   }
 
   if (files) {
     for (const file of files) {
-      xmlParts.push(createFileXml(encodedParent, file));
+      xmlParts.push(createResourceXml(encodedParent, file, !file.url));
     }
   }
 
@@ -410,16 +403,16 @@ function createPropfindXml(parent, files, isDirectory) {
   return xmlParts.join('');
 }
 
-function createFileXml(encodedParent, file) {
-  const isDir = !file.url;
-  const modifiedDate = new Date(file.lastModifiedDateTime).toUTCString();
+function createResourceXml(encodedParent, resource, isDirectory) {
+  const encodedName = resource.name ? `/${encodeURIComponent(resource.name)}` : '';
+  const modifiedDate = new Date(resource.lastModifiedDateTime).toUTCString();
   return `\n<d:response>
-    <d:href>${encodedParent}/${encodeURIComponent(file.name)}${isDir ? '/' : ''}</d:href>
+    <d:href>${encodedParent}${encodedName}${isDirectory ? '/' : ''}</d:href>
     <d:propstat>
       <d:prop>
-        ${isDir ? '<d:resourcetype><d:collection/></d:resourcetype>' : '<d:resourcetype/>'}
-        <d:getcontenttype>${isDir ? 'httpd/unix-directory' : 'application/octet-stream'}</d:getcontenttype>
-        <d:getcontentlength>${file.size}</d:getcontentlength>
+        ${isDirectory ? '<d:resourcetype><d:collection/></d:resourcetype>' : '<d:resourcetype/>'}
+        <d:getcontenttype>${isDirectory ? 'httpd/unix-directory' : 'application/octet-stream'}</d:getcontenttype>
+        <d:getcontentlength>${resource.size}</d:getcontentlength>
         <d:getlastmodified>${modifiedDate}</d:getlastmodified>
       </d:prop>
       <d:status>HTTP/1.1 200 OK</d:status>
@@ -428,18 +421,18 @@ function createFileXml(encodedParent, file) {
 }
 
 async function handleCopyMove(filePath, method, destination){
-  const uriPath = davPathSplit(filePath).path;
+  const { parent: parent, path: uriPath } = davPathSplit(filePath);
   const uri = `${OAUTH.apiUrl}:${encodeURIComponent(EXPOSE_PATH + uriPath)}` + (method === 'COPY' ? ':/copy' : '');
-  const newParent = davPathSplit(destination).parent;
+  const { parent: newParent, tail: newTail } = davPathSplit(destination);
 
   const res = await fetchWithAuth(uri, {
     method: method === 'COPY' ? 'POST' : 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      parentReference: {
-        path: `/drive/root:${EXPOSE_PATH}${newParent}`
-      }
-    })
+    body: JSON.stringify(
+      newParent === parent
+        ? { name: newTail }
+        : { parentReference: { path: `/drive/root:${EXPOSE_PATH}${newParent}` } }
+    )
   });
 
   const davStatus = res.status === 200 ? 201 : res.status;
