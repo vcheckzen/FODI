@@ -38,103 +38,42 @@ export default {
 }
 
 async function handleRequest(request, env) {
-  // Preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Max-Age': '86400',
-        'DAV': '1, 3',
-      },
-    });
-  }
-
   const requestUrl = new URL(request.url);
-  const file =
-    requestUrl.searchParams.get('file') ||
-    (requestUrl.pathname.split('/').filter(Boolean).length === 0
-      ? ''
-      : decodeURIComponent(requestUrl.pathname));
+  const file = requestUrl.searchParams.get('file') || decodeURIComponent(requestUrl.pathname);
+  const davMethods = ['COPY', 'DELETE', 'HEAD', 'MKCOL', 'MOVE', 'PROPFIND', 'PROPPATCH', 'PUT'];
 
-  // Download a file
-  if (request.method === 'GET' && file) {
-    const fileName = file.split('/').pop();
-    if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
-      throw new Error('access denied');
-    }
-    return downloadFile(file, requestUrl.searchParams.get('format'));
-  }
-
-  // Webdav
-  const davMethods = ['COPY', 'DELETE', 'MKCOL', 'MOVE', 'PROPFIND', 'PROPPATCH', 'PUT'];
-  if (davMethods.includes(request.method)) {
-    const davHeader = request.headers;
-    const davAuth = await authenticate(null, null, davHeader.get('Authorization'), env.WEBDAV);
-    if (!davAuth) {
-      return new Response('Unauthorized', {
-        status: 401,
+  const handlers = {
+    // Preflight
+    OPTIONS: () => {
+      return new Response(null, {
+        status: 200,
         headers: {
-          'WWW-Authenticate': 'Basic realm="WebDAV"',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+          'DAV': '1, 3',
         },
       });
-    }
-    const davRes = await handleWebdav(file, request);
-    return new Response(davRes.davXml, {
-      status: davRes.davStatus,
-      headers: davRes.davXml ? {
-        'Content-Type': 'application/xml; charset=utf-8',
-      } : {},
-    });
-  }
-
-  const returnHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'max-age=3600',
-    'Content-Type': 'application/json; charset=utf-8',
+    },
+    // Download a file
+    GET: () => {
+      const fileName = file.split('/').pop();
+      if (!fileName) return new Response('Bad Request', { status: 400 });
+      if (fileName.toLowerCase() === PASSWD_FILENAME.toLowerCase()) {
+        return new Response('Access Denied', { status: 403 });
+      }
+      return downloadFile(file, requestUrl.searchParams.get('format'));
+    },
+    // Upload and List files
+    POST: () => handlePostRequest(request, requestUrl),
   };
-  const body = await request.json();
-  const requestPath = decodeURIComponent(body.path || '');
 
-  // Upload files
-  if (requestUrl.searchParams.has('upload')) {
-    const allowUpload =
-      (await downloadFile(`${requestPath}/.upload`)).status === 302;
+  const handler = handlers[request.method] ||
+    ( davMethods.includes(request.method)
+     ? () => handleWebdav(file, request, env.WEBDAV)
+     : () => new Response('Method Not Allowed', { status: 405 }) );
 
-    const uploadAuth = await authenticate(requestPath, body.passwd);
-
-    if (
-      !allowUpload || !uploadAuth ||
-      body.files.some(
-        (file) =>
-          file.remotePath.split('/').pop().toLowerCase() ===
-          PASSWD_FILENAME.toLowerCase()
-      )
-    ) {
-      throw new Error('access denied');
-    }
-
-    const uploadLinks = JSON.stringify(await uploadFiles(body.files));
-    return new Response(uploadLinks, {
-      headers: returnHeaders,
-    });
-  }
-
-  // List a folder
-  const listAuth = await authenticate(requestPath, body.passwd);
-  const files = listAuth ? JSON.stringify(await fetchFiles(
-    requestPath,
-    body.skipToken,
-    body.orderby
-  )) : JSON.stringify({
-    parent: requestPath,
-    files: [],
-    encrypted: true,
-  });
-  return new Response(files, {
-    headers: returnHeaders,
-  });
+  return handler();
 }
 
 async function gatherResponse(response) {
@@ -241,9 +180,58 @@ async function authenticate(path, passwd, davAuthHeader, WEBDAV) {
   if (pwFileContent) {
     return passwd === pwFileContent;
   } else if (path !== '/' && path.split('/').length <= PROTECTED_LAYERS) {
-    return authenticate('/', passwd);
+    return await authenticate('/', passwd);
   }
   return true;
+}
+
+async function handlePostRequest(request, requestUrl) {
+  const returnHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'max-age=3600',
+    'Content-Type': 'application/json; charset=utf-8',
+  };
+  const body = await request.json();
+  const requestPath = decodeURIComponent(body.path || '');
+
+  // Upload files
+  if (requestUrl.searchParams.has('upload')) {
+    const allowUpload =
+      (await downloadFile(`${requestPath}/.upload`)).status === 302;
+
+    const uploadAuth = await authenticate(requestPath, body.passwd);
+
+    if (
+      !allowUpload || !uploadAuth ||
+      body.files.some(
+        (file) =>
+          file.remotePath.split('/').pop().toLowerCase() ===
+          PASSWD_FILENAME.toLowerCase()
+      )
+    ) {
+      throw new Error('access denied');
+    }
+
+    const uploadLinks = JSON.stringify(await uploadFiles(body.files));
+    return new Response(uploadLinks, {
+      headers: returnHeaders,
+    });
+  }
+
+  // List a folder
+  const listAuth = await authenticate(requestPath, body.passwd);
+  const files = listAuth ? JSON.stringify(await fetchFiles(
+    requestPath,
+    body.skipToken,
+    body.orderby
+  )) : JSON.stringify({
+    parent: requestPath,
+    files: [],
+    encrypted: true,
+  });
+  return new Response(files, {
+    headers: returnHeaders,
+  });
 }
 
 async function fetchFiles(path, skipToken, orderby) {
@@ -333,23 +321,35 @@ async function uploadFiles(fileList) {
   return { files: fileList };
 }
 
-async function handleWebdav(filePath, request) {
-  switch (request.method) {
-    case 'COPY':
-      return handleCopyMove(filePath, request.method, request.headers.get('Destination'));
-    case 'MOVE':
-      return handleCopyMove(filePath, request.method, request.headers.get('Destination'));
-    case 'DELETE':
-      return handleDelete(filePath);
-    case 'MKCOL':
-      return handleMkcol(filePath);
-    case 'PUT':
-      return handlePut(filePath, request);
-    case 'PROPFIND':
-      return handlePropfind(filePath);
-    default:
-      return { davXml: null, davStatus: 405 };
+async function handleWebdav(filePath, request, WEBDAV) {
+  const davAuth = await authenticate(null, null, request.headers.get('Authorization'), WEBDAV);
+  if (!davAuth) {
+    return new Response('Unauthorized', {
+      status: 401,
+      headers: {
+        'WWW-Authenticate': 'Basic realm="WebDAV"',
+      },
+    });
   }
+
+  const handlers = {
+    COPY: () => handleCopyMove(filePath, 'COPY', request.headers.get('Destination')),
+    MOVE: () => handleCopyMove(filePath, 'MOVE', request.headers.get('Destination')),
+    DELETE: () => handleDelete(filePath),
+    HEAD: () => handleHead(filePath),
+    MKCOL: () => handleMkcol(filePath),
+    PUT: () => handlePut(filePath, request),
+    PROPFIND: () => handlePropfind(filePath),
+  };
+  const handler = handlers[request.method] || (() => ({ davXml: null, davStatus: 405 }));
+  const davRes = await handler();
+
+  return new Response(davRes.davXml, {
+    status: davRes.davStatus,
+    headers: davRes.davXml
+      ? { 'Content-Type': 'application/xml; charset=utf-8' }
+      : {}
+  });
 }
 
 function davPathSplit(filePath) {
@@ -454,6 +454,25 @@ async function handleDelete(filePath){
     : createReturnXml(uriPath, davStatus, res.statusText);
 
   return { davXml: responseXML, davStatus: davStatus };
+}
+
+async function handleHead(filePath) {
+  const uri = [
+    OAUTH.apiUrl,
+    `:${encodeURIComponent(EXPOSE_PATH + davPathSplit(filePath).path)}`,
+    '?select=size,file,lastModifiedDateTime'
+  ].join('');
+  const res = await fetchWithAuth(uri);
+  const data = await res.json();
+
+  return new Response(null, {
+    status: res.status,
+    headers: res.ok ? {
+      'Content-Length': data.size,
+      'Content-Type': data?.file?.mimeType,
+      'date': new Date(data.lastModifiedDateTime).toUTCString()
+    } : {}
+  });
 }
 
 async function handleMkcol(filePath){
