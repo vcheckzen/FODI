@@ -30,7 +30,7 @@ async function cacheRequest(request, env, ctx) {
     const keyGenerators = {
       GET: () => request.url.toLowerCase(),
       POST: async () => await request.clone().text(),
-      PROPFIND: () => request.headers.get('Authorization')
+      PROPFIND: () => request.url.toLowerCase() + request.headers.get('Authorization')
     };
     const cacheKeySource = await keyGenerators[request.method]();
     const hash = await sha256(cacheKeySource);
