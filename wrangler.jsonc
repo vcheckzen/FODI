@@ -1,0 +1,55 @@
+{
+  "name": "fodi",
+  "main": "back-end-cf/index.js",
+  "compatibility_date": "2025-04-10",
+  "preview_urls": false,
+  "kv_namespaces": [
+    {
+      "binding": "FODI_CACHE",
+      "id": "" // <~ KV ID
+    }
+  ],
+  "vars": {
+    // If OneDrive is not operated by Microsoft, modify the settings manually | 世纪互联下面全部要改
+    "OAUTH": {
+      "refreshToken": "", // <~ https://alist.nn.ci/tool/onedrive/request.html
+      "clientId": "0a2991a3-1674-4334-8561-671cc7349960",
+      "clientSecret": "uw67Q~TCMqdJyH35hlcHHclv~mhNOGx.jfPFm",
+      "redirectUri": "https://alist.nn.ci/tool/onedrive/callback",
+      "loginHost": "https://login.microsoftonline.com",
+      "oauthUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/",
+      "apiHost": "https://graph.microsoft.com",
+      "apiUrl": "https://graph.microsoft.com/v1.0/me/drive/root",
+      "scope": "https://graph.microsoft.com/Files.ReadWrite.All offline_access"
+    },
+    // webdav login information, format "User:Password" Don't set a simple password | WEBDAV 格式 “用户:密码”，密码别设置太简单
+    // Although it can be configured here, it is recommended to add secrets at Variables and Secrets
+    // 虽然这里可以配置，但是建议在 Variables and Secrets 处添加 secrets
+    // "WEBDAV": "user:pw",
+    "PROTECTED": {
+      // Path to show, leave blank if show all files, otherwise fill in the format '/media/music'
+      // 展示路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
+      "EXPOSE_PATH": "",
+      // Encrypt the directory containing the filename, subdirectories are not encrypted, password is the content of the file
+      // 目录下有该文件则加密目录，子目录不加密，密码是文件内容
+      "PASSWD_FILENAME": ".password",
+      // The number of directory protection layers for the EXPOSE_PATH, to prevent guessing directories;
+      // defaulting to -1 means disabled (for example: if you want to protect something like "/Applications", 
+      // you should fill in "2", which protects both the EXPOSE_PATH and its first-level subdirectories).
+      // When enabled, passwords need to be filled into the PASSWORD_FILENAME file under the EXPOSER_PATH directory.
+      // EXPOSE_PATH 目录密码防护层数，防止猜测目录，默认 -1 为关闭，
+      // 如 '/Applications' 需保护则填写为 2（保护 EXPOSE_PATH 及其一级子目录），
+      // 开启需在 EXPORSE_PATH 目录的 PASSWORD_FILENAME 文件中填写密码
+      "PROTECTED_LAYERS": -1
+    },
+    // Cache time for successful results of the request method, Unit seconds | 相应请求方法的成功结果缓存时间，单位秒
+    "CACHE_TTLMAP": {
+      "GET": 0,
+      "POST": 0,
+      "PROPFIND": 0
+    }
+  },
+  "triggers": {
+    "crons": ["0 0 1 * *"]
+  }
+}

@@ -740,50 +740,34 @@
       }
     </style>
     <script>
-      function createCORSRequest(method, url, timeout) {
-        let xhr = new XMLHttpRequest();
-        if ('withCredentials' in xhr) {
-          xhr.open(method, url, true);
-          xhr.timeout = timeout;
-        } else {
-          xhr = null;
-        }
-        return xhr;
-      }
-
-      function sendRequest(method, url, data, headers, callback, error, times) {
-        const xhr = createCORSRequest(method, url, 2500);
-        xhr.onreadystatechange = () => {
-          if (xhr.readyState == 4 && xhr.status == 200) {
-            callback(xhr.responseText);
-          }
+      async function sendRequest(method, url, data, headers = {}, callback, error, times = 0) {
+        const options = {
+          method,
+          headers,
+          body: data,
         };
-        xhr.timeout = xhr.onerror = () => {
-          if (!times) {
-            times = 0;
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000 /* 10s */);
+          options.signal = controller.signal;
+          
+          const response = await fetch(url, options);
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const responseData = await response.text();
+            callback(responseData);
+          } else {
+            throw new Error(`HTTP error! Status: ${response.status}`);
           }
-          console.log({
-            url: url,
-            data: data,
-            times: times,
-          });
+        } catch (err) {
+          console.log({ url, data, times });
           if (times < 1) {
             sendRequest(method, url, data, headers, callback, error, times + 1);
           } else if (typeof error === 'function') {
             error();
           }
-        };
-        if (headers) {
-          for (const key in headers) {
-            if (headers.hasOwnProperty(key)) {
-              xhr.setRequestHeader(key, headers[key]);
-            }
-          }
-        }
-        if (data) {
-          xhr.send(data);
-        } else {
-          xhr.send();
         }
       }
 
@@ -2195,37 +2179,23 @@
           }
           progressText.innerHTML += ' Upload completed!';
 
-          function uploadChunk(start) {
-            const xhr = new XMLHttpRequest();
+          async function uploadChunk(start) {
             const end = Math.min(start + chunkSize, fileSize);
             const chunk = file.slice(start, end);
 
-            xhr.open('PUT', uploadUrl);
-            xhr.setRequestHeader(
-              'Content-Range',
-              `bytes ${start}-${end - 1}/${fileSize}`
-            );
-
-            return new Promise((resolve, reject) => {
-              xhr.onloadend = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                  uploadedBytes = end;
-                  updateTotalProgress();
-                  resolve(xhr.status);
-                } else {
-                  reject(xhr.status);
-                }
-              };
-
-              xhr.upload.onprogress = (event) => {
-                if (event.lengthComputable) {
-                  uploadedBytes = start + event.loaded;
-                  updateTotalProgress();
-                }
-              };
-
-              xhr.send(chunk);
+            const response = await fetch(uploadUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Range': `bytes ${start}-${end - 1}/${fileSize}`
+              },
+              body: chunk,
             });
+
+            if (response.ok) {
+              uploadedBytes = end;
+              updateTotalProgress(); 
+            }
+            return response.status;
           }
 
           async function handleUploadError(error) {
