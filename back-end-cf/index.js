@@ -225,6 +225,7 @@ async function handlePostRequest(request, requestUrl) {
     encrypted: true,
   });
   return new Response(files, {
+    status: files?.error ? files.status : 200,
     headers: returnHeaders,
   });
 }
@@ -246,7 +247,10 @@ async function fetchFiles(path, skipToken, orderby) {
 
   const pageRes = await (await fetchWithAuth(uri)).json();
   if (pageRes.error) {
-    return { error: 'request failed' };
+    return {
+      status: pageRes.status,
+      error: 'request failed'
+    };
   }
 
   skipToken = pageRes['@odata.nextLink']
