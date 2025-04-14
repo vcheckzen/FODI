@@ -215,16 +215,16 @@ async function handlePostRequest(request, requestUrl) {
 
   // List a folder
   const listAuth = await authenticate(requestPath, body.passwd);
-  const files = listAuth ? JSON.stringify(await fetchFiles(
+  const files = listAuth ? await fetchFiles(
     requestPath,
     body.skipToken,
     body.orderby
-  )) : JSON.stringify({
+  ) : {
     parent: requestPath,
     files: [],
     encrypted: true,
-  });
-  return new Response(files, {
+  };
+  return new Response(JSON.stringify(files), {
     status: files?.error ? files.status : 200,
     headers: returnHeaders,
   });
