@@ -45,8 +45,7 @@
     // Cache time for successful results of the request method, Unit seconds | 相应请求方法的成功结果缓存时间，单位秒
     "CACHE_TTLMAP": {
       "GET": 0,
-      "POST": 0,
-      "PROPFIND": 0
+      "POST": 0
     }
   },
   "triggers": {

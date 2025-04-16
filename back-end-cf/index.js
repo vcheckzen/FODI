@@ -29,8 +29,7 @@ async function cacheRequest(request, env, ctx) {
   if (CACHE_TTLMAP[request.method]) {
     const keyGenerators = {
       GET: () => request.url.toLowerCase(),
-      POST: async () => await request.clone().text(),
-      PROPFIND: () => request.url.toLowerCase() + request.headers.get('Authorization')
+      POST: async () => await request.clone().text()
     };
     const cacheKeySource = await keyGenerators[request.method]();
     const hash = await sha256(cacheKeySource);
