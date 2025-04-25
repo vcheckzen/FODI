@@ -6,13 +6,17 @@
   "kv_namespaces": [
     {
       "binding": "FODI_CACHE",
-      "id": "" // <~ KV ID
+      "id": "" // <~ https://dash.cloudflare.com/?to=/:account/workers/kv/namespaces
     }
   ],
+  // !!! Notice|注意 !!!
+  // https://dash.cloudflare.com/?to=/:account/workers/services/view/fodi/production/settings#variables
+  // The following variables need to be configured manually, type is secret | 以下变量需要手动配置，类型为秘钥
+  // 1. name: REFRESHTOEKN | value: get from https://alist.nn.ci/tool/onedrive/request.html
+  // 2. name: WEBDAV | value: yourUsername:yourPassword
   "vars": {
     // If OneDrive is not operated by Microsoft, modify the settings manually | 世纪互联下面全部要改
     "OAUTH": {
-      "refreshToken": "", // <~ https://alist.nn.ci/tool/onedrive/request.html
       "clientId": "0a2991a3-1674-4334-8561-671cc7349960",
       "clientSecret": "uw67Q~TCMqdJyH35hlcHHclv~mhNOGx.jfPFm",
       "redirectUri": "https://alist.nn.ci/tool/onedrive/callback",
@@ -22,10 +26,6 @@
       "apiUrl": "https://graph.microsoft.com/v1.0/me/drive/root",
       "scope": "https://graph.microsoft.com/Files.ReadWrite.All offline_access"
     },
-    // webdav login information, format "User:Password" Don't set a simple password | WEBDAV 格式 “用户:密码”，密码别设置太简单
-    // Although it can be configured here, it is recommended to add secrets at Variables and Secrets
-    // 虽然这里可以配置，但是建议在 Variables and Secrets 处添加 secrets
-    // "WEBDAV": "user:pw",
     "PROTECTED": {
       // Path to show, leave blank if show all files, otherwise fill in the format '/media/music'
       // 展示路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
@@ -34,7 +34,7 @@
       // 目录下有该文件则加密目录，子目录不加密，密码是文件内容
       "PASSWD_FILENAME": ".password",
       // The number of directory protection layers for the EXPOSE_PATH, to prevent guessing directories;
-      // defaulting to -1 means disabled (for example: if you want to protect something like "/Applications", 
+      // defaulting to -1 means disabled (for example: if you want to protect something like "/Applications",
       // you should fill in "2", which protects both the EXPOSE_PATH and its first-level subdirectories).
       // When enabled, passwords need to be filled into the PASSWORD_FILENAME file under the EXPOSER_PATH directory.
       // EXPOSE_PATH 目录密码防护层数，防止猜测目录，默认 -1 为关闭，

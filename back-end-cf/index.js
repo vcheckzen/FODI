@@ -125,7 +125,7 @@ async function postFormData(url, data) {
 }
 
 async function fetchAccessToken() {
-  let refreshToken = OAUTH['refreshToken'];
+  let refreshToken = globalEnv.REFRESHTOEKN;
   if (typeof globalEnv.FODI_CACHE !== 'undefined') {
     const cache = JSON.parse(await globalEnv.FODI_CACHE.get('token_data'));
     if (cache?.refresh_token) {
@@ -336,9 +336,8 @@ async function handleWebdav(filePath, request, davCredentials) {
     });
   }
 
-  if (request.method === 'HEAD') return handleHead(filePath);
-
   const handlers = {
+    HEAD: () => handleHead(filePath),
     COPY: () => handleCopyMove(filePath, 'COPY', request.headers.get('Destination')),
     MOVE: () => handleCopyMove(filePath, 'MOVE', request.headers.get('Destination')),
     DELETE: () => handleDelete(filePath),
@@ -349,11 +348,14 @@ async function handleWebdav(filePath, request, davCredentials) {
   const handler = handlers[request.method] || (() => ({ davXml: null, davStatus: 405 }));
   const davRes = await handler();
 
+  const davHeaders = {
+    ...(davRes.davXml ? { 'Content-Type': 'application/xml; charset=utf-8' } : {}),
+    ...(davRes.davHeaders || {})
+  };
+
   return new Response(davRes.davXml, {
     status: davRes.davStatus,
-    headers: davRes.davXml
-      ? { 'Content-Type': 'application/xml; charset=utf-8' }
-      : {}
+    headers: davHeaders
   });
 }
 
@@ -470,14 +472,15 @@ async function handleHead(filePath) {
   const res = await fetchWithAuth(uri);
   const data = await res.json();
 
-  return new Response(null, {
-    status: data?.file ? 200 : 403,
-    headers: data?.file ? {
+  return {
+    davXml: null,
+    davStatus: data?.file ? 200 : 403,
+    davHeaders: data?.file ? {
       'Content-Length': data.size,
       'Content-Type': data.file.mimeType,
       'Last-Modified': new Date(data.lastModifiedDateTime).toUTCString()
     } : {}
-  });
+  };
 }
 
 async function handleMkcol(filePath){
@@ -531,10 +534,7 @@ async function handlePropfind(filePath) {
 async function handlePut(filePath, request) {
   const fileLength = parseInt(request.headers.get('Content-Length'));
   const body = await request.arrayBuffer();
-  const uploadList = [{
-    remotePath: filePath,
-    fileSize: fileLength,
-  }];
+  const uploadList = [{ remotePath: filePath, fileSize: fileLength }];
   const uploadUrl = (await uploadFiles(uploadList)).files[0].uploadUrl;
 
   const chunkSize = 1024 * 1024 * 60;
