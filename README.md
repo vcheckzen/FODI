@@ -8,9 +8,9 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 ## 安装
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/vcheckzen/FODI)
-
-Edit `wrangler.jsonc` | 编辑 `wrangler.jsonc`
+1. Fork repository | Fork 代码仓库
+2. Edit `wrangler.jsonc` | 编辑 `wrangler.jsonc`
+3. [Import a repository | 导入存储库](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create)
 
 ## 功能
 
