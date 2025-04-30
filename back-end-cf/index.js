@@ -50,7 +50,8 @@ async function cacheRequest(request, env, ctx) {
 
       if (!response.headers.get('Last-Modified')) {
         response = new Response(response.body, {
-          ...response,
+          status: response.status,
+          statusText: response.statusText,
           headers: {
             ...Object.fromEntries(response.headers),
             'Last-Modified': new Date().toUTCString()
