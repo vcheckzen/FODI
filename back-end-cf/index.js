@@ -41,12 +41,24 @@ async function cacheRequest(request, env, ctx) {
 
     const cache = caches.default;
     let response = await cache.match(cacheKey);
-    const cacheModifiedTime = new Date(response?.headers.get('Date')).getTime() || 0;
+    const cacheModifiedTime = new Date(response?.headers.get('Last-Modified')).getTime() || 0;
     const isExpired = cacheModifiedTime === 0 ||
       ((Date.now() - cacheModifiedTime) / 1000) > CACHE_TTLMAP[request.method];
 
     if (isExpired) {
       response = await handleRequest(request, env);
+
+      if (!response.headers.get('Last-Modified')) {
+        response = new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: {
+            ...Object.fromEntries(response.headers),
+            'Last-Modified': new Date().toUTCString()
+          }
+        });
+      }
+
       if ([200, 207, 302].includes(response.status)) {
         ctx.waitUntil(cache.put(cacheKey, response.clone()));
       }
@@ -174,7 +186,7 @@ async function authenticate(path, passwd, davAuthHeader, davCredentials) {
   if (pwFileContent) {
     return passwd === pwFileContent;
   } else if (path !== '/' && path.split('/').length <= PROTECTED.PROTECTED_LAYERS) {
-    return await authenticate('/', passwd);
+    return authenticate('/', passwd);
   }
   return true;
 }

@@ -740,16 +740,16 @@
       }
     </style>
     <script>
-      async function sendRequest(method, url, data, headers = {}, callback, error, times = 0) {
+      async function sendRequest(method, url, data, headers, callback, error, times = 0) {
         const options = {
           method,
-          headers,
+          headers: headers ? headers : {},
           body: data,
         };
 
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000 /* 10s */);
+          const timeoutId = setTimeout(() => controller.abort(), 60000 /* 60s */);
           options.signal = controller.signal;
           
           const response = await fetch(url, options);
