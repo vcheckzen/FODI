@@ -10,16 +10,29 @@ export const generateCode = async (
   passwordFilename,
   protectedLayers
 ) => {
-  const constants = `const EXPOSE_PATH = "${exposePath}";
-const ONEDRIVE_REFRESHTOKEN = "${refreshToken}";
-const PASSWD_FILENAME = "${passwordFilename}";
-const PROTECTED_LAYERS = ${protectedLayers};
-const clientId = "${clientId}";
-const clientSecret = "${clientSecret}";
-const loginHost = "${loginHost}";
-const apiHost = "${apiHost}";
-const redirectUri = "${replyURL}"
-
+  const constants = 
+`const localEnv = {
+  PROTECTED: {
+    EXPOSE_PATH: "${exposePath}",
+    PASSWD_FILENAME: "${passwordFilename}",
+    PROTECTED_LAYERS: ${protectedLayers},
+  },
+  OAUTH: {
+    clientId: "${clientId}",
+    clientSecret: "${clientSecret}",
+    redirectUri: "${replyURL}",
+    refreshToken: "${refreshToken}",
+    loginHost: "${loginHost}",
+    oauthUrl: "${loginHost}/common/oauth2/v2.0/",
+    apiHost: "${apiHost}",
+    apiUrl: "${apiHost}/v1.0/me/drive/root",
+    scope: "${apiHost}/Files.ReadWrite.All offline_access",
+  },
+  CACHE_TTLMAP: {
+    POST: 0,
+    GET: 0,
+  },
+};
 `;
 
   const template = await fetch(
@@ -30,13 +43,12 @@ const redirectUri = "${replyURL}"
 
   const lines = template.split('\n');
   const targetIndex = lines.findIndex((line) =>
-    line.trim().startsWith("addEventListener('scheduled'")
+    line.trim().startsWith("const localEnv")
   );
 
   if (targetIndex !== -1) {
-    const remainingLines = lines.slice(targetIndex); // Keep only the lines starting from the target
-    const logic = remainingLines.join('\n');
-    return constants + logic;
+    lines[targetIndex] = constants;
+    return lines.join('\n');
   } else {
     throw new Error('无法生成代码，请重试或联系管理员');
   }
