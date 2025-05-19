@@ -67,12 +67,7 @@ export async function fetchUploadLinks(fileList: UploadPayload[]) {
   return { files: fileList };
 }
 
-export async function downloadFile(
-  filePath: string,
-  stream?: boolean,
-  format?: string | null,
-  rangeHeader?: string | null,
-) {
+export async function downloadFile(filePath: string, stream?: boolean, format?: string | null) {
   const supportedFormats = ['glb', 'html', 'jpg', 'pdf'];
   if (format && !supportedFormats.includes(format.toLowerCase())) {
     throw new Error('unsupported target format');
@@ -84,24 +79,24 @@ export async function downloadFile(
     (format ? `?format=${format}` : '') +
     (format === 'jpg' ? '&width=30000&height=30000' : '');
 
-  const headers = rangeHeader ? { Range: rangeHeader } : undefined;
-  const downloadResp = await fetchWithAuth(uri, { headers });
+  const downloadResp = await fetchWithAuth(uri, { redirect: 'manual' });
+  const downloadUrl = downloadResp.headers.get('Location');
   const downloadReturnHeaders = new Headers();
   downloadReturnHeaders.set('Last-Modified', new Date().toUTCString());
 
-  if (downloadResp.status !== 401) {
+  if (!downloadUrl) {
     return new Response(null, { status: downloadResp.status });
   }
 
   if (!stream) {
-    downloadReturnHeaders.set('Location', downloadResp.url);
+    downloadReturnHeaders.set('Location', downloadUrl);
     return new Response(null, {
       status: 302,
       headers: downloadReturnHeaders,
     });
   }
 
-  const fileResp = await fetch(downloadResp.url, { headers });
+  const fileResp = await fetch(downloadUrl);
   if (fileResp) {
     const forwardHeaders = ['Content-Type', 'Content-Length', 'Accept-Ranges'];
     forwardHeaders.forEach((header) => {

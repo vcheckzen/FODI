@@ -75,12 +75,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       if (fileName.toLowerCase() === PROTECTED.PASSWD_FILENAME.toLowerCase()) {
         return new Response('Access Denied', { status: 403 });
       }
-      return downloadFile(
-        file,
-        proxyDownload,
-        requestUrl.searchParams.get('format'),
-        request.headers.get('range'),
-      );
+      return downloadFile(file, proxyDownload, requestUrl.searchParams.get('format'));
     },
     // Upload and List files
     POST: () => handlePostRequest(request, env, requestUrl),
