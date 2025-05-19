@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "start": "wrangler deploy",
+    "dev": "wrangler dev",
+    "type": "wrangler types ./back-end-cf/worker-configuration.d.ts",
+    "format": "prettier . --write",
+    "minify": " node front-end/minify.js"
+  },
+  "devDependencies": {
+    "html-minifier-terser": "^7.2.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.14.4"
+  },
+  "type": "module"
+}
