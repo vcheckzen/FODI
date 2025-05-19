@@ -1,8 +1,12 @@
-import { PROTECTED, PostPayload } from '../types';
+import { PROTECTED, PostPayload, Env } from '../types';
 import { authenticate } from '../services/auth';
 import { downloadFile, fetchFiles, fetchUploadLinks } from './file-handler';
 
-export async function handlePostRequest(request: Request, requestUrl: URL) {
+export async function handlePostRequest(
+  request: Request,
+  env: Env,
+  requestUrl: URL,
+): Promise<Response> {
   const returnHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'max-age=3600',
@@ -15,7 +19,7 @@ export async function handlePostRequest(request: Request, requestUrl: URL) {
   if (requestUrl.searchParams.has('upload')) {
     const allowUpload = (await downloadFile(`${requestPath}/.upload`)).status === 302;
 
-    const uploadAuth = await authenticate(requestPath, body.passwd);
+    const uploadAuth = await authenticate(requestPath, body.passwd, env.WEBDAV);
 
     if (
       !allowUpload ||
@@ -40,7 +44,7 @@ export async function handlePostRequest(request: Request, requestUrl: URL) {
   }
 
   // List a folder
-  const listAuth = await authenticate(requestPath, body.passwd);
+  const listAuth = await authenticate(requestPath, body.passwd, env.WEBDAV);
   const files = listAuth
     ? await fetchFiles(requestPath, body.skipToken, body.orderby)
     : {

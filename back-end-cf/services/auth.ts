@@ -2,19 +2,39 @@ import { PROTECTED } from '../types';
 import { sha256 } from './utils';
 import { downloadFile } from '../handlers/file-handler';
 
-export async function authenticate(path: string, passwd?: string): Promise<boolean> {
+export async function authenticate(
+  path: string,
+  passwd?: string,
+  davCredentials?: string,
+): Promise<boolean> {
   try {
-    const pwFileContent = await downloadFile(`${path}/${PROTECTED.PASSWD_FILENAME}`, true).then(
-      (resp) => (resp.status === 404 ? undefined : resp.text()),
+    const [hashedPasswd, hashedDav] = await Promise.all([
+      sha256(passwd || ''),
+      sha256(davCredentials?.split(':')[1] || ''),
+    ]);
+
+    if (davCredentials && hashedPasswd === hashedDav) {
+      return true;
+    }
+
+    const pathsToTry = [path];
+    if (path !== '/' && path.split('/').length <= PROTECTED.PROTECTED_LAYERS) {
+      pathsToTry.push('/');
+    }
+    const downloads = await Promise.all(
+      pathsToTry.map((p) =>
+        downloadFile(`${p}/${PROTECTED.PASSWD_FILENAME}`, true).then((resp) =>
+          resp.status === 404 ? undefined : resp.text(),
+        ),
+      ),
     );
 
-    if (pwFileContent) {
-      const hashedPasswd = await sha256(passwd || '');
-      return hashedPasswd === pwFileContent;
-    } else if (path !== '/' && path.split('/').length <= PROTECTED.PROTECTED_LAYERS) {
-      return authenticate('/', passwd);
+    for (const pwFileContent of downloads) {
+      if (pwFileContent && hashedPasswd === pwFileContent) {
+        return true;
+      }
     }
-    return true;
+    return downloads.every((content) => content === undefined);
   } catch (e) {
     return false;
   }

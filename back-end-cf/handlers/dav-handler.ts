@@ -1,4 +1,4 @@
-import { OAUTH, PROTECTED, DavRes, DriveItem, Resource } from '../types';
+import { OAUTH, PROTECTED, DavRes, DriveItem } from '../types';
 import { authenticateWebdav } from '../services/auth';
 import { fetchWithAuth, fetchSkipToken, fetchBatchRes } from '../services/api';
 import { davPathSplit, createReturnXml, createPropfindXml } from '../services/dav';
@@ -31,7 +31,7 @@ export async function handleWebdav(
     PUT: () => handlePut(filePath, request),
     PROPFIND: () => handlePropfind(filePath),
   };
-  const handler = handlers[request.method] || (() => ({ davXml: null, davStatus: 405 }));
+  const handler = handlers[request.method];
   const davRes = await handler();
 
   const davHeaders = {

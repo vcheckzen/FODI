@@ -83,7 +83,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       );
     },
     // Upload and List files
-    POST: () => handlePostRequest(request, requestUrl),
+    POST: () => handlePostRequest(request, env, requestUrl),
   };
 
   const handler = handlers[request.method];
@@ -92,7 +92,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return handler();
   }
 
-  const davMethods = ['COPY', 'DELETE', 'HEAD', 'MKCOL', 'MOVE', 'PROPFIND', 'PROPPATCH', 'PUT'];
+  const davMethods = ['COPY', 'DELETE', 'HEAD', 'MKCOL', 'MOVE', 'PROPFIND', 'PUT'];
   if (davMethods.includes(request.method) && env.WEBDAV) {
     return handleWebdav(file, request, env.WEBDAV);
   } else {
