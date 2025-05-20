@@ -140,7 +140,7 @@ async function handlePropfind(filePath: string) {
   const currentTokens = await fetchSkipToken(fetchPath);
   const uriPath =
     fetchPath === `/` ? PROTECTED.EXPOSE_PATH : `:${PROTECTED.EXPOSE_PATH}${fetchPath}:`;
-  const baseUrl = `/me/drive/root${uriPath}/children?select=name,size,lastModifiedDateTime,file`;
+  const baseUrl = `/me/drive/root${uriPath}/children?select=name,size,lastModifiedDateTime,file&top=1000`;
 
   const createRequest = (id: string, skipToken?: string) => ({
     id,
@@ -179,7 +179,7 @@ async function handlePropfind(filePath: string) {
     const nextLink = resp.body['@odata.nextLink'];
     const skipToken = nextLink ? new URL(nextLink).searchParams.get('$skiptoken') : undefined;
     if (skipToken && !currentTokens.includes(skipToken)) {
-      await fetchSkipToken(fetchPath, skipToken);
+      await fetchSkipToken(fetchPath, skipToken, resp.id === '1');
     }
   }
 

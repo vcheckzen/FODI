@@ -55,13 +55,18 @@ export async function fetchBatchRes(batch: BatchReqPayload): Promise<BatchRespDa
   return batchResponse.json();
 }
 
-export async function fetchSkipToken(path: string, tokenToSave?: string): Promise<string[]> {
+export async function fetchSkipToken(
+  path: string,
+  tokenToSave?: string,
+  firstToken?: boolean,
+): Promise<string[]> {
   path = path.toLocaleLowerCase();
   const skipTokenString = await FODI_CACHE.get('skip_token');
-  let skipTokenData = skipTokenString ? JSON.parse(skipTokenString) : {};
-  const currentTokens = skipTokenData[path]?.split(',') || [];
+  const skipTokenData = skipTokenString ? JSON.parse(skipTokenString) : {};
+  let currentTokens = skipTokenData[path]?.split(',') || [];
 
   if (tokenToSave && !currentTokens.includes(tokenToSave)) {
+    if (firstToken) currentTokens = [];
     currentTokens.push(tokenToSave);
     skipTokenData[path] = currentTokens.join(',');
     await FODI_CACHE.put('skip_token', JSON.stringify(skipTokenData));
