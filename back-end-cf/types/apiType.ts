@@ -1,35 +1,15 @@
 import { env as globalEnv } from 'cloudflare:workers';
 
+declare global {
+  interface Env {
+    FODI_CACHE?: KVNamespace;
+    WEBDAV?: string;
+  }
+}
+
 export const OAUTH = globalEnv.OAUTH;
 export const PROTECTED = globalEnv.PROTECTED;
 export const FODI_CACHE = globalEnv.FODI_CACHE;
-
-export interface Env {
-  PROTECTED: {
-    EXPOSE_PATH: string;
-    PASSWD_FILENAME: string;
-    PROTECTED_LAYERS: number;
-    PROXY_KEYWORD: string;
-  };
-  OAUTH: {
-    refreshToken: string;
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-    loginHost: string;
-    oauthUrl: string;
-    apiHost: string;
-    apiUrl: string;
-    scope: string;
-  };
-  CACHE_TTLMAP: {
-    GET: number;
-    POST: number;
-    [key: string]: number;
-  };
-  WEBDAV?: string;
-  FODI_CACHE?: KVNamespace;
-}
 
 export interface AccessTokenResponse {
   access_token: string;

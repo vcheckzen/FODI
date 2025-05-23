@@ -1,4 +1,4 @@
-import { PROTECTED } from '../types';
+import { PROTECTED } from '../types/apiType';
 import { sha256 } from './utils';
 import { downloadFile } from '../handlers/file-handler';
 

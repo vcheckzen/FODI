@@ -1,8 +1,8 @@
 {
   "scripts": {
     "start": "wrangler deploy",
-    "dev": "wrangler dev",
-    "type": "wrangler types ./back-end-cf/worker-configuration.d.ts",
+    "dev": "wrangler dev -c dev.jsonc",
+    "type": "wrangler types ./back-end-cf/types/worker.d.ts -c dev.jsonc",
     "format": "prettier . --write",
     "minify": " node front-end/minify.js"
   },

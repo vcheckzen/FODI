@@ -4,4 +4,5 @@ node_modules
 # warngler
 .dev.vars
 .wrangler
-worker-configuration.d.ts
+worker.d.ts
+dev.jsonc

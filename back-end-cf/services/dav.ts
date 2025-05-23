@@ -1,4 +1,4 @@
-import { DriveItem } from '../types';
+import { DriveItem } from '../types/apiType';
 
 export function davPathSplit(filePath: string) {
   filePath = filePath.includes('://') ? decodeURIComponent(new URL(filePath).pathname) : filePath;

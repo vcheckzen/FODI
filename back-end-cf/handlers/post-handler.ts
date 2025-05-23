@@ -1,4 +1,4 @@
-import { PROTECTED, PostPayload, Env } from '../types';
+import { PROTECTED, PostPayload } from '../types/apiType';
 import { authenticate } from '../services/auth';
 import { downloadFile, fetchFiles, fetchUploadLinks } from './file-handler';
 

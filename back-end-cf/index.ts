@@ -1,5 +1,5 @@
 import { cacheRequest } from './handlers/request-handler';
-import { fetchAccessToken } from './services/api';
+import { fetchAccessToken } from './services/utils';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
@@ -11,6 +11,6 @@ export default {
   },
 
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(fetchAccessToken());
+    ctx.waitUntil(fetchAccessToken(env.OAUTH, env.FODI_CACHE));
   },
 };

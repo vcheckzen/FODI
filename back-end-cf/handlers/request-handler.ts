@@ -1,4 +1,4 @@
-import { Env, PROTECTED } from '../types';
+import { PROTECTED } from '../types/apiType';
 import { sha256 } from '../services/utils';
 import { handleWebdav } from './dav-handler';
 import { downloadFile } from './file-handler';
@@ -10,17 +10,18 @@ export async function cacheRequest(
   ctx: ExecutionContext,
 ): Promise<Response> {
   const CACHE_TTLMAP = env.CACHE_TTLMAP;
-  if (CACHE_TTLMAP[request.method]) {
+  const requestMethod = request.method as keyof typeof CACHE_TTLMAP;
+  if (CACHE_TTLMAP[requestMethod]) {
     const keyGenerators: {
       [key: string]: () => string | Promise<string>;
     } = {
       GET: () => request.url.toLowerCase(),
       POST: async () => await request.clone().text(),
     };
-    const cacheKeySource = await keyGenerators[request.method]();
+    const cacheKeySource = await keyGenerators[requestMethod]();
     const hash = await sha256(cacheKeySource);
     const cacheUrl = new URL(request.url);
-    cacheUrl.pathname = `/${request.method}` + cacheUrl.pathname + hash;
+    cacheUrl.pathname = `/${requestMethod}` + cacheUrl.pathname + hash;
     const cacheKey = new Request(cacheUrl.toString(), {
       method: 'GET',
     });
@@ -29,7 +30,7 @@ export async function cacheRequest(
     let response = await cache.match(cacheKey);
     const LastModified = response?.headers.get('Last-Modified') || 0;
     const cacheModifiedTime = new Date(LastModified).getTime();
-    const isExpired = (Date.now() - cacheModifiedTime) / 1000 > CACHE_TTLMAP[request.method];
+    const isExpired = (Date.now() - cacheModifiedTime) / 1000 > CACHE_TTLMAP[requestMethod];
 
     if (!response || isExpired) {
       response = await handleRequest(request, env);

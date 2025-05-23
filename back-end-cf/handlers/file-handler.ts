@@ -1,5 +1,5 @@
-import { OAUTH, PROTECTED, fetchFilesRes, DriveItem, UploadPayload } from '../types';
-import { fetchWithAuth, fetchBatchRes } from '../services/api';
+import { OAUTH, PROTECTED, fetchFilesRes, DriveItem, UploadPayload } from '../types/apiType';
+import { fetchWithAuth, fetchBatchRes } from '../services/utils';
 
 export async function fetchFiles(
   path: string,
@@ -100,7 +100,7 @@ export async function downloadFile(filePath: string, stream?: boolean, format?: 
 
   const fileResp = await fetch(downloadUrl);
   if (fileResp) {
-    const forwardHeaders = ['Content-Type', 'Content-Length', 'Accept-Ranges'];
+    const forwardHeaders = ['Content-Type', 'Content-Length'];
     forwardHeaders.forEach((header) => {
       const value = fileResp.headers.get(header);
       if (value) downloadReturnHeaders.set(header, value);
