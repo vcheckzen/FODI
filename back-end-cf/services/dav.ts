@@ -7,8 +7,7 @@ export function davPathSplit(filePath: string) {
   const nomalizePath = isDirectory ? filePath.slice(0, -1) : filePath;
   return {
     parent: nomalizePath.split('/').slice(0, -1).join('/') || '/',
-    tail: nomalizePath.split('/').pop(),
-    isDirectory: isDirectory,
+    tail: nomalizePath.split('/').pop() || '',
     path: nomalizePath || '/',
   };
 }
@@ -23,24 +22,13 @@ export function createReturnXml(uriPath: string, davStatus: number, statusText: 
   </d:multistatus>`;
 }
 
-export function createPropfindXml(parent: string, files: DriveItem[], isDirectory: boolean) {
+export function createPropfindXml(parent: string, files: DriveItem[]) {
   if (parent === '/') parent = '';
   const encodedParent = parent.split('/').map(encodeURIComponent).join('/');
   const xmlParts = ['<?xml version="1.0" encoding="utf-8"?>\n<d:multistatus xmlns:d="DAV:">\n'];
 
-  if (isDirectory) {
-    const directory = {
-      name: '',
-      size: 0,
-      lastModifiedDateTime: new Date().toUTCString(),
-    };
-    xmlParts.push(createResourceXml(encodedParent, directory, true));
-  }
-
-  if (files) {
-    for (const file of files) {
-      xmlParts.push(createResourceXml(encodedParent, file, !file.file));
-    }
+  for (const child of files) {
+    xmlParts.push(createResourceXml(encodedParent, child, !child.file));
   }
 
   xmlParts.push('</d:multistatus>');

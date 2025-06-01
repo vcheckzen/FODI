@@ -82,20 +82,15 @@ async function postFormData<T>(url: string, data: Record<string, string>): Promi
   return result as T;
 }
 
-export async function fetchSkipToken(
-  path: string,
-  tokenToSave?: string,
-  firstToken?: boolean,
-): Promise<string[]> {
+export async function fetchSaveSkipToken(path: string, tokensToSave?: string[]): Promise<string[]> {
   path = path.toLocaleLowerCase();
   const skipTokenString = await FODI_CACHE.get('skip_token');
   const skipTokenData = skipTokenString ? JSON.parse(skipTokenString) : {};
-  let currentTokens = skipTokenData[path]?.split(',') || [];
+  const currentTokens = skipTokenData[path]?.split(',') || [];
 
-  if (tokenToSave && !currentTokens.includes(tokenToSave)) {
-    if (firstToken) currentTokens = [];
-    currentTokens.push(tokenToSave);
-    skipTokenData[path] = currentTokens.join(',');
+  const tokenChanged = tokensToSave && currentTokens.join(',') !== tokensToSave.join(',');
+  if (tokenChanged) {
+    skipTokenData[path] = tokensToSave.join(',');
     await FODI_CACHE.put('skip_token', JSON.stringify(skipTokenData));
   }
 

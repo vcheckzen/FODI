@@ -1,20 +1,19 @@
 import { DriveItem, OAUTH, PROTECTED } from '../types/apiType';
-import { fetchWithAuth, fetchBatchRes, fetchSkipToken } from './utils';
+import { fetchWithAuth, fetchBatchRes, fetchSaveSkipToken } from './utils';
 import { davPathSplit, createReturnXml, createPropfindXml } from './dav';
 import { fetchUploadLinks } from '../handlers/file-handler';
 
 export async function handlePropfind(filePath: string) {
-  const { parent, tail, isDirectory, path } = davPathSplit(filePath);
-  const fetchPath = isDirectory ? path : parent;
-  let allFiles = [],
-    files: DriveItem[];
+  const { path: fetchPath } = davPathSplit(filePath);
+  const allFiles: DriveItem[] = [];
+  const skipTokens: string[] = [];
 
-  const currentTokens = await fetchSkipToken(fetchPath);
+  const currentTokens = await fetchSaveSkipToken(fetchPath);
   const uriPath =
     fetchPath === `/` ? PROTECTED.EXPOSE_PATH : `:${PROTECTED.EXPOSE_PATH}${fetchPath}:`;
   const baseUrl = `/me/drive/root${uriPath}/children?select=name,size,lastModifiedDateTime,file&top=1000`;
 
-  const createRequest = (id: string, skipToken?: string) => ({
+  const createListRequest = (id: string, skipToken?: string) => ({
     id,
     method: 'GET',
     url: skipToken ? `${baseUrl}&skipToken=${skipToken}` : baseUrl,
@@ -24,8 +23,15 @@ export async function handlePropfind(filePath: string) {
 
   const batchRequest = {
     requests: [
-      createRequest('1'),
-      ...currentTokens.map((token, index) => createRequest(`${index + 2}`, token)),
+      {
+        id: '1',
+        method: 'GET',
+        url: `/me/drive/root${uriPath}?select=name,size,lastModifiedDateTime,file`,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+      },
+      createListRequest('2'),
+      ...currentTokens.map((token, index) => createListRequest(`${index + 3}`, token)),
     ],
   };
 
@@ -38,42 +44,43 @@ export async function handlePropfind(filePath: string) {
       };
     }
 
-    const value = resp.body.value as unknown as DriveItem[];
-    allFiles.push(
-      ...value.map((file: DriveItem) => ({
-        name: file.name,
-        size: file.size,
-        lastModifiedDateTime: file.lastModifiedDateTime,
-        file: file.file,
-      })),
-    );
+    if (resp.id === '1') {
+      allFiles.push({
+        ...(resp.body as unknown as DriveItem),
+        name: resp.body.file ? resp.body.name : '',
+      });
+      continue;
+    }
+
+    const items = resp.body.value as unknown as DriveItem[];
+    items.map((item) => {
+      allFiles.push(item);
+    });
 
     const nextLink = resp.body['@odata.nextLink'];
     const skipToken = nextLink ? new URL(nextLink).searchParams.get('$skiptoken') : undefined;
-    if (skipToken && !currentTokens.includes(skipToken)) {
-      await fetchSkipToken(fetchPath, skipToken, resp.id === '1');
+    if (skipToken) {
+      skipTokens.push(skipToken);
     }
   }
+  await fetchSaveSkipToken(fetchPath, skipTokens);
 
-  if (isDirectory) {
-    files = allFiles;
-  } else {
-    const targetFile = allFiles.find((file) => file.name === tail);
-
-    if (!targetFile) return { davXml: null, davStatus: 404 };
-
-    files = [targetFile];
-  }
-
-  const responseXML = createPropfindXml(fetchPath, files, isDirectory);
+  const responseXML = createPropfindXml(fetchPath, allFiles);
   return { davXml: responseXML, davStatus: 207 };
 }
 
 export async function handleCopyMove(
   filePath: string,
   method: 'COPY' | 'MOVE',
-  destination: string,
+  destination: string | null,
 ) {
+  if (!destination) {
+    return {
+      davXml: createReturnXml(filePath, 400, 'Missing destination'),
+      davStatus: 400,
+    };
+  }
+
   const { parent: parent, path: uriPath } = davPathSplit(filePath);
   const uri =
     `${OAUTH.apiUrl}:${encodeURIComponent(PROTECTED.EXPOSE_PATH + uriPath)}` +

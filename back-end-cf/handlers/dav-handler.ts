@@ -12,7 +12,7 @@ import {
 export async function handleWebdav(
   filePath: string,
   request: Request,
-  davCredentials: string,
+  davCredentials: string | undefined,
 ): Promise<Response> {
   const davAuth = authenticateWebdav(request.headers.get('Authorization'), davCredentials);
   if (!davAuth) {
@@ -28,8 +28,8 @@ export async function handleWebdav(
     [key: string]: () => Promise<DavRes> | DavRes;
   } = {
     HEAD: () => handleHead(filePath),
-    COPY: () => createCopyMoveHandler(filePath, 'COPY', request.headers.get('Destination')),
-    MOVE: () => createCopyMoveHandler(filePath, 'MOVE', request.headers.get('Destination')),
+    COPY: () => handleCopyMove(filePath, 'COPY', request.headers.get('Destination')),
+    MOVE: () => handleCopyMove(filePath, 'MOVE', request.headers.get('Destination')),
     DELETE: () => handleDelete(filePath),
     MKCOL: () => handleMkcol(filePath),
     PUT: () => handlePut(filePath, request),
@@ -59,14 +59,4 @@ function handleDavRes(davRes: DavRes, request: Request) {
   const davStatus = davRes.davStatus;
 
   return { davXml, davStatus, davHeaders };
-}
-
-function createCopyMoveHandler(
-  filePath: string,
-  action: 'COPY' | 'MOVE',
-  destination: string | null,
-) {
-  return destination
-    ? handleCopyMove(filePath, action, destination)
-    : { davXml: 'Missing destination', davStatus: 400 };
 }
