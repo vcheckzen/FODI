@@ -1,25 +1,32 @@
 {
   "name": "fodi",
-  "main": "back-end-cf/index.js",
+  "main": "back-end-cf/index.ts",
   "compatibility_date": "2025-04-10",
   "preview_urls": false,
   "kv_namespaces": [
     {
       "binding": "FODI_CACHE",
+      // "preview_id": "", // for development
       "id": "" // <~ https://dash.cloudflare.com/?to=/:account/workers/kv/namespaces
     }
   ],
-  // !!! Notice|注意 !!!
-  // https://dash.cloudflare.com/?to=/:account/workers/services/view/fodi/production/settings#variables
-  // The following variables need to be configured manually, type is secret | 以下变量需要手动配置，类型为秘钥
-  // 1. name: REFRESHTOEKN | value: get from https://alist.nn.ci/tool/onedrive/request.html
-  // 2. name: WEBDAV | value: yourUsername:yourPassword
   "vars": {
-    // If OneDrive is not operated by Microsoft, modify the settings manually | 世纪互联下面全部要改
+    // !!! Warning | 警告 !!!
+    // https://dash.cloudflare.com/?to=/:account/workers/services/view/fodi/production/settings#variables
+    // If comment contains !!!<~ tag, modify in Cloudflare Dashboard | 含 !!!<~ 标记的配置项请在Cloudflare控制台修改
+    // ------------------------------------------------------
+    // Optional Feature | 可选功能
+    // 1. WEBDAV
+    // Navigate to the DashBoard to create a new secret. Name it WEBDAV, with its value formatted as username:password
+    // 前往控制台新建秘钥，名称为 WEBDAV ，值形如 用户名:密码
+    // ------------------------------------------------------ 
+    // If OneDrive is not Microsoft-operated (e.g. 21Vianet), modify these settings
+    // 世纪互联需修改下列参数
     "OAUTH": {
-      "clientId": "0a2991a3-1674-4334-8561-671cc7349960",
-      "clientSecret": "uw67Q~TCMqdJyH35hlcHHclv~mhNOGx.jfPFm",
-      "redirectUri": "https://alist.nn.ci/tool/onedrive/callback",
+      "refreshToken": "", // !!!<~ https://logi.im/fodi/get-code/
+      "clientId": "78d4dc35-7e46-42c6-9023-2d39314433a5",
+      "clientSecret": "ZudGl-p.m=LMmr3VrKgAyOf-WevB3p50",
+      "redirectUri": "http://localhost/onedrive-login",
       "loginHost": "https://login.microsoftonline.com",
       "oauthUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/",
       "apiHost": "https://graph.microsoft.com",
@@ -27,25 +34,25 @@
       "scope": "https://graph.microsoft.com/Files.ReadWrite.All offline_access"
     },
     "PROTECTED": {
-      // Path to show, leave blank if show all files, otherwise fill in the format '/media/music'
-      // 展示路径，如全盘展示请留空，否则按 '/媒体/音乐' 的格式填写
+      // Exposed root path (empty=full drive), otherwise fill in like '/media/music'
+      // 展示路径（空值=全盘），否则按 '/媒体/音乐' 的格式填写
       "EXPOSE_PATH": "",
       // Encrypt the directory containing the filename, subdirectories are not encrypted, password is the content of the file
       // 目录下有该文件则加密目录，子目录不加密，密码是文件内容
       "PASSWD_FILENAME": ".password",
-      // The number of directory protection layers for the EXPOSE_PATH, to prevent guessing directories;
-      // defaulting to -1 means disabled (for example: if you want to protect something like "/Applications",
-      // you should fill in "2", which protects both the EXPOSE_PATH and its first-level subdirectories).
-      // When enabled, passwords need to be filled into the PASSWORD_FILENAME file under the EXPOSER_PATH directory.
-      // EXPOSE_PATH 目录密码防护层数，防止猜测目录，默认 -1 为关闭，
-      // 如 '/Applications' 需保护则填写为 2（保护 EXPOSE_PATH 及其一级子目录），
-      // 开启需在 EXPORSE_PATH 目录的 PASSWORD_FILENAME 文件中填写密码
-      "PROTECTED_LAYERS": -1
-    },
-    // Cache time for successful results of the request method, Unit seconds | 相应请求方法的成功结果缓存时间，单位秒
-    "CACHE_TTLMAP": {
-      "GET": 0,
-      "POST": 0
+      // Directory protection depth (-1=disabled) | 目录保护层数（-1=关闭）
+      // Example: 2 protects /path and /path/subdir | 示例：2 保护 /路径 及其子目录
+      "PROTECTED_LAYERS": -1,
+      // proxy keyword, if set you can use worker to proxy download file like example.com/fodi/yourfile.txt
+      // 代理关键字，设置后可以使用 worker 代理下载文件，如 example.com/fodi/yourfile.txt
+      "PROXY_KEYWORD": "dav",
+      // Method-based cache TTL (seconds) | 请求方法缓存时长（秒）
+      // POST=300 caches success for 5 minutes, during this period, the OneDrive API will not be called again
+      // POST=300 缓存成功结果5分钟，期间不再调用OneDrive API
+      "CACHE_TTLMAP": {
+        "GET": 0,
+        "POST": 0
+      }
     }
   },
   "triggers": {

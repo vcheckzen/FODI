@@ -16,6 +16,10 @@ export const generateCode = async (
     EXPOSE_PATH: "${exposePath}",
     PASSWD_FILENAME: "${passwordFilename}",
     PROTECTED_LAYERS: ${protectedLayers},
+    CACHE_TTLMAP: {
+      POST: 0,
+      GET: 0,
+    },
   },
   OAUTH: {
     clientId: "${clientId}",
@@ -28,10 +32,6 @@ export const generateCode = async (
     apiUrl: "${apiHost}/v1.0/me/drive/root",
     scope: "${apiHost}/Files.ReadWrite.All offline_access",
   },
-  CACHE_TTLMAP: {
-    POST: 0,
-    GET: 0,
-  },
 };
 `;
 
@@ -43,7 +43,7 @@ export const generateCode = async (
 
   const lines = template.split('\n');
   const targetIndex = lines.findIndex((line) =>
-    line.trim().startsWith("const localEnv")
+    line.trim().endsWith("localEnv = {};")
   );
 
   if (targetIndex !== -1) {

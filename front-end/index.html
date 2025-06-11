@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <script>
@@ -321,8 +321,15 @@
       code,
       pre *,
       code * {
-        font-family: Consolas, Monaco, Lucida Console, Liberation Mono,
-          DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, Cascadia Code,
+        font-family:
+          Consolas,
+          Monaco,
+          Lucida Console,
+          Liberation Mono,
+          DejaVu Sans Mono,
+          Bitstream Vera Sans Mono,
+          Courier New,
+          Cascadia Code,
           monospace !important;
       }
 
@@ -751,10 +758,10 @@
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 60000 /* 60s */);
           options.signal = controller.signal;
-          
+
           const response = await fetch(url, options);
           clearTimeout(timeoutId);
-          
+
           if (response.ok) {
             const responseData = await response.text();
             callback(responseData);
@@ -825,10 +832,7 @@
               element.onerror = () => error('Failed to load resource');
               setTimeout(() => error('Resource loading timed out'), timeout);
 
-              document.head.insertBefore(
-                element,
-                document.head.firstElementChild
-              );
+              document.head.insertBefore(element, document.head.firstElementChild);
             });
           }
         }
@@ -842,9 +846,7 @@
         if (!elem.querySelector('.sk-folding-cube')) {
           elem.innerHTML = '';
           elem.appendChild(
-            document
-              .getElementById('loading-wrapper-template')
-              .content.cloneNode(true)
+            document.getElementById('loading-wrapper-template').content.cloneNode(true),
           );
         }
       }
@@ -897,8 +899,7 @@
       function renderPath(path) {
         const createPathSpan = (text, path) => {
           const pathSpan = document.createElement('span');
-          pathSpan.innerHTML =
-            text.length > 20 ? text.substring(0, 20) + '..' : text;
+          pathSpan.innerHTML = text.length > 20 ? text.substring(0, 20) + '..' : text;
           pathSpan.className = text === '/' ? 'nav-arr' : 'nav-path';
           if (path) {
             addPathListener(pathSpan, path);
@@ -951,18 +952,12 @@
             .content.cloneNode(true);
           fileWrapper.querySelector('i').className = `zmdi zmdi-${type}`;
           fileWrapper.querySelector('.name').innerText = name;
-          fileWrapper.querySelector('.lastModifiedDateTime').innerText =
-            formatDate(time);
+          fileWrapper.querySelector('.lastModifiedDateTime').innerText = formatDate(time);
           [
             fileWrapper.querySelector('.size .value').innerText,
             fileWrapper.querySelector('.size .unit').innerText,
           ] = formatSize(size);
-          addFileListLineListener(
-            fileWrapper.querySelector('.row.file-wrapper'),
-            path,
-            url,
-            size
-          );
+          addFileListLineListener(fileWrapper.querySelector('.row.file-wrapper'), path, url, size);
           return fileWrapper;
         };
 
@@ -972,14 +967,10 @@
           // Only load readme not all .md files for performance reason.
           if (file.name.toLowerCase() === 'readme.md') {
             if (file.url) {
-              renderMarkdown(
-                page.parent + (page.parent === '/' ? '' : '/') + file.name,
-                file.url
-              );
+              renderMarkdown(page.parent + (page.parent === '/' ? '' : '/') + file.name, file.url);
             }
           } else if (file.name === '.upload') {
-            document.querySelector('.upload-entry-wrapper').dataset.hidden =
-              '0';
+            document.querySelector('.upload-entry-wrapper').dataset.hidden = '0';
             document.querySelector('.upload-entry-btn').onclick = () => {
               window.backForwardCache.preview = true;
               switchRightDisplay('upload');
@@ -993,7 +984,7 @@
                 file.lastModifiedDateTime,
                 file.size,
                 parent + '/' + file.name,
-                file.url
+                file.url,
               );
             }
             children.push(file);
@@ -1012,10 +1003,7 @@
               if (entry.isIntersecting) {
                 stat.lastRenderedTs = Date.now();
                 // Do not load next page before all the data loaded being rendered.
-                if (
-                  stat.renderedItems >= stat.children.length &&
-                  page.skipToken
-                ) {
+                if (stat.renderedItems >= stat.children.length && page.skipToken) {
                   loadNextPage(page);
                 } else {
                   renderItems();
@@ -1034,11 +1022,7 @@
         if (!fromLoadNextPage) {
           // Rendering from start, sort all loaded data for business version even if there is data unloaded.
           stat.renderedItems = 0;
-          if (
-            page.compare &&
-            page.skipToken &&
-            window.GLOBAL_CONFIG.IS_BUSINESS
-          ) {
+          if (page.compare && page.skipToken && window.GLOBAL_CONFIG.IS_BUSINESS) {
             stat.children.sort(page.compare);
           }
         }
@@ -1048,27 +1032,15 @@
         function renderItems(fromLoadNextPage) {
           const startIndex = stat.renderedItems;
           stat.renderedItems += stat.pageSize;
-          stat.renderedItems = Math.min(
-            stat.renderedItems,
-            stat.children.length
-          );
-          const toBeRendered = stat.children.slice(
-            startIndex,
-            stat.renderedItems
-          );
-          if (
-            page.compare &&
-            window.GLOBAL_CONFIG.IS_BUSINESS &&
-            fromLoadNextPage
-          ) {
+          stat.renderedItems = Math.min(stat.renderedItems, stat.children.length);
+          const toBeRendered = stat.children.slice(startIndex, stat.renderedItems);
+          if (page.compare && window.GLOBAL_CONFIG.IS_BUSINESS && fromLoadNextPage) {
             // Sort the new loaded slice for business version.
             toBeRendered.sort(page.compare);
           }
 
           const fragment = document.createDocumentFragment();
-          fragment.append(
-            ...toBeRendered.map(({ toFragment }) => toFragment())
-          );
+          fragment.append(...toBeRendered.map(({ toFragment }) => toFragment()));
           const listContainer = document.getElementById('file-list');
           if (startIndex === 0) {
             listContainer.replaceChildren(fragment);
@@ -1094,10 +1066,7 @@
           treeNodeWrapper.querySelector('.tree-node-name').innerText = name;
           treeNodeWrapper.appendNode = (node) =>
             treeNodeWrapper.querySelector('.tree-node-wrapper').append(node);
-          addTreeNodeListener(
-            treeNodeWrapper.querySelector('.tree-node'),
-            path
-          );
+          addTreeNodeListener(treeNodeWrapper.querySelector('.tree-node'), path);
           return treeNodeWrapper;
         };
 
@@ -1114,7 +1083,7 @@
           'caret-down',
           'folder-outline',
           paths[maxIndex],
-          absolutePath(maxIndex)
+          absolutePath(maxIndex),
         );
         files.files.forEach((file) => {
           if (!file.url) {
@@ -1123,8 +1092,8 @@
                 'caret-right',
                 'folder',
                 file.name,
-                files.parent + '/' + file.name
-              )
+                files.parent + '/' + file.name,
+              ),
             );
           }
         });
@@ -1135,7 +1104,7 @@
             'caret-down',
             'folder',
             paths[i],
-            currentTreeNodeParentAbsolutePath
+            currentTreeNodeParentAbsolutePath,
           );
           const cache = window.fileCache.get(currentTreeNodeParentAbsolutePath);
           if (cache) {
@@ -1149,8 +1118,8 @@
                       'caret-right',
                       'folder',
                       file.name,
-                      currentTreeNodeParentAbsolutePath + '/' + file.name
-                    )
+                      currentTreeNodeParentAbsolutePath + '/' + file.name,
+                    ),
                   );
                 }
               }
@@ -1164,8 +1133,7 @@
         const treeRoot = document.getElementById('tree-root');
         treeRoot.innerHTML = '';
         const cache = window.fileCache.get(window.api.root);
-        const currentNodeName =
-          currentTreeNode.querySelector('.tree-node-name').innerText;
+        const currentNodeName = currentTreeNode.querySelector('.tree-node-name').innerText;
         if (cache) {
           cache.files.forEach((file) => {
             if (!file.url) {
@@ -1177,8 +1145,8 @@
                     'caret-right',
                     'folder',
                     file.name,
-                    window.api.root + file.name
-                  )
+                    window.api.root + file.name,
+                  ),
                 );
               }
             }
@@ -1203,13 +1171,13 @@
           fromCdn(
             'taobao',
             '/marked/15.0.4/files/marked.min.js',
-            '/marked-highlight/2.2.1/files/lib/index.umd.js'
+            '/marked-highlight/2.2.1/files/lib/index.umd.js',
           ),
           fromCdn(
             'bytedance',
             '/github-markdown-css/5.1.0/github-markdown-light.min.css',
             '/highlight.js/11.4.0/styles/github.min.css',
-            '/highlight.js/11.4.0/highlight.min.js'
+            '/highlight.js/11.4.0/highlight.min.js',
           ),
           // Optional Markdown extensions
           // fromCdn('jsdelivr', '/marked-alert@2.1.2/dist/index.umd.js'),
@@ -1235,50 +1203,40 @@
               return href;
             }
 
-            const dummyBase = new URL(
-              window.backForwardCache.current + '/',
-              location
-            );
-            const absPath = new URL(href, dummyBase).href.slice(
-              location.origin.length
-            );
+            const dummyBase = new URL(window.backForwardCache.current + '/', location);
+            const absPath = new URL(href, dummyBase).href.slice(location.origin.length);
             const parent = absPath.slice(0, absPath.lastIndexOf('/')) || '/';
 
             return (
               window.fileCache
                 .get(parent)
-                ?.files.find(({ name }) => name === absPath.split('/').pop())
-                ?.url ||
+                ?.files.find(({ name }) => name === absPath.split('/').pop())?.url ||
               window.GLOBAL_CONFIG.SCF_GATEWAY.replace(/\/$/, '') + absPath
             );
           };
 
           const renderer = new marked.Renderer();
-          renderer.image = (href) =>
-            `<img src="${transformHref(href.href)}" alt="${href.text}">`;
-          renderer.link = (href) =>
-            `<a href="${transformHref(href.href)}">${href.text}</a>`;
+          renderer.image = (href) => `<img src="${transformHref(href.href)}" alt="${href.text}">`;
+          renderer.link = (href) => `<a href="${transformHref(href.href)}">${href.text}</a>`;
 
-          text = new marked
-            .Marked(
-              markedHighlight.markedHighlight({
-                langPrefix: 'hljs language-',
-                highlight(code, lang, info) {
-                  const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                  return hljs.highlight(code, { language }).value;
-                }
-              }),
-              // Optional Markdown extensions
-              // markedAlert(),
-              // markedKatex({
-              //   throwOnError: false,
-              //   nonStandard: true
-              // })
-            )
-            .parse(text, {
-              gfm: true,
-              renderer: renderer,
-            });
+          text = new marked.Marked(
+            markedHighlight.markedHighlight({
+              langPrefix: 'hljs language-',
+              highlight(code, lang, info) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+              },
+            }),
+            // Optional Markdown extensions
+            // markedAlert(),
+            // markedKatex({
+            //   throwOnError: false,
+            //   nonStandard: true
+            // })
+          ).parse(text, {
+            gfm: true,
+            renderer: renderer,
+          });
 
           if (isReadMe()) {
             document.getElementById('readme').innerHTML = text;
@@ -1305,7 +1263,7 @@
             null,
             null,
             (text) => render(text, path),
-            () => window.fileCache.set(path, false)
+            () => window.fileCache.set(path, false),
           );
         }
       }
@@ -1340,7 +1298,7 @@
                 window.fileCache.set(`${newFiles.parent}/.password`, passwd);
                 fetchFileList(newFiles.parent);
               }
-            }
+            },
           );
         });
       }
@@ -1389,9 +1347,7 @@
               fileType: (suffix) => {
                 if (['mp3', 'flac', 'wav'].includes(suffix)) {
                   return 'audio';
-                } else if (
-                  ['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].includes(suffix)
-                ) {
+                } else if (['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].includes(suffix)) {
                   return 'image';
                 } else if (['md'].includes(suffix)) {
                   return 'markdown';
@@ -1474,9 +1430,7 @@
                   return 'text';
                 } else if (['upload'].includes(suffix)) {
                   return 'upload';
-                } else if (
-                  ['mp4', 'avi', 'mkv', 'flv', 'm3u8'].includes(suffix)
-                ) {
+                } else if (['mp4', 'avi', 'mkv', 'flv', 'm3u8'].includes(suffix)) {
                   return 'video';
                 } else if (['videomagnet'].includes(suffix)) {
                   return 'videomagnet';
@@ -1489,8 +1443,8 @@
                     '/hls.js/1.1.5/hls.light.min.js',
                     '/flv.js/1.6.2/flv.min.js',
                     '/dplayer/1.25.0/DPlayer.min.css',
-                    '/dplayer/1.25.0/DPlayer.min.js'
-                  )
+                    '/dplayer/1.25.0/DPlayer.min.js',
+                  ),
                 ).then(() => {
                   const option = {
                     url: video,
@@ -1556,8 +1510,8 @@
                     fromCdn(
                       'taobao',
                       '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.css',
-                      '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.umd.js'
-                    )
+                      '/@fancyapps/ui/5.0.36/files/dist/fancybox/fancybox.umd.js',
+                    ),
                   )
                     .then(() => {
                       if (firstLoad) {
@@ -1592,9 +1546,7 @@
                   div.style.cursor = 'pointer';
                   div.style.textAlign = 'center';
                   div.innerHTML = '新窗口打开';
-                  div.addEventListener('click', () =>
-                    window.open(onlineViewerUrl)
-                  );
+                  div.addEventListener('click', () => window.open(onlineViewerUrl));
                   content.innerHTML = '';
                   content.appendChild(div);
                   if (document.body.clientWidth >= 480) {
@@ -1616,8 +1568,8 @@
                     fromCdn(
                       'bytedance',
                       '/highlight.js/11.4.0/styles/github.min.css',
-                      '/highlight.js/11.4.0/highlight.min.js'
-                    )
+                      '/highlight.js/11.4.0/highlight.min.js',
+                    ),
                   )
                     .then(() => {
                       sendRequest('GET', url, null, null, (data) => {
@@ -1650,10 +1602,7 @@
                     .then((resp) => resp.text())
                     .then((magnetUrl) => {
                       loadResource(
-                        fromCdn(
-                          'jsdelivr',
-                          '/@webtor/embed-sdk-js/dist/index.min.js'
-                        )
+                        fromCdn('jsdelivr', '/@webtor/embed-sdk-js/dist/index.min.js'),
                       ).then(() => {
                         const torrent = document.createElement('div');
                         torrent.id = 'player';
@@ -1686,36 +1635,29 @@
             document
               .querySelector('.btn.download')
               .addEventListener('click', () => (location.href = url));
-            document
-              .querySelector('.btn.quote')
-              .addEventListener('click', (event) => {
-                previewHandler.copyTextContent(null, window.api.url + path);
-                const btn = document.querySelector('.btn.quote');
-                btn.innerHTML = '已复制';
-                setTimeout(() => (btn.innerHTML = '引用'), 250);
-              });
-            document
-              .querySelector('.btn.share')
-              .addEventListener('click', (event) => {
-                const sharePath = () => {
-                  const arr = window.backForwardCache.current.split('/');
-                  let r = '';
-                  for (let i = 1; i < arr.length; i++) {
-                    r += '/' + arr[i];
-                  }
-                  return r;
-                };
-                previewHandler.copyTextContent(
-                  null,
-                  window.location.origin +
-                    window.location.pathname +
-                    '?path=' +
-                    sharePath()
-                );
-                const btn = document.querySelector('.btn.share');
-                btn.innerHTML = '已复制';
-                setTimeout(() => (btn.innerHTML = '分享'), 250);
-              });
+            document.querySelector('.btn.quote').addEventListener('click', (event) => {
+              previewHandler.copyTextContent(null, window.api.url + path);
+              const btn = document.querySelector('.btn.quote');
+              btn.innerHTML = '已复制';
+              setTimeout(() => (btn.innerHTML = '引用'), 250);
+            });
+            document.querySelector('.btn.share').addEventListener('click', (event) => {
+              const sharePath = () => {
+                const arr = window.backForwardCache.current.split('/');
+                let r = '';
+                for (let i = 1; i < arr.length; i++) {
+                  r += '/' + arr[i];
+                }
+                return r;
+              };
+              previewHandler.copyTextContent(
+                null,
+                window.location.origin + window.location.pathname + '?path=' + sharePath(),
+              );
+              const btn = document.querySelector('.btn.share');
+              btn.innerHTML = '已复制';
+              setTimeout(() => (btn.innerHTML = '分享'), 250);
+            });
           });
         } else {
           elem.addEventListener('click', (event) => {
@@ -1727,9 +1669,7 @@
 
       function addBackForwardListener() {
         document.getElementById('arrow-back').addEventListener('click', back);
-        document
-          .getElementById('arrow-forward')
-          .addEventListener('click', forward);
+        document.getElementById('arrow-forward').addEventListener('click', forward);
         document.querySelector('#main-page').addEventListener('click', () => {
           fetchFileList(window.api.root);
           switchBackForwardStatus(window.api.root);
@@ -1759,8 +1699,7 @@
         backToTopBtn.addEventListener('click', () => right.scrollTo(0, 0));
         right.addEventListener(
           'scroll',
-          () =>
-            (backToTopBtn.dataset.hidden = right.scrollTop > 500 ? '0' : '1')
+          () => (backToTopBtn.dataset.hidden = right.scrollTop > 500 ? '0' : '1'),
         );
       }
 
@@ -1782,21 +1721,17 @@
           document.querySelector('.file-upload-progress').dataset.hidden = '1';
           document.querySelector('.file-upload-wrapper').dataset.hidden = '0';
         } else if (display === 'list') {
-          const sortOrder = window.fileCache.get(
-            window.backForwardCache.current
-          )?.orderby;
-          document
-            .querySelectorAll('.list-header .row .file > div')
-            .forEach((field) => {
-              const indicator = field.querySelector('i');
-              if (new RegExp(field.className, 'i').test(sortOrder)) {
-                indicator.className = `zmdi zmdi-chevron-${
-                  sortOrder.includes('desc') ? 'down' : 'up'
-                }`;
-              } else {
-                indicator.className = 'zmdi zmdi-chevron-up disabled';
-              }
-            });
+          const sortOrder = window.fileCache.get(window.backForwardCache.current)?.orderby;
+          document.querySelectorAll('.list-header .row .file > div').forEach((field) => {
+            const indicator = field.querySelector('i');
+            if (new RegExp(field.className, 'i').test(sortOrder)) {
+              indicator.className = `zmdi zmdi-chevron-${
+                sortOrder.includes('desc') ? 'down' : 'up'
+              }`;
+            } else {
+              indicator.className = 'zmdi zmdi-chevron-up disabled';
+            }
+          });
 
           document.querySelector('#readme').innerHTML = '';
           document.querySelector('.list-header').dataset.hidden = '0';
@@ -1817,16 +1752,12 @@
           window.backForwardCache.backable = false;
           document.getElementById('arrow-back').setAttribute('disabled', true);
         }
-        if (
-          window.backForwardCache.deepest !== window.backForwardCache.current
-        ) {
+        if (window.backForwardCache.deepest !== window.backForwardCache.current) {
           window.backForwardCache.forwardable = true;
           document.getElementById('arrow-forward').removeAttribute('disabled');
         } else {
           window.backForwardCache.forwardable = false;
-          document
-            .getElementById('arrow-forward')
-            .setAttribute('disabled', true);
+          document.getElementById('arrow-forward').setAttribute('disabled', true);
         }
       }
 
@@ -1838,8 +1769,7 @@
           fetchFileList(window.backForwardCache.current);
         } else {
           let former = (() => {
-            const formerEndIndex =
-              window.backForwardCache.current.lastIndexOf('/');
+            const formerEndIndex = window.backForwardCache.current.lastIndexOf('/');
             return window.backForwardCache.current.substring(0, formerEndIndex);
           })();
           former = former || window.api.root;
@@ -1859,9 +1789,7 @@
             : window.backForwardCache.current;
         const subLength = current ? current.length : 0;
         const later =
-          current +
-          '/' +
-          window.backForwardCache.deepest.substring(subLength).split('/')[1];
+          current + '/' + window.backForwardCache.deepest.substring(subLength).split('/')[1];
         fetchFileList(later);
         switchBackForwardStatus();
         // console.log(window.backForwardCache);
@@ -1889,7 +1817,7 @@
                 window.fileCache.set(path, files);
                 preCache(files, level + 1);
               },
-              () => window.fileCache.set(path, false)
+              () => window.fileCache.set(path, false),
             );
           } else if (file.name.endsWith('.md')) {
             // console.log('caching ' + path + ', level ' + level);
@@ -1900,7 +1828,7 @@
               null,
               null,
               (text) => window.fileCache.set(path, text),
-              () => window.fileCache.set(path, false)
+              () => window.fileCache.set(path, false),
             );
           }
         });
@@ -1929,7 +1857,7 @@
                   window.fileCache.set(nextPath, files);
                   preCache(files, 0);
                 },
-                () => window.fileCache.set(nextPath, false)
+                () => window.fileCache.set(nextPath, false),
               );
             } else if (pathCache.files) {
               preCacheCheck(pathCache, nextPath);
@@ -1944,7 +1872,7 @@
                 null,
                 null,
                 (text) => window.fileCache.set(nextPath, text),
-                () => window.fileCache.set(nextPath, false)
+                () => window.fileCache.set(nextPath, false),
               );
             }
           }
@@ -1961,25 +1889,17 @@
        *    b. 加载出新页时，前端对新页拷贝单独排序，保证新页数据渲染到已加载数据之后。
        */
       function sortList(clickedElem) {
-        const loadedPages = window.fileCache.get(
-          window.backForwardCache.current
-        );
+        const loadedPages = window.fileCache.get(window.backForwardCache.current);
         const sortField = clickedElem.className;
-        const sortOrder = clickedElem
-          .querySelector('i')
-          .className.includes('up')
-          ? 'desc'
-          : 'asc';
+        const sortOrder = clickedElem.querySelector('i').className.includes('up') ? 'desc' : 'asc';
         const reverseFactor = sortOrder === 'asc' ? 1 : -1;
         loadedPages.orderby = `${sortField} ${sortOrder}`;
         loadedPages.compare = (a, b) =>
           reverseFactor *
-          a[sortField]
-            .toString()
-            .localeCompare(b[sortField].toString(), undefined, {
-              numeric: true,
-              sensitivity: 'base',
-            });
+          a[sortField].toString().localeCompare(b[sortField].toString(), undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
         if (!loadedPages.skipToken || window.GLOBAL_CONFIG.IS_BUSINESS) {
           renderFileList(loadedPages);
           return;
@@ -2010,11 +1930,9 @@
           sendRequest(
             window.api.method,
             window.api.url,
-            window.api.formatPayload(
-              path,
-              window.fileCache.get(`${path}/.password`),
-              { orderby }
-            ),
+            window.api.formatPayload(path, window.fileCache.get(`${path}/.password`), {
+              orderby,
+            }),
             window.api.headers,
             (data) => {
               try {
@@ -2029,7 +1947,7 @@
               }
               renderPage(data);
             },
-            fallback
+            fallback,
           );
         }
       }
@@ -2054,7 +1972,7 @@
             {
               skipToken: loadedPages.skipToken,
               orderby: loadedPages.orderby,
-            }
+            },
           ),
           window.api.headers,
           (data) => {
@@ -2074,15 +1992,13 @@
             loadedPages.loadingInProgress = false;
             renderPage(null, loadedPages, true);
           },
-          fallback
+          fallback,
         );
       }
 
       function uploadFiles() {
         const pageSize = 20;
-        const fileInput = Array.from(
-          document.getElementById('file-upload-input').files
-        );
+        const fileInput = Array.from(document.getElementById('file-upload-input').files);
         if (!fileInput.length) {
           return;
         }
@@ -2114,27 +2030,21 @@
           sendRequest(
             window.api.method,
             window.api.url + '?upload',
-            window.api.formatPayload(
-              odPath,
-              window.fileCache.get(`${odPath}/.password`),
-              {
-                files: currentPage,
-              }
-            ),
+            window.api.formatPayload(odPath, window.fileCache.get(`${odPath}/.password`), {
+              files: currentPage,
+            }),
             window.api.headers,
             (response) => {
               const uploadLinks = JSON.parse(response).files;
               Promise.all(
                 uploadLinks.map(({ remotePath, uploadUrl }) =>
                   uploadFileWithProgress(
-                    fileInput.find(
-                      (f) => `${odPath}/${relativePath(f)}` === remotePath
-                    ),
-                    uploadUrl
-                  )
-                )
+                    fileInput.find((f) => `${odPath}/${relativePath(f)}` === remotePath),
+                    uploadUrl,
+                  ),
+                ),
               ).finally(() => sendPage(pageIndex + 1));
-            }
+            },
           );
         }
 
@@ -2186,14 +2096,14 @@
             const response = await fetch(uploadUrl, {
               method: 'PUT',
               headers: {
-                'Content-Range': `bytes ${start}-${end - 1}/${fileSize}`
+                'Content-Range': `bytes ${start}-${end - 1}/${fileSize}`,
               },
               body: chunk,
             });
 
             if (response.ok) {
               uploadedBytes = end;
-              updateTotalProgress(); 
+              updateTotalProgress();
             }
             return response.status;
           }
@@ -2206,16 +2116,14 @@
               if (error === 416) {
                 await new Promise((resolve) =>
                   sendRequest('GET', uploadUrl, null, null, (data) => {
-                    start = parseInt(
-                      JSON.parse(data).nextExpectedRanges[0].split('-')[0]
-                    );
+                    start = parseInt(JSON.parse(data).nextExpectedRanges[0].split('-')[0]);
                     resolve();
-                  })
+                  }),
                 );
                 return true;
               } else {
                 await new Promise((resolve) =>
-                  setTimeout(resolve, Math.min((delayTime *= 2) * 1000, 32000))
+                  setTimeout(resolve, Math.min((delayTime *= 2) * 1000, 32000)),
                 );
                 try {
                   await uploadChunk(start);
@@ -2229,25 +2137,17 @@
           }
 
           function updateTotalProgress() {
-            const percentComplete = fileSize
-              ? Math.round((uploadedBytes / fileSize) * 100)
-              : 100;
+            const percentComplete = fileSize ? Math.round((uploadedBytes / fileSize) * 100) : 100;
             const progressBar =
-              '[' +
-              '='.repeat(percentComplete / 5) +
-              ' '.repeat(20 - percentComplete / 5) +
-              ']';
-            progressText.textContent = `${relativePath(
-              file
-            )}: ${progressBar} ${percentComplete}%`;
+              '[' + '='.repeat(percentComplete / 5) + ' '.repeat(20 - percentComplete / 5) + ']';
+            progressText.textContent = `${relativePath(file)}: ${progressBar} ${percentComplete}%`;
           }
         }
       }
 
       document.addEventListener('DOMContentLoaded', () => {
         document.title = window.GLOBAL_CONFIG.SITE_NAME;
-        document.querySelector('.site').textContent =
-          window.GLOBAL_CONFIG.SITE_NAME;
+        document.querySelector('.site').textContent = window.GLOBAL_CONFIG.SITE_NAME;
         window.api = {
           root: '/',
           url: window.GLOBAL_CONFIG.SCF_GATEWAY,
@@ -2274,8 +2174,7 @@
         window.fileCache = new Map();
         window.resourceCache = Object.create(null);
         const initialPath =
-          new URLSearchParams(window.location.search).get('path') ||
-          window.api.root;
+          new URLSearchParams(window.location.search).get('path') || window.api.root;
         fetchFileList(initialPath);
         addBackForwardListener();
         addFileUploadListener();
@@ -2383,9 +2282,7 @@
                 <option value="">上传文件</option>
                 <option value="1">上传文件夹</option>
               </select>
-              <label for="file-upload-input" class="file-upload-label"
-                >选择文件</label
-              >
+              <label for="file-upload-input" class="file-upload-label">选择文件</label>
               <input
                 class="file-upload-input"
                 type="file"

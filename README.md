@@ -26,6 +26,7 @@ git clone, edit wrangler.jsonc
 ```
 npm i wrangler
 npx wrangler deploy
+npx wrangler secret put WEBDAV
 ```
 
 ## 功能
@@ -42,9 +43,14 @@ npx wrangler deploy
 
 ## 说明
 
+### 加密
+
+- 方式1：在自定义的密码文件中填入 sha256 后的哈希值
+- 方式2：设置变量 `WEBDAV` 后，值为 `password` 的部分
+
 ### WEBDAV
 
-- 账号密码设置: 在 **变量和机密** 设置 **秘钥**，变量名为 `WEBDAV`, 形如 `username:password`
+- 账号密码设置: 在 **变量和机密** 设置 **秘钥**，变量名为 `WEBDAV`, 形如 `username:password`；或者使用 `npx wrangler secret put WEBDAV`
 - 文件上传限制: FreePlan 100MB, BusinessPlan 200MB, EnterprisePlan 500MB
 
 ### 预览
