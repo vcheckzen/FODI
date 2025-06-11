@@ -23,7 +23,9 @@ const defaultConfig = {
       clientSecret: 'ZudGl-p.m=LMmr3VrKgAyOf-WevB3p50',
     },
   },
-  reverseProxyURL: 'https://www.reverseproxy.com',
+  // Put the reverse proxy URL to .env file
+  // e.g. REACT_APP_REVERSE_PROXY_URL=https://your-reverse-proxy.com
+  reverseProxyURL: process.env.REACT_APP_REVERSE_PROXY_URL,
 };
 
 function App() {
