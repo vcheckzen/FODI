@@ -9,7 +9,7 @@ export async function cacheRequest(
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Response> {
-  const CACHE_TTLMAP = env.PROTECTED.CACHE_TTLMAP;
+  const CACHE_TTLMAP = env.PROTECTED?.CACHE_TTLMAP || PROTECTED.CACHE_TTLMAP;
   const requestMethod = request.method as keyof typeof CACHE_TTLMAP;
   if (CACHE_TTLMAP[requestMethod]) {
     const keyGenerators: {

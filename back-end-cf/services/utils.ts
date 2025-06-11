@@ -7,12 +7,12 @@ import {
 } from '../types/apiType';
 
 export async function fetchAccessToken(
-  OAUTH: Env['OAUTH'],
-  FODI_CACHE?: Env['FODI_CACHE'],
+  envOauth: Env['OAUTH'],
+  envFodi?: Env['FODI_CACHE'],
 ): Promise<string> {
-  let refreshToken = OAUTH.refreshToken;
-  if (FODI_CACHE !== undefined) {
-    const tokenData = await FODI_CACHE.get('token_data');
+  let refreshToken = envOauth.refreshToken;
+  if (envFodi !== undefined) {
+    const tokenData = await envFodi.get('token_data');
     const cache = tokenData ? JSON.parse(tokenData) : null;
     if (cache?.refresh_token) {
       const passedMilis = Date.now() - cache.save_time;
@@ -26,19 +26,19 @@ export async function fetchAccessToken(
     }
   }
 
-  const url = OAUTH['oauthUrl'] + 'token';
+  const url = envOauth['oauthUrl'] + 'token';
   const data = {
-    client_id: OAUTH['clientId'],
-    client_secret: OAUTH['clientSecret'],
+    client_id: envOauth['clientId'],
+    client_secret: envOauth['clientSecret'],
     grant_type: 'refresh_token',
     requested_token_use: 'on_behalf_of',
     refresh_token: refreshToken,
   };
   const result = await postFormData<AccessTokenResponse>(url, data);
 
-  if (FODI_CACHE !== undefined && result?.refresh_token) {
+  if (envFodi !== undefined && result?.refresh_token) {
     result.save_time = Date.now();
-    await FODI_CACHE.put('token_data', JSON.stringify(result));
+    await envFodi.put('token_data', JSON.stringify(result));
   }
   return result.access_token;
 }

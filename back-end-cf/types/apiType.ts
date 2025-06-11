@@ -7,8 +7,9 @@ declare global {
   }
 }
 
-export const OAUTH = globalEnv.OAUTH;
-export const PROTECTED = globalEnv.PROTECTED;
+const localEnv = {} as Env;
+export const OAUTH = globalEnv.OAUTH || localEnv.OAUTH;
+export const PROTECTED = globalEnv.PROTECTED || localEnv.PROTECTED;
 export const FODI_CACHE = globalEnv.FODI_CACHE;
 
 export interface AccessTokenResponse {
