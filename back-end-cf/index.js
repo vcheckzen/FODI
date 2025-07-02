@@ -276,13 +276,14 @@ function createResourceXml(encodedParent, resource, isDirectory) {
 
 // back-end-cf/services/davMethod.ts
 async function handlePropfind(filePath) {
-  const { path: fetchPath } = davPathSplit(filePath);
+  const { path: fetchPath, parent } = davPathSplit(filePath);
   const allFiles = [];
   const skipTokens = [];
   const currentTokens = await fetchSaveSkipToken(fetchPath);
   const uriPath =
     fetchPath === `/` ? PROTECTED.EXPOSE_PATH : `:${PROTECTED.EXPOSE_PATH}${fetchPath}:`;
-  const baseUrl = `/me/drive/root${uriPath}/children?select=name,size,lastModifiedDateTime,file&top=1000`;
+  const select = '?select=name,size,lastModifiedDateTime,file';
+  const baseUrl = `/me/drive/root${uriPath}/children${select}&top=1000`;
   const createListRequest = (id, skipToken) => ({
     id,
     method: 'GET',
@@ -295,7 +296,7 @@ async function handlePropfind(filePath) {
       {
         id: '1',
         method: 'GET',
-        url: `/me/drive/root${uriPath}?select=name,size,lastModifiedDateTime,file`,
+        url: `/me/drive/root${uriPath}${select}`,
         headers: { 'Content-Type': 'application/json' },
         body: {},
       },
@@ -304,6 +305,7 @@ async function handlePropfind(filePath) {
     ],
   };
   const batchResult = await fetchBatchRes(batchRequest);
+  batchResult.responses.sort((a, b) => parseInt(a.id) - parseInt(b.id));
   for (const resp of batchResult.responses) {
     if (resp.status !== 200) {
       return {
@@ -329,7 +331,8 @@ async function handlePropfind(filePath) {
     }
   }
   await fetchSaveSkipToken(fetchPath, skipTokens);
-  const responseXML = createPropfindXml(fetchPath, allFiles);
+  const propfindPath = allFiles[0]?.file ? parent : fetchPath;
+  const responseXML = createPropfindXml(propfindPath, allFiles);
   return { davXml: responseXML, davStatus: 207 };
 }
 async function handleCopyMove(filePath, method, destination) {
@@ -347,15 +350,12 @@ async function handleCopyMove(filePath, method, destination) {
   const resp = await fetchWithAuth(uri, {
     method: method === 'COPY' ? 'POST' : 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(
-      newParent === parent
-        ? { name: newTail }
-        : {
-            parentReference: {
-              path: `/drive/root:${PROTECTED.EXPOSE_PATH}${newParent}`,
-            },
-          },
-    ),
+    body: JSON.stringify({
+      name: newTail,
+      parentReference: {
+        path: `/drive/root:${PROTECTED.EXPOSE_PATH}${newParent}`,
+      },
+    }),
   });
   const davStatus = resp.status === 200 ? 201 : resp.status;
   const responseXML =
@@ -375,13 +375,13 @@ async function handleHead(filePath) {
   const uri = [
     OAUTH.apiUrl,
     `:${encodeURIComponent(PROTECTED.EXPOSE_PATH + davPathSplit(filePath).path)}`,
-    '?select=size,file,lastModifiedDateTime',
+    '?select=size,file,folder,lastModifiedDateTime',
   ].join('');
   const resp = await fetchWithAuth(uri);
   const data = await resp.json();
   return {
     davXml: null,
-    davStatus: data?.file ? 200 : 403,
+    davStatus: data?.folder ? 403 : resp.status,
     davHeaders: data?.file
       ? {
           'Content-Length': data.size.toString(),
@@ -511,6 +511,7 @@ async function handlePostRequest(request, env, requestUrl) {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'max-age=3600',
     'Content-Type': 'application/json; charset=utf-8',
+    'Last-Modified': /* @__PURE__ */ new Date().toUTCString(),
   };
   const body = await request.json();
   const requestPath = decodeURIComponent(body.path || '');
