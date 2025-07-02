@@ -30,6 +30,9 @@ export interface DriveItem extends Resource {
   file?: {
     mimeType: string;
   };
+  folder?: {
+    childCount: number;
+  };
   '@odata.nextLink'?: string;
   '@microsoft.graph.downloadUrl'?: string;
   error?: string;

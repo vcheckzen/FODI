@@ -11,6 +11,7 @@ export async function handlePostRequest(
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'max-age=3600',
     'Content-Type': 'application/json; charset=utf-8',
+    'Last-Modified': new Date().toUTCString(),
   };
   const body: PostPayload = await request.json();
   const requestPath = decodeURIComponent(body.path || '');
