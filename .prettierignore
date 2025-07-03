@@ -1,6 +1,6 @@
 back-end-py
 back-end-deployment-helper
- 
+
 wrangler.jsonc
 dev.jsonc
 worker.d.ts
