@@ -6,29 +6,6 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 
 - [DEMO](https://logi.im/fodi.html)
 
-## 安装
-
-### 复制安装
-
-- [FODI Deployment Helper](https://logi.im/fodi/get-code/)
-- [在 Cloudflare 部署 FODI 后端](https://logi.im/back-end/fodi-on-cloudflare.html)
-
-### 导入安装
-
-1. Fork repository | Fork 代码仓库
-2. Edit `wrangler.jsonc` | 编辑 `wrangler.jsonc`
-3. [Import a repository | 导入存储库](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create)
-
-### 本地安装
-
-git clone, edit wrangler.jsonc
-
-```
-npm i wrangler
-npx wrangler deploy
-npx wrangler secret put WEBDAV
-```
-
 ## 功能
 
 - 指定展示路径
@@ -41,12 +18,47 @@ npx wrangler secret put WEBDAV
 - 功能简单，界面简陋
 - 不支持巨硬家的 IE 和 UWP 版 EDGE 浏览器
 
-## 说明
+## 部署
+
+### 复制粘贴
+
+- [在 Cloudflare 部署 FODI 后端](https://logi.im/back-end/fodi-on-cloudflare.html)
+
+### 在线导入
+
+1. [把项目导入到自己 Github 的私有仓库](https://docs.github.com/en/migrations/importing-source-code/using-github-importer/importing-a-repository-with-github-importer#importing-a-repository-with-github-importer)
+2. 编辑 `wrangler.jsonc` 并提交修改
+3. [从 Cloudflare 控制台导入你的 Github 仓库](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create)
+
+<details>
+    <summary>或者</summary>
+
+### 命令推送
+
+```sh
+git clone https://github.com/vcheckzen/FODI.git
+cd FODI
+# edit wrangler.jsonc, then
+npm i wrangler
+npx wrangler deploy
+npx wrangler secret put WEBDAV
+```
+
+</details>
+
+### EdgeOne 加速
+
+[![使用 EdgeOne Pages 部署](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Fvcheckzen%2FFODI%2Ftree%2Fmaster%2Ffront-end)
+
+<details>
+    <summary>其它事项</summary>
+
+## 配置
 
 ### 加密
 
-- 方式1：在自定义的密码文件中填入 sha256 后的哈希值
-- 方式2：设置变量 `WEBDAV` 后，值为 `password` 的部分
+- 方式 1：在自定义的密码文件中填入 sha256 后的哈希值
+- 方式 2：设置变量 `WEBDAV` 后，值为 `password` 的部分
 
 ### WEBDAV
 
@@ -73,12 +85,4 @@ npx wrangler secret put WEBDAV
 
 - 支持上传（在上传目录创建 `.upload` 文件）
 
-### 2019.12.23
-
-- 进一步提升速度
-- 增加 Cloudflare Workers 后端
-
-### 2019.12.07
-
-- 进一步提升速度
-- 增加 Python3.6 后端
+</details>
