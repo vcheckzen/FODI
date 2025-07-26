@@ -1,5 +1,5 @@
 import { minify } from 'html-minifier-terser';
-import { fs } from 'fs';
+import fs from 'fs';
 
 const input = fs.readFileSync('front-end/index.html', 'utf8');
 
