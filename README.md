@@ -23,6 +23,7 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 ### 复制粘贴
 
 - [在 Cloudflare 部署 FODI 后端](https://logi.im/back-end/fodi-on-cloudflare.html)
+- [FODI Deployment Helper](https://logi.im/fodi/get-code)
 
 ### 在线导入
 
@@ -72,7 +73,7 @@ npx wrangler secret put WEBDAV
 
 ### 下载
 
-- `return downloadFile(file, requestUrl.searchParams.get('format'), true);` 可加上第三个参数让 worker 代理
+- 通过 `PROXY_KEYWORD` 访问可让 worker 代理
 - 访问 `https://example.com/a.html?format=` 可添加转换的目标格式，[支持转换格式](https://learn.microsoft.com/zh-cn/onedrive/developer/rest-api/api/driveitem_get_content_format?view=odsp-graph-online#format-options)
 
 ## 更新
