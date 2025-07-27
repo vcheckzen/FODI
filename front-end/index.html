@@ -846,33 +846,57 @@
         if (!elem.querySelector('.sk-folding-cube')) {
           elem.innerHTML = '';
           elem.appendChild(
-            document.getElementById('loading-wrapper-template').content.cloneNode(true),
+            document.getElementById('loading-animation-template').content.cloneNode(true),
           );
         }
       }
 
-      function switchGlobalLoadingIndicator(msg) {
-        const loadingWrapper = document.querySelector('.loading-wrapper');
+      function createGlobalLoadingIndicator(msg, timeout) {
+        const parent = document.querySelector('.loading-indicator');
+        const fragment = document.getElementById('loading-wrapper-template').content.cloneNode(true);
+        const loadingWrapper = fragment.firstElementChild;
+        let alive = true;
 
-        // Now loading is displaying, closing it.
-        if (loadingWrapper.dataset.hidden === '0') {
-          if (msg) {
-            loadingWrapper.querySelector('.loading').innerText = msg;
-            setTimeout(() => (loadingWrapper.dataset.hidden = '1'), 3000);
-          } else {
-            loadingWrapper.dataset.hidden = '1';
+        const text = (txt) => {
+          if (!alive) {
+            return;
           }
-          return;
+          loadingWrapper.querySelector('.loading').innerText = txt;
+        }
+        const remove = () => {
+          if (!alive) {
+            return;
+          }
+          alive = false;
+          try {
+            parent.removeChild(loadingWrapper);
+          } catch (error) {
+          }
+        };
+        const close = (txt, timeout) => {
+          if (!alive) {
+            return;
+          }
+          if (txt) {
+            text(txt);
+            setTimeout(remove, timeout || 3000);
+          } else {
+            remove();
+          }
+        }
+        
+        text(msg || 'Loading...');
+        loadingWrapper.dataset.hidden = '0';
+        parent.appendChild(fragment);
+        
+        if (timeout && typeof timeout === 'number') {
+          setTimeout(close, timeout);
         }
 
-        msg = msg || 'Loading...';
-        loadingWrapper.querySelector('.loading').innerText = msg;
-        loadingWrapper.dataset.hidden = '0';
+        return {text, close};
       }
 
       function renderPage(data, cache, fromLoadNextPage) {
-        switchGlobalLoadingIndicator();
-
         if (!fromLoadNextPage) {
           document.getElementById('back-to-top').click();
         }
@@ -1263,7 +1287,7 @@
             null,
             null,
             (text) => render(text, path),
-            () => window.fileCache.set(path, false),
+            () => window.fileCache.delete(path),
           );
         }
       }
@@ -1817,7 +1841,7 @@
                 window.fileCache.set(path, files);
                 preCache(files, level + 1);
               },
-              () => window.fileCache.set(path, false),
+              () => window.fileCache.delete(path),
             );
           } else if (file.name.endsWith('.md')) {
             // console.log('caching ' + path + ', level ' + level);
@@ -1828,7 +1852,7 @@
               null,
               null,
               (text) => window.fileCache.set(path, text),
-              () => window.fileCache.set(path, false),
+              () => window.fileCache.delete(path),
             );
           }
         });
@@ -1857,7 +1881,7 @@
                   window.fileCache.set(nextPath, files);
                   preCache(files, 0);
                 },
-                () => window.fileCache.set(nextPath, false),
+                () => window.fileCache.delete(nextPath),
               );
             } else if (pathCache.files) {
               preCacheCheck(pathCache, nextPath);
@@ -1872,7 +1896,7 @@
                 null,
                 null,
                 (text) => window.fileCache.set(nextPath, text),
-                () => window.fileCache.set(nextPath, false),
+                () => window.fileCache.delete(nextPath),
               );
             }
           }
@@ -1890,6 +1914,11 @@
        */
       function sortList(clickedElem) {
         const loadedPages = window.fileCache.get(window.backForwardCache.current);
+        if (!loadedPages) {
+          createGlobalLoadingIndicator('No data!', 3000);
+          return;
+        }
+
         const sortField = clickedElem.className;
         const sortOrder = clickedElem.querySelector('i').className.includes('up') ? 'desc' : 'asc';
         const reverseFactor = sortOrder === 'asc' ? 1 : -1;
@@ -1904,14 +1933,12 @@
           renderFileList(loadedPages);
           return;
         }
-        window.fileCache.set(loadedPages.parent, false);
+        window.fileCache.delete(loadedPages.parent);
         fetchFileList(loadedPages.parent, loadedPages.orderby);
       }
 
       function fetchFileList(path, orderby) {
         // console.log('fetching ' + path);
-        switchGlobalLoadingIndicator();
-
         window.backForwardCache.preview = false;
         window.backForwardCache.current = path;
 
@@ -1922,9 +1949,10 @@
           renderPage(null, cache);
           preCacheCheck(cache, path);
         } else {
+          const indicator = createGlobalLoadingIndicator();
           const fallback = () => {
-            window.fileCache.set(path, false);
-            switchGlobalLoadingIndicator('Failed!');
+            window.fileCache.delete(path);
+            indicator.close('Failed!');
           };
           window.fileCache.set(path, true);
           sendRequest(
@@ -1945,6 +1973,7 @@
                 fallback();
                 return;
               }
+              indicator.close();
               renderPage(data);
             },
             fallback,
@@ -1957,10 +1986,10 @@
           return;
         }
 
-        switchGlobalLoadingIndicator('Loading next page...');
+        const indicator = createGlobalLoadingIndicator('Loading next page...');
         loadedPages.loadingInProgress = true;
         const fallback = () => {
-          switchGlobalLoadingIndicator('Failed!');
+          indicator.close('Failed!');
           loadedPages.loadingInProgress = false;
         };
         sendRequest(
@@ -1990,6 +2019,7 @@
             loadedPages.files = loadedPages.files.concat(data.files);
             loadedPages.skipToken = data.skipToken;
             loadedPages.loadingInProgress = false;
+            indicator.close();
             renderPage(null, loadedPages, true);
           },
           fallback,
@@ -2206,7 +2236,7 @@
         </div>
       </div>
     </template>
-    <template id="loading-wrapper-template">
+    <template id="loading-animation-template">
       <div class="sk-folding-cube">
         <div class="sk-cube1 sk-cube"></div>
         <div class="sk-cube2 sk-cube"></div>
@@ -2214,9 +2244,12 @@
         <div class="sk-cube3 sk-cube"></div>
       </div>
     </template>
-    <div class="loading-wrapper">
-      <div class="loading">Loading...</div>
-    </div>
+    <template id="loading-wrapper-template">
+      <div class="loading-wrapper" data-hidden="1">
+        <div class="loading">Loading...</div>
+      </div>
+    </template>
+    <div class="loading-indicator"></div>
     <div class="header-wrapper">
       <div class="header">
         <i id="arrow-back" disabled class="zmdi zmdi-arrow-left logo"></i>
