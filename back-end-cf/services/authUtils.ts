@@ -1,6 +1,6 @@
-import { PROTECTED } from '../types/apiType';
+import { runtimeEnv } from '../types/apiType';
 import { sha256 } from './utils';
-import { downloadFile } from '../handlers/file-handler';
+import { downloadFile } from './fileMethods';
 
 export async function authenticate(
   path: string,
@@ -18,12 +18,12 @@ export async function authenticate(
     }
 
     const pathsToTry = [path];
-    if (path !== '/' && path.split('/').length <= PROTECTED.PROTECTED_LAYERS) {
+    if (path !== '/' && path.split('/').length <= runtimeEnv.PROTECTED.PROTECTED_LAYERS) {
       pathsToTry.push('/');
     }
     const downloads = await Promise.all(
       pathsToTry.map((p) =>
-        downloadFile(`${p}/${PROTECTED.PASSWD_FILENAME}`, true).then((resp) =>
+        downloadFile(`${p}/${runtimeEnv.PROTECTED.PASSWD_FILENAME}`, true).then((resp) =>
           resp.status === 404 ? undefined : resp.text(),
         ),
       ),

@@ -3,6 +3,14 @@
   "main": "back-end-cf/index.ts",
   "compatibility_date": "2025-04-10",
   "preview_urls": false,
+  "assets": {
+    "directory": "./front-end/",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "build": {
+    "command": "npm run build"
+  },
   "kv_namespaces": [
     {
       "binding": "FODI_CACHE",
@@ -11,19 +19,9 @@
     }
   ],
   "vars": {
-    // !!! Warning | 警告 !!!
-    // https://dash.cloudflare.com/?to=/:account/workers/services/view/fodi/production/settings#variables
-    // If comment contains !!!<~ tag, modify in Cloudflare Dashboard | 含 !!!<~ 标记的配置项请在Cloudflare控制台修改
-    // ------------------------------------------------------
-    // Optional Feature | 可选功能
-    // 1. WEBDAV
-    // Navigate to the DashBoard to create a new secret. Name it WEBDAV, with its value formatted as username:password
-    // 前往控制台新建秘钥，名称为 WEBDAV ，值形如 用户名:密码
-    // ------------------------------------------------------ 
     // If OneDrive is not Microsoft-operated (e.g. 21Vianet), modify these settings
     // 世纪互联需修改下列参数
     "OAUTH": {
-      "refreshToken": "", // !!!<~ https://logi.im/fodi/get-code/
       "clientId": "78d4dc35-7e46-42c6-9023-2d39314433a5",
       "clientSecret": "ZudGl-p.m=LMmr3VrKgAyOf-WevB3p50",
       "redirectUri": "http://localhost/onedrive-login",
@@ -31,7 +29,7 @@
       "oauthUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/",
       "apiHost": "https://graph.microsoft.com",
       "apiUrl": "https://graph.microsoft.com/v1.0/me/drive/root",
-      "scope": "https://graph.microsoft.com/Files.ReadWrite.All offline_access"
+      "scope": "offline_access User.Read Files.ReadWrite.All"
     },
     "PROTECTED": {
       // Exposed root path (empty=full drive), otherwise fill in like '/media/music'
@@ -43,9 +41,9 @@
       // Directory protection depth (-1=disabled) | 目录保护层数（-1=关闭）
       // Example: 2 protects /path and /path/subdir | 示例：2 保护 /路径 及其子目录
       "PROTECTED_LAYERS": -1,
-      // proxy keyword, if set you can use worker to proxy download file like example.com/fodi/yourfile.txt
-      // 代理关键字，设置后可以使用 worker 代理下载文件，如 example.com/fodi/yourfile.txt
-      "PROXY_KEYWORD": "fodi",
+      // proxy keyword, if set you can use worker to proxy download file like example.com/keyword/yourfile.txt
+      // 代理关键字，设置后可以使用 worker 代理下载文件，如 example.com/keyword/yourfile.txt
+      "PROXY_KEYWORD": "",
       // Method-based cache TTL (seconds) | 请求方法缓存时长（秒）
       // POST=300 caches success for 5 minutes, during this period, the OneDrive API will not be called again
       // POST=300 缓存成功结果5分钟，期间不再调用OneDrive API
@@ -55,7 +53,15 @@
       }
     }
   },
+  // "routes": [
+  //   {
+  //     "pattern": "subdomain.example.com/*",
+  //     "zone_name": "example.com"
+  //   }
+  // ],
   "triggers": {
-    "crons": ["0 0 1 * *"]
+    "crons": [
+      "0 0 1 * *"
+    ]
   }
 }
