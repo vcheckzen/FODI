@@ -12,6 +12,6 @@ minify(input, {
   useShortDoctype: true,
   removeEmptyAttributes: true,
 }).then((minified) => {
-  fs.writeFileSync('front-end/index.min.html', minified);
+  fs.writeFileSync('front-end/index.html', minified);
   console.log('Minification complete!');
 });

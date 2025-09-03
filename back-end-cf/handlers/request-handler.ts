@@ -1,7 +1,6 @@
-import { PROTECTED } from '../types/apiType';
 import { sha256 } from '../services/utils';
 import { handleWebdav } from './dav-handler';
-import { downloadFile } from './file-handler';
+import { handleGetRequest } from './get-handler';
 import { handlePostRequest } from './post-handler';
 
 export async function cacheRequest(
@@ -9,7 +8,7 @@ export async function cacheRequest(
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Response> {
-  const CACHE_TTLMAP = env.PROTECTED?.CACHE_TTLMAP || PROTECTED.CACHE_TTLMAP;
+  const CACHE_TTLMAP = env.PROTECTED.CACHE_TTLMAP;
   const requestMethod = request.method as keyof typeof CACHE_TTLMAP;
   if (CACHE_TTLMAP[requestMethod]) {
     const keyGenerators: {
@@ -36,6 +35,7 @@ export async function cacheRequest(
       response = await handleRequest(request, env);
 
       if ([200, 302].includes(response.status)) {
+        response.headers.set('Last-Modified', new Date().toUTCString());
         ctx.waitUntil(cache.put(cacheKey, response.clone()));
       }
     }
@@ -47,12 +47,6 @@ export async function cacheRequest(
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const requestUrl = new URL(request.url);
-  const proxyDownload =
-    requestUrl.searchParams.has(PROTECTED.PROXY_KEYWORD) ||
-    requestUrl.pathname.startsWith(`/${PROTECTED.PROXY_KEYWORD}/`);
-  const file =
-    requestUrl.searchParams.get('file') ||
-    decodeURIComponent(requestUrl.pathname.replace(`/${PROTECTED.PROXY_KEYWORD}/`, '/'));
 
   const handlers: {
     [key: string]: () => Promise<Response> | Response;
@@ -69,29 +63,21 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         },
       });
     },
-    // Download a file
-    GET: () => {
-      const fileName = file.split('/').pop();
-      if (!fileName) return new Response('Bad Request', { status: 400 });
-      if (fileName.toLowerCase() === PROTECTED.PASSWD_FILENAME.toLowerCase()) {
-        return new Response('Access Denied', { status: 403 });
-      }
-      return downloadFile(file, proxyDownload, requestUrl.searchParams.get('format'));
-    },
-    // Upload and List files
+    // Download a file or display web
+    GET: () => handleGetRequest(request, env, requestUrl),
+    // Upload or List files
     POST: () => handlePostRequest(request, env, requestUrl),
   };
 
   const handler = handlers[request.method];
-
   if (handler) {
     return handler();
   }
 
   const davMethods = ['COPY', 'DELETE', 'HEAD', 'MKCOL', 'MOVE', 'PROPFIND', 'PUT'];
   if (davMethods.includes(request.method)) {
-    return handleWebdav(file, request, env.WEBDAV);
-  } else {
-    return new Response(null, { status: 405 });
+    return handleWebdav(request, env, requestUrl);
   }
+
+  return new Response(null, { status: 405 });
 }

@@ -1,4 +1,4 @@
-import { env as globalEnv } from 'cloudflare:workers';
+import { env as workerEnv } from 'cloudflare:workers';
 
 declare global {
   interface Env {
@@ -7,15 +7,18 @@ declare global {
   }
 }
 
-const localEnv = {} as Env;
-export const OAUTH = globalEnv.OAUTH || localEnv.OAUTH;
-export const PROTECTED = globalEnv.PROTECTED || localEnv.PROTECTED;
-export const FODI_CACHE = globalEnv.FODI_CACHE;
+export const runtimeEnv = workerEnv;
 
-export interface AccessTokenResponse {
+export interface TokenResponse {
+  token_type: string;
+  scope: string;
+  expires_in: number;
+  ext_expires_in: number;
   access_token: string;
   refresh_token: string;
-  expires_in: number;
+}
+
+export interface AccessTokenResponse extends TokenResponse {
   save_time: number;
 }
 
