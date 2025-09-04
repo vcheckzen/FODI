@@ -9,10 +9,29 @@
   dependencies:
     "@ctrl/tinycolor" "^3.4.0"
 
+"@ant-design/colors@^7.0.0":
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/@ant-design/colors/-/colors-7.2.1.tgz#3bbc1c6c18550020d1622a0067ff03492318df98"
+  integrity sha512-lCHDcEzieu4GA3n8ELeZ5VQ8pKQAWcGGLRTQ50aQM2iqPpq2evTxER84jfdPvsPAtEcZ7m44NI45edFMo8oOYQ==
+  dependencies:
+    "@ant-design/fast-color" "^2.0.6"
+
+"@ant-design/fast-color@^2.0.6":
+  version "2.0.6"
+  resolved "https://registry.yarnpkg.com/@ant-design/fast-color/-/fast-color-2.0.6.tgz#ab4d4455c1542c9017d367c2fa8ca3e4215d0ba2"
+  integrity sha512-y2217gk4NqL35giHl72o6Zzqji9O7vHh9YmhUVkPtAOpoTCH4uWxo/pr4VE8t0+ChEPs0qo4eJRC5Q1eXWo3vA==
+  dependencies:
+    "@babel/runtime" "^7.24.7"
+
 "@ant-design/icons-svg@^4.2.1":
   version "4.2.1"
   resolved "https://mirrors.tencent.com/npm/@ant-design%2ficons-svg/-/icons-svg-4.2.1.tgz#8630da8eb4471a4aabdaed7d1ff6a97dcb2cf05a"
   integrity sha512-EB0iwlKDGpG93hW8f85CTJTs4SvMX7tt5ceupvhALp1IF44SeUFOMhKUOYqpsoYWQKAOuTRDMqn75rEaKDp0Xw==
+
+"@ant-design/icons-svg@^4.4.0":
+  version "4.4.2"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons-svg/-/icons-svg-4.4.2.tgz#ed2be7fb4d82ac7e1d45a54a5b06d6cecf8be6f6"
+  integrity sha512-vHbT+zJEVzllwP+CM+ul7reTEfBR0vgxFe7+lREAsAA7YGsYpboiq2sQNeQeRvh09GfQgs/GyFEvZpJ9cLXpXA==
 
 "@ant-design/icons@^4.7.0":
   version "4.7.0"
@@ -24,6 +43,17 @@
     "@babel/runtime" "^7.11.2"
     classnames "^2.2.6"
     rc-util "^5.9.4"
+
+"@ant-design/icons@^5.4.0":
+  version "5.6.1"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-5.6.1.tgz#7290fcdc3d96ff3fca793ed399053cd29ad5dbd3"
+  integrity sha512-0/xS39c91WjPAZOWsvi1//zjx6kAp4kxWwctR6kuU6p133w8RU0D2dSCvZC19uQyharg/sAvYxGYWl01BbZZfg==
+  dependencies:
+    "@ant-design/colors" "^7.0.0"
+    "@ant-design/icons-svg" "^4.4.0"
+    "@babel/runtime" "^7.24.8"
+    classnames "^2.2.6"
+    rc-util "^5.31.1"
 
 "@ant-design/react-slick@~0.28.1":
   version "0.28.4"
@@ -1176,6 +1206,11 @@
   integrity sha512-WBwekcqacdY2e9AF/Q7WLFUWmdJGJTkbjqTjoMDgXkVZ3ZRUvOPsLb5KdwISoQVsbP+DQzVZW4Zhci0DvpbNTQ==
   dependencies:
     regenerator-runtime "^0.13.4"
+
+"@babel/runtime@^7.18.3", "@babel/runtime@^7.24.7", "@babel/runtime@^7.24.8":
+  version "7.28.3"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.28.3.tgz#75c5034b55ba868121668be5d5bb31cc64e6e61a"
+  integrity sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==
 
 "@babel/template@^7.16.0", "@babel/template@^7.4.0", "@babel/template@^7.8.6":
   version "7.16.0"
@@ -2730,9 +2765,9 @@ boolbase@^1.0.0, boolbase@~1.0.0:
   integrity sha1-aN/1++YMUes3cl6p4+0xDcwed24=
 
 brace-expansion@^1.1.7:
-  version "1.1.11"
-  resolved "http://mirrors.tencent.com/npm/brace-expansion/-/brace-expansion-1.1.11.tgz#3c7fcbf529d87226f3d2f52b966ff5271eb441dd"
-  integrity sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==
+  version "1.1.12"
+  resolved "https://registry.yarnpkg.com/brace-expansion/-/brace-expansion-1.1.12.tgz#ab9b454466e5a8cc3a187beaad580412a9c5b843"
+  integrity sha512-9T9UjW3r0UW5c1Q7GTwllptXwhvYmEzFhzMfZ9H7FQWt+uZePjZPjBP/W1ZEyZ1twGWom5/56TF4lPcqjnDHcg==
   dependencies:
     balanced-match "^1.0.0"
     concat-map "0.0.1"
@@ -9318,6 +9353,14 @@ rc-util@^5.0.0, rc-util@^5.0.1, rc-util@^5.0.6, rc-util@^5.0.7, rc-util@^5.12.0,
     react-is "^16.12.0"
     shallowequal "^1.1.0"
 
+rc-util@^5.31.1:
+  version "5.44.4"
+  resolved "https://registry.yarnpkg.com/rc-util/-/rc-util-5.44.4.tgz#89ee9037683cca01cd60f1a6bbda761457dd6ba5"
+  integrity sha512-resueRJzmHG9Q6rI/DfK6Kdv9/Lfls05vzMs1Sk3M2P+3cJa+MakaZyWY8IPfehVuhPJFKrIY1IK4GqbiaiY5w==
+  dependencies:
+    "@babel/runtime" "^7.18.3"
+    react-is "^18.2.0"
+
 rc-virtual-list@^3.2.0, rc-virtual-list@^3.4.1:
   version "3.4.2"
   resolved "https://mirrors.tencent.com/npm/rc-virtual-list/-/rc-virtual-list-3.4.2.tgz#1078327aa7230b5e456d679ed2ce99f3c036ebd1"
@@ -9393,6 +9436,11 @@ react-is@^17.0.1:
   version "17.0.2"
   resolved "https://mirrors.tencent.com/npm/react-is/-/react-is-17.0.2.tgz#e691d4a8e9c789365655539ab372762b0efb54f0"
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
+
+react-is@^18.2.0:
+  version "18.3.1"
+  resolved "https://registry.yarnpkg.com/react-is/-/react-is-18.3.1.tgz#e83557dc12eae63a99e003a46388b1dcbb44db7e"
+  integrity sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==
 
 react-scripts@3.4.3:
   version "3.4.3"
