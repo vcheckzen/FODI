@@ -1,14 +1,14 @@
 import { AccessTokenResponse } from '../types/apiType';
 import { fetchToken } from './utils';
 
-export async function renderDeployHtml(env: Env) {
+export async function renderDeployHtml(env: Env, requestUrl: URL) {
   if (!env.FODI_CACHE) {
     throw new Error('KV is not available');
   }
 
   const tokenData = await env.FODI_CACHE.get('token_data');
   if (tokenData) {
-    return new Response('FODI is already deployed', { status: 400 });
+    return Response.redirect(requestUrl.origin);
   }
 
   const authUrl = [
@@ -34,7 +34,7 @@ export async function renderDeployHtml(env: Env) {
     </a>
   </p>
   <p>授权成功后，浏览器会跳转到新网址，请复制完整地址并粘贴到下方表单。</p>
-  <form action="?deployReturn" method="post">
+  <form action="/deployreturn" method="post">
     <label for="codeUrl">浏览器跳转地址：</label><br>
     <input type="text" id="codeUrl" name="codeUrl" style="width:100%;padding:8px;margin:8px 0;" required />
     <br>
@@ -47,14 +47,14 @@ export async function renderDeployHtml(env: Env) {
   return new Response(returnHtml, { headers: { 'Content-Type': 'text/html' } });
 }
 
-export async function saveDeployData(env: Env, codeUrl: string) {
+export async function saveDeployData(env: Env, requestUrl: URL, codeUrl: string) {
   if (!env.FODI_CACHE) {
     throw new Error('KV is not available');
   }
 
   const tokenData = await env.FODI_CACHE.get('token_data');
   if (tokenData) {
-    return new Response('FODI is already deployed', { status: 400 });
+    return Response.redirect(requestUrl.origin);
   }
 
   const urlObj = new URL(codeUrl);
@@ -70,5 +70,5 @@ export async function saveDeployData(env: Env, codeUrl: string) {
   (result as AccessTokenResponse).save_time = Date.now();
   await env.FODI_CACHE.put('token_data', JSON.stringify(result));
 
-  return new Response('Refresh token saved successfully', { status: 200 });
+  return Response.redirect(requestUrl.origin);
 }

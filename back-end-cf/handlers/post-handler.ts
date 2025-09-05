@@ -9,10 +9,10 @@ export async function handlePostRequest(
   requestUrl: URL,
 ): Promise<Response> {
   // save deploy data
-  if (requestUrl.searchParams.has('deployReturn')) {
+  if (requestUrl.pathname === '/deployreturn') {
     const codeUrlEntry = (await request.formData()).get('codeUrl');
     const codeUrl: string = typeof codeUrlEntry === 'string' ? codeUrlEntry : '';
-    return saveDeployData(env, codeUrl);
+    return saveDeployData(env, requestUrl, codeUrl);
   }
 
   const returnHeaders = {

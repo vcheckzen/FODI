@@ -19,7 +19,7 @@ export async function fetchFiles(
 
   const pageRes: DriveItem = await (await fetchWithAuth(uri)).json();
   if (pageRes.error) {
-    throw new Error(pageRes.error);
+    throw new Error(JSON.stringify(pageRes.error));
   }
 
   skipToken = pageRes['@odata.nextLink']
@@ -88,8 +88,5 @@ export async function downloadFile(filePath: string, stream?: boolean, format?: 
   }
 
   // direct download
-  return new Response(null, {
-    status: 302,
-    headers: { Location: downloadUrl },
-  });
+  return Response.redirect(downloadUrl);
 }

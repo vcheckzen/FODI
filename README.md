@@ -23,14 +23,14 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 ### 一键部署
 
 > [!CAUTION]
-> Supported only for personal accounts; use alternatives for other types account. Creating your own app is recommended.
+> Supported only for personal accounts; use alternatives for other types account. Creating your own app is recommended.<br>
 > 仅支持个人版，其他版本请使用替代部署方案，建议自行创建应用。
 
 1. [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/vcheckzen/FODI)
 2. 访问域名加上 `/deployfodi`
 
 > [!NOTE]
-> 更新仓库后需要填写 `kv_namespaces` 中的 `id`
+> 更新仓库后需获取 [kv_namespaces id](https://dash.cloudflare.com/?to=/:account/workers/kv/namespaces) 填入 `wrangler.jsonc`
 
 ### 在线导入
 
