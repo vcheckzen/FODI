@@ -14,7 +14,7 @@ export async function handleGetRequest(
 
   // display deployment
   if (requestUrl.pathname === '/deployfodi') {
-    return renderDeployHtml(env);
+    return renderDeployHtml(env, requestUrl);
   }
 
   // download files

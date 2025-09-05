@@ -8,18 +8,22 @@ export async function authenticate(
   davCredentials?: string,
 ): Promise<boolean> {
   try {
-    const [hashedPasswd, hashedDav] = await Promise.all([
+    if (!passwd && path.split('/').length <= runtimeEnv.PROTECTED.PROTECTED_LAYERS) {
+      return false;
+    }
+
+    const [hashedPasswd, hashedDavCredentials] = await Promise.all([
       sha256(passwd || ''),
       sha256(davCredentials?.split(':')[1] || ''),
     ]);
 
-    if (davCredentials && hashedPasswd === hashedDav) {
+    if (davCredentials && hashedPasswd === hashedDavCredentials) {
       return true;
     }
 
-    const pathsToTry = [path];
+    const pathsToTry = [path === '/' ? '' : path];
     if (path !== '/' && path.split('/').length <= runtimeEnv.PROTECTED.PROTECTED_LAYERS) {
-      pathsToTry.push('/');
+      pathsToTry.push('');
     }
     const downloads = await Promise.all(
       pathsToTry.map((p) =>
