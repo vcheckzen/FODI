@@ -21,7 +21,7 @@ export async function handlePostRequest(
     'Content-Type': 'application/json; charset=utf-8',
   };
   const body: PostPayload = await request.json();
-  const requestPath = decodeURIComponent(body.path || '');
+  const requestPath = body.path || '/';
   const isAuthorized = await authenticate(requestPath, body.passwd, env.WEBDAV);
 
   // Upload files

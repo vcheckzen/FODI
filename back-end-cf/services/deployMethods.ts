@@ -15,7 +15,7 @@ export async function renderDeployHtml(env: Env, requestUrl: URL) {
     env.OAUTH.oauthUrl,
     'authorize',
     `?client_id=${env.OAUTH.clientId}`,
-    `&scope=${encodeURI(env.OAUTH.scope)}`,
+    `&scope=${encodeURIComponent(env.OAUTH.scope)}`,
     '&response_type=code',
     `&redirect_uri=${env.OAUTH.redirectUri}`,
   ].join('');

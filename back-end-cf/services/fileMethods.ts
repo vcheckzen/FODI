@@ -13,7 +13,7 @@ export async function fetchFiles(
     '/children?select=name,size,lastModifiedDateTime,@microsoft.graph.downloadUrl',
     // maximum 1000, may change https://github.com/OneDrive/onedrive-api-docs/issues/319
     '&top=1000',
-    orderby ? `&orderby=${encodeURI(orderby)}` : '',
+    orderby ? `&orderby=${encodeURIComponent(orderby)}` : '',
     skipToken ? `&skiptoken=${skipToken}` : '',
   ].join('');
 
