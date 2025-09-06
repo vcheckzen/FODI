@@ -11,7 +11,7 @@
           // 备用 unpkg CDN 选项（本项目不对其服务稳定性和内容安全性承担任何责任）：
           // - //s4.zstatic.net/npm
           // - //npm.webcache.cn
-          unpkg: '//cdn.jsdelivr.com/npm',
+          unpkg: '//cdn.jsdelivr.net/npm',
           bytedance: '//cdn.bytedance.com/cdn/expire-1-M',
         },
       };
@@ -1203,8 +1203,8 @@
           fromCdn(
             'unpkg',
             '/github-markdown-css@5.8.1/github-markdown.min.css',
-            '/highlight.js@11.11.1/styles/github.min.css',
-            '/highlight.js@11.11.1/lib/core.min.js',
+            '/@highlightjs/cdn-assets@11.11.1/styles/github.min.css',
+            '/@highlightjs/cdn-assets@11.11.1/highlight.min.js',
           ),
           // Optional Markdown extensions
           // fromCdn('unpkg', '/marked-alert@2.1.2/dist/index.umd.js'),
@@ -1592,8 +1592,8 @@
                   loadResource(
                     fromCdn(
                       'unpkg',
-                      '/highlight.js@11.11.1/styles/github.min.css',
-                      '/highlight.js@11.11.1/lib/core.min.js',
+                      '/@highlightjs/cdn-assets@11.11.1/styles/github.min.css',
+                      '/@highlightjs/cdn-assets@11.11.1/highlight.min.js',
                     ),
                   )
                     .then(() => {

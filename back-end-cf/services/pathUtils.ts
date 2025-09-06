@@ -35,8 +35,8 @@ export function parsePath(filePath: string, prefixToRemove?: string, keepTrailin
 export function buildUriPath(filePath: string, exposePath: string, apiUrl: string) {
   const itemPath = exposePath + parsePath(filePath).path;
   // if PROTECTED.EXPOSE_PATH + path equals to an empty string or ends with '/', ':' will lead to an error.
-  const remoteUri = itemPath ? `${apiUrl}:${encodeURI(itemPath)}:` : apiUrl;
-  const itemPathWrapped = itemPath ? `:${itemPath}:` : '';
-  const uri = apiUrl ? remoteUri : itemPathWrapped;
+  const uri = itemPath
+    ? `${apiUrl}:${itemPath.split('/').map(encodeURIComponent).join('/')}:`
+    : apiUrl;
   return uri;
 }

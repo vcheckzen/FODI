@@ -4,14 +4,14 @@ export function createReturnXml(uriPath: string, davStatus: number, statusText: 
   return `<?xml version="1.0" encoding="utf-8"?>
   <d:multistatus xmlns:d="DAV:">
     <d:response>
-      <d:href>${encodeURI(uriPath)}</d:href>
+      <d:href>${uriPath.split('/').map(encodeURIComponent).join('/')}</d:href>
       <d:status>HTTP/1.1 ${davStatus} ${statusText}</d:status>
     </d:response>
   </d:multistatus>`;
 }
 
 export function createPropfindXml(parent: string, files: DriveItem[]) {
-  const encodedParent = encodeURI(parent);
+  const encodedParent = parent.split('/').map(encodeURIComponent).join('/');
   const xmlParts = ['<?xml version="1.0" encoding="utf-8"?>\n<d:multistatus xmlns:d="DAV:">\n'];
 
   for (const child of files) {
@@ -23,7 +23,7 @@ export function createPropfindXml(parent: string, files: DriveItem[]) {
 }
 
 function createResourceXml(encodedParent: string, resource: DriveItem, isDirectory: boolean) {
-  const encodedName = resource.name ? `/${encodeURI(resource.name)}` : '';
+  const encodedName = resource.name ? `/${encodeURIComponent(resource.name)}` : '';
   const modifiedDate = new Date(resource.lastModifiedDateTime).toUTCString();
   return `\n<d:response>
     <d:href>${encodedParent}${encodedName}${isDirectory ? '/' : ''}</d:href>
