@@ -8,7 +8,7 @@ export async function handleGetRequest(
   requestUrl: URL,
 ): Promise<Response> {
   // display web
-  if (requestUrl.pathname === '/') {
+  if (requestUrl.pathname === '/' && env.ASSETS) {
     return env.ASSETS.fetch(request);
   }
 
@@ -34,5 +34,10 @@ export async function handleGetRequest(
     return new Response('Access Denied', { status: 403 });
   }
 
-  return downloadFile(filePath, isProxyRequest, requestUrl.searchParams.get('format'));
+  return downloadFile(
+    filePath,
+    isProxyRequest,
+    requestUrl.searchParams.get('format'),
+    request.headers,
+  );
 }

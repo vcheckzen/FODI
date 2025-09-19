@@ -1,13 +1,10 @@
-import { env as workerEnv } from 'cloudflare:workers';
-
 declare global {
   interface Env {
     FODI_CACHE?: KVNamespace;
     WEBDAV?: string;
+    ASSETS?: Fetcher;
   }
 }
-
-export const runtimeEnv = workerEnv;
 
 export interface TokenResponse {
   token_type: string;
@@ -36,10 +33,13 @@ export interface DriveItem extends Resource {
   folder?: {
     childCount: number;
   };
-  '@odata.nextLink'?: string;
   '@microsoft.graph.downloadUrl'?: string;
-  error?: string;
-  value?: DriveItem[];
+}
+
+export interface DriveItemCollection {
+  error?: Record<string, string>;
+  value: DriveItem[];
+  '@odata.nextLink'?: string;
 }
 
 export interface PostPayload {
@@ -71,7 +71,7 @@ export interface BatchRespData {
     id: string;
     status: number;
     headers: Record<string, string>;
-    body: Record<string, string>;
+    body: unknown;
   }[];
 }
 

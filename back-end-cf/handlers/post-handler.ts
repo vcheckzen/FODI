@@ -1,4 +1,4 @@
-import { PostPayload } from '../types/apiType';
+import type { PostPayload } from '../types/apiType';
 import { authenticate } from '../services/authUtils';
 import { downloadFile, fetchFiles, fetchUploadLinks } from '../services/fileMethods';
 import { saveDeployData } from '../services/deployMethods';

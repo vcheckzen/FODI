@@ -1,5 +1,6 @@
-import { runtimeEnv, fetchFilesRes, DriveItem, UploadPayload } from '../types/apiType';
-import { fetchWithAuth, fetchBatchRes } from './utils';
+import type { fetchFilesRes, UploadPayload, DriveItemCollection } from '../types/apiType';
+import { runtimeEnv } from '../types/env';
+import { fetchWithAuth, fetchBatchRes } from './fetchUtils';
 import { buildUriPath } from './pathUtils';
 
 export async function fetchFiles(
@@ -17,7 +18,7 @@ export async function fetchFiles(
     skipToken ? `&skiptoken=${skipToken}` : '',
   ].join('');
 
-  const pageRes: DriveItem = await (await fetchWithAuth(uri)).json();
+  const pageRes: DriveItemCollection = await (await fetchWithAuth(uri)).json();
   if (pageRes.error) {
     throw new Error(JSON.stringify(pageRes.error));
   }
@@ -25,14 +26,14 @@ export async function fetchFiles(
   skipToken = pageRes['@odata.nextLink']
     ? (new URL(pageRes['@odata.nextLink']).searchParams.get('$skiptoken') ?? undefined)
     : undefined;
-  const children: DriveItem[] = pageRes.value ?? [];
+  const children = pageRes.value ?? [];
 
   return {
     parent,
     skipToken,
     orderby,
     files: children
-      .map((file: DriveItem) => ({
+      .map((file) => ({
         name: file.name,
         size: file.size,
         lastModifiedDateTime: file.lastModifiedDateTime,
@@ -56,23 +57,27 @@ export async function fetchUploadLinks(fileList: UploadPayload[]) {
   batchResult.responses.forEach((response) => {
     if (response.status === 200) {
       const index = parseInt(response.id) - 1;
-      fileList[index].uploadUrl = response.body.uploadUrl;
+      fileList[index].uploadUrl = (response.body as { uploadUrl: string }).uploadUrl;
     }
   });
   return { files: fileList };
 }
 
-export async function downloadFile(filePath: string, stream?: boolean, format?: string | null) {
+export async function downloadFile(
+  filePath: string,
+  stream?: boolean,
+  format?: string | null,
+  reqHeaders?: Headers,
+) {
   const supportedFormats = ['glb', 'html', 'jpg', 'pdf'];
   if (format && !supportedFormats.includes(format.toLowerCase())) {
     return new Response('Unsupported target format', { status: 400 });
   }
 
   const uri = [
-    buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) +
-      '/content' +
-      (format ? `?format=${format}` : '') +
-      (format === 'jpg' ? '&width=30000&height=30000' : ''),
+    buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) + '/content',
+    format ? `?format=${format}` : '',
+    format === 'jpg' ? '&width=30000&height=30000' : '',
   ].join('');
 
   const downloadResp = await fetchWithAuth(uri, { redirect: 'manual' });
@@ -84,7 +89,28 @@ export async function downloadFile(filePath: string, stream?: boolean, format?: 
 
   // proxy download
   if (stream) {
-    return fetch(downloadUrl);
+    const headers = new Headers(reqHeaders);
+    headers.delete('Authorization');
+    const resp = await fetch(downloadUrl, { headers });
+
+    const returnHeaders = new Headers();
+    const keepHeaders = [
+      'Content-Length',
+      'Content-Type',
+      'Accept-Ranges',
+      'ETag',
+      'Content-Range',
+    ];
+    keepHeaders.forEach((key) => {
+      if (resp.headers.has(key)) {
+        returnHeaders.set(key, resp.headers.get(key)!);
+      }
+    });
+
+    return new Response(resp.body, {
+      status: resp.status,
+      headers: returnHeaders,
+    });
   }
 
   // direct download

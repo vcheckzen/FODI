@@ -1,4 +1,4 @@
-import { DriveItem } from '../types/apiType';
+import type { DriveItem } from '../types/apiType';
 
 export function createReturnXml(uriPath: string, davStatus: number, statusText: string) {
   return `<?xml version="1.0" encoding="utf-8"?>

@@ -1,5 +1,5 @@
 import { cacheRequest } from './handlers/request-handler';
-import { fetchAccessToken } from './services/utils';
+import { fetchAccessToken } from './services/fetchUtils';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {

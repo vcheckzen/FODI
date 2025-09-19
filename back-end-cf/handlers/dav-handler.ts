@@ -1,13 +1,7 @@
-import { DavRes, runtimeEnv } from '../types/apiType';
+import type { DavRes } from '../types/apiType';
+import { runtimeEnv } from '../types/env';
 import { authenticateWebdav } from '../services/authUtils';
-import {
-  handleCopyMove,
-  handleDelete,
-  handleHead,
-  handleMkcol,
-  handlePropfind,
-  handlePut,
-} from '../services/davMethods';
+import { davClient } from '../services/davMethods';
 import { parsePath } from '../services/pathUtils';
 
 export async function handleWebdav(request: Request, env: Env, requestUrl: URL): Promise<Response> {
@@ -34,13 +28,13 @@ export async function handleWebdav(request: Request, env: Env, requestUrl: URL):
   ).path;
 
   const handlers: Record<string, () => Promise<DavRes> | DavRes> = {
-    HEAD: () => handleHead(filePath),
-    COPY: () => handleCopyMove(filePath, 'COPY', destination),
-    MOVE: () => handleCopyMove(filePath, 'MOVE', destination),
-    DELETE: () => handleDelete(filePath),
-    MKCOL: () => handleMkcol(filePath),
-    PUT: () => handlePut(filePath, request),
-    PROPFIND: () => handlePropfind(filePath),
+    HEAD: () => davClient.handleHead(filePath),
+    COPY: () => davClient.handleCopyMove(filePath, 'COPY', destination),
+    MOVE: () => davClient.handleCopyMove(filePath, 'MOVE', destination),
+    DELETE: () => davClient.handleDelete(filePath),
+    MKCOL: () => davClient.handleMkcol(filePath),
+    PUT: () => davClient.handlePut(filePath, request),
+    PROPFIND: () => davClient.handlePropfind(filePath),
   };
 
   const handler = handlers[request.method];
