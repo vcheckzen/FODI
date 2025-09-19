@@ -1,5 +1,5 @@
-import { AccessTokenResponse } from '../types/apiType';
-import { fetchToken } from './utils';
+import type { AccessTokenResponse } from '../types/apiType';
+import { fetchToken } from './fetchUtils';
 
 export async function renderDeployHtml(env: Env, requestUrl: URL) {
   if (!env.FODI_CACHE) {

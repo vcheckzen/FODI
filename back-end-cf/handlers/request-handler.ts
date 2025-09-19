@@ -35,8 +35,10 @@ export async function cacheRequest(
       response = await handleRequest(request, env);
 
       if ([200, 302].includes(response.status)) {
-        response.headers.set('Last-Modified', new Date().toUTCString());
-        ctx.waitUntil(cache.put(cacheKey, response.clone()));
+        const modResponse = new Response(response.body, response);
+        modResponse.headers.set('Last-Modified', new Date().toUTCString());
+        response = modResponse;
+        ctx.waitUntil(cache.put(cacheKey, modResponse.clone()));
       }
     }
 

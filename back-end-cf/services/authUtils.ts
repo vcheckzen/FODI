@@ -1,4 +1,4 @@
-import { runtimeEnv } from '../types/apiType';
+import { runtimeEnv } from '../types/env';
 import { sha256 } from './utils';
 import { downloadFile } from './fileMethods';
 
