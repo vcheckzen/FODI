@@ -30,11 +30,56 @@ function createResourceXml(encodedParent: string, resource: DriveItem, isDirecto
     <d:propstat>
       <d:prop>
         ${isDirectory ? '<d:resourcetype><d:collection/></d:resourcetype>' : '<d:resourcetype/>'}
-        <d:getcontenttype>${isDirectory ? 'httpd/unix-directory' : 'application/octet-stream'}</d:getcontenttype>
-        <d:getcontentlength>${resource.size}</d:getcontentlength>
+        ${isDirectory ? '' : `<d:getetag>${resource.eTag}</d:getetag>`}
+        <d:getcontenttype>${isDirectory ? 'httpd/unix-directory' : resource.file!.mimeType}</d:getcontenttype>
+        <d:getcontentlength>${isDirectory ? 0 : resource.size}</d:getcontentlength>
         <d:getlastmodified>${modifiedDate}</d:getlastmodified>
       </d:prop>
       <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
   </d:response>\n`;
+}
+
+export async function uploadChunk(uploadUrl: string, chunk: Uint8Array, contentRange: string) {
+  const maxRetries = 3;
+  const retryDelay = 1000;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    try {
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: chunk as unknown as BodyInit,
+        headers: {
+          'Content-Length': chunk.byteLength.toString(),
+          'Content-Range': contentRange,
+        },
+      });
+
+      if (res.status >= 500 || res.status === 429) {
+        attempt++;
+        if (attempt < maxRetries) {
+          const delay = retryDelay * Math.pow(2, attempt - 1);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+
+      return res;
+    } catch (error) {
+      attempt++;
+      if (attempt < maxRetries) {
+        const delay = retryDelay * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      return new Response(null, {
+        status: 500,
+        statusText: `Upload failed after ${maxRetries} attempts: ${error}`,
+      });
+    }
+  }
+
+  return new Response(null, { status: 500, statusText: 'Max retries exceeded' });
 }
