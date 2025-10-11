@@ -34,6 +34,7 @@ export interface DriveItem extends Resource {
     childCount: number;
   };
   '@microsoft.graph.downloadUrl'?: string;
+  eTag: string;
 }
 
 export interface DriveItemCollection {

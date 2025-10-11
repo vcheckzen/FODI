@@ -80,7 +80,10 @@ export async function downloadFile(
     format === 'jpg' ? '&width=30000&height=30000' : '',
   ].join('');
 
-  const downloadResp = await fetchWithAuth(uri, { redirect: 'manual' });
+  const downloadResp = await fetchWithAuth(uri, {
+    headers: reqHeaders,
+    redirect: 'manual',
+  });
   const downloadUrl = downloadResp.headers.get('Location');
 
   if (!downloadUrl) {

@@ -68,12 +68,12 @@ export async function fetchAccessToken(
 
 export async function fetchWithAuth(uri: string, options: RequestInit = {}) {
   const accessToken = await fetchAccessToken(runtimeEnv.OAUTH, runtimeEnv.FODI_CACHE);
+  const headers = new Headers(options.headers || {});
+  headers.set('Authorization', `Bearer ${accessToken}`);
+
   return fetch(uri, {
     ...options,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...((options.headers as Record<string, string>) || {}),
-    },
+    headers,
   });
 }
 

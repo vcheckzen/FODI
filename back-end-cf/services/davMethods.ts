@@ -2,7 +2,7 @@ import type { DriveItem, DriveItemCollection } from '../types/apiType';
 import { runtimeEnv } from '../types/env';
 import { fetchWithAuth, fetchBatchRes } from './fetchUtils';
 import { getAndSaveSkipToken } from './utils';
-import { createReturnXml, createPropfindXml } from './davUtils';
+import { createReturnXml, createPropfindXml, uploadChunk } from './davUtils';
 import { parsePath, buildUriPath } from './pathUtils';
 
 export const davClient = {
@@ -21,7 +21,7 @@ async function handlePropfind(filePath: string) {
 
   const currentTokens = await getAndSaveSkipToken(path);
   const itemPathWrapped = buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, '');
-  const select = '?select=name,size,lastModifiedDateTime,file';
+  const select = '?select=name,size,lastModifiedDateTime,file,eTag';
   const baseUrl = `/me/drive/root${itemPathWrapped}/children${select}&top=1000`;
 
   const createListRequest = (id: string, skipToken?: string) => ({
@@ -255,48 +255,4 @@ async function handlePut(filePath: string, request: Request) {
   } finally {
     reader.releaseLock();
   }
-}
-
-async function uploadChunk(uploadUrl: string, chunk: Uint8Array, contentRange: string) {
-  const maxRetries = 3;
-  const retryDelay = 1000;
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
-    try {
-      const res = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: chunk as unknown as BodyInit,
-        headers: {
-          'Content-Length': chunk.byteLength.toString(),
-          'Content-Range': contentRange,
-        },
-      });
-
-      if (res.status >= 500 || res.status === 429) {
-        attempt++;
-        if (attempt < maxRetries) {
-          const delay = retryDelay * Math.pow(2, attempt - 1);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
-      }
-
-      return res;
-    } catch (error) {
-      attempt++;
-      if (attempt < maxRetries) {
-        const delay = retryDelay * Math.pow(2, attempt - 1);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
-      }
-
-      return new Response(null, {
-        status: 500,
-        statusText: `Upload failed after ${maxRetries} attempts: ${error}`,
-      });
-    }
-  }
-
-  return new Response(null, { status: 500, statusText: 'Max retries exceeded' });
 }
