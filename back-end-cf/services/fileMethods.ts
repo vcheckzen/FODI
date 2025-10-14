@@ -1,4 +1,4 @@
-import type { fetchFilesRes, UploadPayload, DriveItemCollection } from '../types/apiType';
+import type { FetchFilesRes, UploadPayload, DriveItemCollection } from '../types/apiType';
 import { runtimeEnv } from '../types/env';
 import { fetchWithAuth, fetchBatchRes } from './fetchUtils';
 import { buildUriPath } from './pathUtils';
@@ -7,7 +7,7 @@ export async function fetchFiles(
   path: string,
   skipToken?: string,
   orderby?: string,
-): Promise<fetchFilesRes> {
+): Promise<FetchFilesRes> {
   const parent = path || '/';
   const uri = [
     buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl),

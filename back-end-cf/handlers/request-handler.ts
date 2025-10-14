@@ -27,18 +27,20 @@ export async function cacheRequest(
 
     const cache = (caches as any).default;
     let response = await cache.match(cacheKey);
-    const LastModified = response?.headers.get('Last-Modified') || 0;
-    const cacheModifiedTime = new Date(LastModified).getTime();
-    const isExpired = (Date.now() - cacheModifiedTime) / 1000 > CACHE_TTLMAP[requestMethod];
+    const lastAccessedTime = response?.headers.get('Last-Accessed') || 0;
+    const cachedAccessedTime = new Date(lastAccessedTime).getTime();
+    const isExpired = (Date.now() - cachedAccessedTime) / 1000 > CACHE_TTLMAP[requestMethod];
+    const isforceRefresh =
+      env.PASSWORD && cacheUrl.searchParams.get('forceRefresh') === (await sha256(env.PASSWORD));
 
-    if (!response || isExpired) {
+    if (!response || isExpired || isforceRefresh) {
       response = await handleRequest(request, env);
 
       if ([200, 302].includes(response.status)) {
-        const modResponse = new Response(response.body, response);
-        modResponse.headers.set('Last-Modified', new Date().toUTCString());
-        response = modResponse;
-        ctx.waitUntil(cache.put(cacheKey, modResponse.clone()));
+        const newResponse = new Response(response.body, response);
+        newResponse.headers.set('Last-Accessed', new Date().toUTCString());
+        response = newResponse;
+        ctx.waitUntil(cache.put(cacheKey, newResponse.clone()));
       }
     }
 

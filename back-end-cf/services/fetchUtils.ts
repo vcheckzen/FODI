@@ -1,9 +1,4 @@
-import type {
-  AccessTokenResponse,
-  BatchReqPayload,
-  BatchRespData,
-  TokenResponse,
-} from '../types/apiType';
+import type { BatchReqPayload, BatchRespData, TokenResponse } from '../types/apiType';
 import { runtimeEnv } from '../types/env';
 
 export async function fetchToken(
@@ -59,7 +54,7 @@ export async function fetchAccessToken(
     refresh_token: refreshToken,
   });
   if (result?.refresh_token) {
-    (result as AccessTokenResponse).save_time = Date.now();
+    (result as TokenResponse).save_time = Date.now();
     await envFodi.put('token_data', JSON.stringify(result));
   }
 
