@@ -5,7 +5,11 @@ import { davClient } from '../services/davMethods';
 import { parsePath } from '../services/pathUtils';
 
 export async function handleWebdav(request: Request, env: Env, requestUrl: URL): Promise<Response> {
-  const isdavAuthorized = authenticateWebdav(request.headers.get('Authorization'), env.WEBDAV);
+  const isdavAuthorized = authenticateWebdav(
+    request.headers.get('Authorization'),
+    env.USERNAME,
+    env.PASSWORD,
+  );
   if (!isdavAuthorized) {
     return new Response('Unauthorized', {
       status: 401,

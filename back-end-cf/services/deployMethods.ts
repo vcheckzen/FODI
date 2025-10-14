@@ -1,4 +1,4 @@
-import type { AccessTokenResponse } from '../types/apiType';
+import type { TokenResponse } from '../types/apiType';
 import { fetchToken } from './fetchUtils';
 
 export async function renderDeployHtml(env: Env, requestUrl: URL) {
@@ -67,7 +67,7 @@ export async function saveDeployData(env: Env, requestUrl: URL, codeUrl: string)
     grant_type: 'authorization_code',
     code,
   });
-  (result as AccessTokenResponse).save_time = Date.now();
+  (result as TokenResponse).save_time = Date.now();
   await env.FODI_CACHE.put('token_data', JSON.stringify(result));
 
   return Response.redirect(requestUrl.origin);

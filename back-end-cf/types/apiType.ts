@@ -1,7 +1,8 @@
 declare global {
   interface Env {
     FODI_CACHE?: KVNamespace;
-    WEBDAV?: string;
+    USERNAME?: string;
+    PASSWORD?: string;
     ASSETS?: Fetcher;
   }
 }
@@ -13,10 +14,7 @@ export interface TokenResponse {
   ext_expires_in: number;
   access_token: string;
   refresh_token: string;
-}
-
-export interface AccessTokenResponse extends TokenResponse {
-  save_time: number;
+  save_time?: number;
 }
 
 export interface Resource {
@@ -76,7 +74,7 @@ export interface BatchRespData {
   }[];
 }
 
-export interface fetchFilesRes {
+export interface FetchFilesRes {
   parent: string;
   skipToken?: string;
   orderby?: string;

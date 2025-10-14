@@ -1,8 +1,7 @@
 # dependency
 node_modules
 
-# warngler
+# wrangler
 .dev.vars
 .wrangler
 worker.d.ts
-dev.jsonc

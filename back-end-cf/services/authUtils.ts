@@ -5,19 +5,19 @@ import { downloadFile } from './fileMethods';
 export async function authenticate(
   path: string,
   passwd?: string,
-  davCredentials?: string,
+  envPassword?: string,
 ): Promise<boolean> {
   try {
     if (!passwd && path.split('/').length <= runtimeEnv.PROTECTED.PROTECTED_LAYERS) {
       return false;
     }
 
-    const [hashedPasswd, hashedDavCredentials] = await Promise.all([
+    const [hashedPasswd, hashedEnvPassword] = await Promise.all([
       sha256(passwd || ''),
-      sha256(davCredentials?.split(':')[1] || ''),
+      sha256(envPassword || ''),
     ]);
 
-    if (davCredentials && hashedPasswd === hashedDavCredentials) {
+    if (envPassword && hashedPasswd === hashedEnvPassword) {
       return true;
     }
 
@@ -46,15 +46,16 @@ export async function authenticate(
 
 export function authenticateWebdav(
   davAuthHeader: string | null,
-  davCredentials: string | undefined,
+  USERNAME: string | undefined,
+  PASSWORD: string | undefined,
 ): boolean {
-  if (!davAuthHeader || !davCredentials) {
+  if (!davAuthHeader || !USERNAME || !PASSWORD) {
     return false;
   }
 
   const encoder = new TextEncoder();
   const header = encoder.encode(davAuthHeader);
-  const expected = encoder.encode(`Basic ${btoa(davCredentials)}`);
+  const expected = encoder.encode(`Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`);
   return (
     // @ts-ignore
     header.byteLength === expected.byteLength && crypto.subtle.timingSafeEqual(header, expected)

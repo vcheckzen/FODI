@@ -1,10 +1,10 @@
 {
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev -c dev.jsonc",
-    "type": "wrangler types ./back-end-cf/types/worker.d.ts -c dev.jsonc",
+    "dev": "wrangler dev",
+    "type": "wrangler types ./back-end-cf/types/worker.d.ts",
     "format": "prettier . --write",
-    "build": " node minifyFrontend.js"
+    "build": "node minifyFrontend.js"
   },
   "devDependencies": {
     "html-minifier-terser": "^7.2.0",

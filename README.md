@@ -48,8 +48,10 @@ git clone https://github.com/vcheckzen/FODI.git
 cd FODI
 # edit wrangler.jsonc, then
 npm i wrangler
-npx wrangler deploy
-npx wrangler secret put WEBDAV
+npm run deploy
+# webdav config
+npx wrangler secret put USERNAME
+npx wrangler secret put PASSWORD
 ```
 
 </details>
@@ -66,11 +68,11 @@ npx wrangler secret put WEBDAV
 ### 加密
 
 - 方式 1：在自定义的密码文件中填入 sha256 后的哈希值
-- 方式 2：设置变量 `WEBDAV` 后，值为 `password` 的部分
+- 方式 2：环境变量 `PASSWORD` 的值
 
 ### WEBDAV
 
-- 账号密码设置: 在 **变量和机密** 设置 **秘钥**，变量名为 `WEBDAV`, 形如 `username:password`；或者使用 `npx wrangler secret put WEBDAV`
+- 账号密码设置: 在 **变量和机密** 设置 **秘钥**，变量名为 `USERNAME` 与 `PASSWORD`
 - 文件上传限制: FreePlan 100MB, BusinessPlan 200MB, EnterprisePlan 500MB
 
 ### 预览
@@ -82,6 +84,7 @@ npx wrangler secret put WEBDAV
 
 - 通过 `PROXY_KEYWORD` 访问可让 worker 代理
 - 访问 `https://example.com/a.html?format=` 可添加转换的目标格式，[支持转换格式](https://learn.microsoft.com/zh-cn/onedrive/developer/rest-api/api/driveitem_get_content_format?view=odsp-graph-online#format-options)
+- 链接携带参数名 `forceRefresh`，值为 sha256 后的 `PASSWORD` 可强制刷新缓存
 
 ## 更新
 

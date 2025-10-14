@@ -22,7 +22,7 @@ export async function handlePostRequest(
   };
   const body: PostPayload = await request.json();
   const requestPath = body.path || '/';
-  const isAuthorized = await authenticate(requestPath, body.passwd, env.WEBDAV);
+  const isAuthorized = await authenticate(requestPath, body.passwd, env.PASSWORD);
 
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
