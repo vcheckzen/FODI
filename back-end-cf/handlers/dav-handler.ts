@@ -3,6 +3,7 @@ import { runtimeEnv } from '../types/env';
 import { authenticateWebdav } from '../services/authUtils';
 import { davClient } from '../services/davMethods';
 import { parsePath } from '../services/pathUtils';
+import { parseDepth } from '../services/davUtils';
 
 export async function handleWebdav(request: Request, env: Env, requestUrl: URL): Promise<Response> {
   const isdavAuthorized = authenticateWebdav(
@@ -38,7 +39,7 @@ export async function handleWebdav(request: Request, env: Env, requestUrl: URL):
     DELETE: () => davClient.handleDelete(filePath),
     MKCOL: () => davClient.handleMkcol(filePath),
     PUT: () => davClient.handlePut(filePath, request),
-    PROPFIND: () => davClient.handlePropfind(filePath),
+    PROPFIND: () => davClient.handlePropfind(filePath, parseDepth(request.headers.get('Depth'))),
   };
 
   const handler = handlers[request.method];

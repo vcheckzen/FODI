@@ -1,4 +1,4 @@
-import type { DriveItem } from '../types/apiType';
+import type { DriveItem, DavDepth } from '../types/apiType';
 
 export function createReturnXml(uriPath: string, davStatus: number, statusText: string) {
   return `<?xml version="1.0" encoding="utf-8"?>
@@ -82,4 +82,11 @@ export async function uploadChunk(uploadUrl: string, chunk: Uint8Array, contentR
   }
 
   return new Response(null, { status: 500, statusText: 'Max retries exceeded' });
+}
+
+export function parseDepth(value: unknown): DavDepth {
+  if (value === '0' || value === '1') {
+    return value;
+  }
+  return '1';
 }

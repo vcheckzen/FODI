@@ -1,4 +1,4 @@
-import type { DriveItem, DriveItemCollection } from '../types/apiType';
+import type { DriveItem, DriveItemCollection, DavDepth } from '../types/apiType';
 import { runtimeEnv } from '../types/env';
 import { fetchWithAuth, fetchBatchRes } from './fetchUtils';
 import { getAndSaveSkipToken } from './utils';
@@ -14,37 +14,47 @@ export const davClient = {
   handlePut,
 };
 
-async function handlePropfind(filePath: string) {
+async function handlePropfind(filePath: string, depth: DavDepth) {
   const { path, parent } = parsePath(filePath);
   const allFiles: DriveItem[] = [];
   const skipTokens: string[] = [];
 
+  if (path === '' && depth === '0') {
+    // Root folder with depth 0, no need to fetch items
+    allFiles.push({
+      name: '',
+      size: 0,
+      lastModifiedDateTime: new Date().toISOString(),
+      eTag: '',
+    });
+    const responseXML = createPropfindXml('', allFiles);
+    return { davXml: responseXML, davStatus: 207 };
+  }
+
   const currentTokens = await getAndSaveSkipToken(path);
   const itemPathWrapped = buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, '');
   const select = '?select=name,size,lastModifiedDateTime,file,eTag';
-  const baseUrl = `/me/drive/root${itemPathWrapped}/children${select}&top=1000`;
+  const baseEndpoint = `/me/drive/root${itemPathWrapped}`;
+  const childrenEndpoint = `${baseEndpoint}/children${select}&top=1000`;
 
   const createListRequest = (id: string, skipToken?: string) => ({
     id,
     method: 'GET',
-    url: skipToken ? `${baseUrl}&skipToken=${skipToken}` : baseUrl,
+    url:
+      id === '1'
+        ? `${baseEndpoint}${select}`
+        : `${childrenEndpoint}${skipToken ? `&skipToken=${skipToken}` : ''}`,
     headers: { 'Content-Type': 'application/json' },
     body: {},
   });
 
-  const batchRequest = {
-    requests: [
-      {
-        id: '1',
-        method: 'GET',
-        url: `/me/drive/root${itemPathWrapped}${select}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: {},
-      },
-      createListRequest('2'),
+  const batchRequest = { requests: [createListRequest('1')] };
+  if (depth === '1') {
+    batchRequest.requests.push(createListRequest('2'));
+    batchRequest.requests.push(
       ...currentTokens.map((token, index) => createListRequest(`${index + 3}`, token)),
-    ],
-  };
+    );
+  }
 
   const batchResult = await fetchBatchRes(batchRequest);
   batchResult.responses.sort((a, b) => parseInt(a.id) - parseInt(b.id));
