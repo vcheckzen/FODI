@@ -64,6 +64,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
           'Access-Control-Allow-Headers': 'Content-Type',
           'Access-Control-Max-Age': '86400',
           DAV: '1, 3',
+          ALLOW: 'COPY, DELETE, GET, HEAD, MKCOL, MOVE, OPTIONS, POST, PROPFIND, PUT',
+          'ms-author-via': 'DAV',
         },
       });
     },

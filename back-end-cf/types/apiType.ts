@@ -86,3 +86,5 @@ export interface DavRes {
   davStatus: number;
   davHeaders?: Record<string, string> | {};
 }
+
+export type DavDepth = '0' | '1' | 'infinity';
