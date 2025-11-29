@@ -1,3 +1,4 @@
+import { DriveItemCollection } from '../types/apiType';
 import { runtimeEnv } from '../types/env';
 
 export async function sha256(message: string): Promise<string> {
@@ -6,24 +7,17 @@ export async function sha256(message: string): Promise<string> {
   return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function getAndSaveSkipToken(
+export async function getSaveDelta(
   path: string,
-  tokensToSave?: string[],
-): Promise<string[]> {
-  if (tokensToSave && tokensToSave.length === 0) {
-    return tokensToSave;
-  }
-
+  dataToSave?: DriveItemCollection,
+): Promise<DriveItemCollection | null> {
   path = path.toLocaleLowerCase();
-  const skipTokenString = await runtimeEnv.FODI_CACHE.get('skip_token');
-  const skipTokenData = skipTokenString ? JSON.parse(skipTokenString) : {};
-  const currentTokens = skipTokenString ? skipTokenData[path]?.split(',') : [];
+  const dString = await runtimeEnv.FODI_CACHE.get(`delta_${path}`);
+  const dData = dString ? (JSON.parse(dString) as DriveItemCollection) : null;
 
-  const tokenChanged = tokensToSave && currentTokens.join(',') !== tokensToSave.join(',');
-  if (tokenChanged) {
-    skipTokenData[path] = tokensToSave.join(',');
-    await runtimeEnv.FODI_CACHE.put('skip_token', JSON.stringify(skipTokenData));
+  if (dataToSave) {
+    await runtimeEnv.FODI_CACHE.put(`delta_${path}`, JSON.stringify(dataToSave));
   }
 
-  return currentTokens;
+  return dData;
 }

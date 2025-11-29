@@ -32,13 +32,15 @@ export interface DriveItem extends Resource {
     childCount: number;
   };
   '@microsoft.graph.downloadUrl'?: string;
-  eTag: string;
+  eTag?: string;
+  deleted?: any;
 }
 
 export interface DriveItemCollection {
   error?: Record<string, string>;
   value: DriveItem[];
   '@odata.nextLink'?: string;
+  '@odata.deltaLink'?: string;
 }
 
 export interface PostPayload {
@@ -60,8 +62,8 @@ export interface BatchReqPayload {
     id: string;
     method: string;
     url: string;
-    headers: Record<string, string>;
-    body: Record<string, string> | {};
+    headers?: Record<string, string>;
+    body?: Record<string, string>;
   }[];
 }
 

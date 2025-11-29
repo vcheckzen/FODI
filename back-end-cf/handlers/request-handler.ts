@@ -30,10 +30,10 @@ export async function cacheRequest(
     const lastAccessedTime = response?.headers.get('Last-Accessed') || 0;
     const cachedAccessedTime = new Date(lastAccessedTime).getTime();
     const isExpired = (Date.now() - cachedAccessedTime) / 1000 > CACHE_TTLMAP[requestMethod];
-    const isforceRefresh =
+    const isForceRefresh =
       env.PASSWORD && cacheUrl.searchParams.get('forceRefresh') === (await sha256(env.PASSWORD));
 
-    if (!response || isExpired || isforceRefresh) {
+    if (!response || isExpired || isForceRefresh) {
       response = await handleRequest(request, env);
 
       if ([200, 302].includes(response.status)) {
