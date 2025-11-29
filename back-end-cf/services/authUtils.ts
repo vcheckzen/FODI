@@ -34,7 +34,7 @@ export async function authenticate(
     );
 
     for (const pwFileContent of downloads) {
-      if (pwFileContent && hashedPasswd === pwFileContent) {
+      if (pwFileContent && hashedPasswd === pwFileContent.toLowerCase()) {
         return true;
       }
     }

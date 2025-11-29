@@ -1,7 +1,7 @@
 import type { DriveItem, DriveItemCollection, DavDepth } from '../types/apiType';
 import { runtimeEnv } from '../types/env';
 import { fetchWithAuth, fetchBatchRes } from './fetchUtils';
-import { getAndSaveSkipToken } from './utils';
+import { getSaveDelta } from './utils';
 import { createReturnXml, createPropfindXml, uploadChunk } from './davUtils';
 import { parsePath, buildUriPath } from './pathUtils';
 
@@ -16,48 +16,39 @@ export const davClient = {
 
 async function handlePropfind(filePath: string, depth: DavDepth) {
   const { path, parent } = parsePath(filePath);
-  const allFiles: DriveItem[] = [];
-  const skipTokens: string[] = [];
+  let data: DriveItemCollection = { value: [] };
+  let selfEntry: DriveItem = {
+    name: '',
+    size: 0,
+    lastModifiedDateTime: new Date().toISOString(),
+  };
 
+  // Root folder with depth 0, no need to fetch items
   if (path === '' && depth === '0') {
-    // Root folder with depth 0, no need to fetch items
-    allFiles.push({
-      name: '',
-      size: 0,
-      lastModifiedDateTime: new Date().toISOString(),
-      eTag: '',
-    });
-    const responseXML = createPropfindXml('', allFiles);
-    return { davXml: responseXML, davStatus: 207 };
+    return { davXml: createPropfindXml('', [selfEntry]), davStatus: 207 };
   }
 
-  const currentTokens = await getAndSaveSkipToken(path);
+  const savedData = await getSaveDelta(path);
   const itemPathWrapped = buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, '');
-  const select = '?select=name,size,lastModifiedDateTime,file,eTag';
   const baseEndpoint = `/me/drive/root${itemPathWrapped}`;
-  const childrenEndpoint = `${baseEndpoint}/children${select}&top=1000`;
+  const select = '?select=name,size,lastModifiedDateTime,file,eTag';
+  const reqUrl = new URL(
+    savedData?.['@odata.nextLink'] ??
+      savedData?.['@odata.deltaLink'] ??
+      `${runtimeEnv.OAUTH.apiUrl}${itemPathWrapped}/children${select}&top=1000`,
+  );
+  const reqEndpoint = (reqUrl.pathname + reqUrl.search).replace('v1.0', '');
 
-  const createListRequest = (id: string, skipToken?: string) => ({
-    id,
-    method: 'GET',
-    url:
-      id === '1'
-        ? `${baseEndpoint}${select}`
-        : `${childrenEndpoint}${skipToken ? `&skipToken=${skipToken}` : ''}`,
-    headers: { 'Content-Type': 'application/json' },
-    body: {},
+  const createBatchRequest = (endpoints: string[]) => ({
+    requests: endpoints.map((endpoint, index) => ({
+      id: (index + 1).toString(),
+      method: 'GET',
+      url: endpoint,
+    })),
   });
 
-  const batchRequest = { requests: [createListRequest('1')] };
-  if (depth === '1') {
-    batchRequest.requests.push(createListRequest('2'));
-    batchRequest.requests.push(
-      ...currentTokens.map((token, index) => createListRequest(`${index + 3}`, token)),
-    );
-  }
-
+  const batchRequest = createBatchRequest([baseEndpoint + select, reqEndpoint]);
   const batchResult = await fetchBatchRes(batchRequest);
-  batchResult.responses.sort((a, b) => parseInt(a.id) - parseInt(b.id));
 
   for (const resp of batchResult.responses) {
     if (resp.status !== 200) {
@@ -68,30 +59,54 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
     }
 
     if (resp.id === '1') {
-      const item = resp.body as DriveItem;
-      allFiles.push({
-        ...item,
-        name: item.file ? item.name : '',
-      });
-      continue;
-    }
-
-    const items = (resp.body as DriveItemCollection).value;
-    allFiles.push(...items);
-
-    const nextLink = (resp.body as DriveItemCollection)['@odata.nextLink'];
-    const skipToken = nextLink
-      ? (new URL(nextLink).searchParams.get('$skiptoken') ?? undefined)
-      : undefined;
-    if (skipToken) {
-      skipTokens.push(skipToken);
+      selfEntry = resp.body as DriveItem;
+      selfEntry.name = selfEntry.file ? selfEntry.name : '';
+    } else {
+      data = resp.body as DriveItemCollection;
     }
   }
 
-  await getAndSaveSkipToken(path, skipTokens);
+  // children endpoint results
+  if (savedData?.['@odata.nextLink'] || data['@odata.nextLink']) {
+    data.value = [...(savedData?.value || []), ...data.value];
+    await getSaveDelta(path, data);
+  }
 
-  const propfindPath = allFiles[0]?.file ? parent : path;
-  const responseXML = createPropfindXml(propfindPath, allFiles);
+  // nextlink fetch finished, init delta link
+  if (savedData && !data['@odata.nextLink'] && !data['@odata.deltaLink']) {
+    const deltaUrl =
+      buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) +
+      `/delta${select}&token=latest`;
+    const newDeltaResp = await fetchWithAuth(deltaUrl);
+    if (!newDeltaResp.ok) {
+      return {
+        davXml: createReturnXml(filePath, newDeltaResp.status, 'Failed to fetch delta'),
+        davStatus: newDeltaResp.status,
+      };
+    }
+    const newDeltaJson: DriveItemCollection = await newDeltaResp.json();
+    newDeltaJson.value = [...data.value];
+    await getSaveDelta(path, newDeltaJson);
+  }
+
+  // fetch delta data
+  if (savedData && data['@odata.deltaLink']) {
+    data.value.shift();
+    const mergedMap = new Map(savedData?.value.map((item) => [item.name, item]));
+    for (const item of data.value) {
+      if (item.deleted) {
+        mergedMap.delete(item.name);
+      } else {
+        mergedMap.set(item.name, item);
+      }
+    }
+    data.value = Array.from(mergedMap.values());
+    await getSaveDelta(path, data);
+  }
+
+  data.value.unshift(selfEntry);
+  const propfindPath = data.value[0]?.file ? parent : path;
+  const responseXML = createPropfindXml(propfindPath, data.value);
   return { davXml: responseXML, davStatus: 207 };
 }
 
