@@ -30,7 +30,7 @@ function createResourceXml(encodedParent: string, resource: DriveItem, isDirecto
     <d:propstat>
       <d:prop>
         ${isDirectory ? '<d:resourcetype><d:collection/></d:resourcetype>' : '<d:resourcetype/>'}
-        ${isDirectory ? '' : `<d:getetag>${resource.eTag}</d:getetag>`}
+        ${isDirectory ? '' : `<d:getetag>${resource['@odata.etag']}</d:getetag>`}
         <d:getcontenttype>${isDirectory ? 'httpd/unix-directory' : resource.file!.mimeType}</d:getcontenttype>
         <d:getcontentlength>${isDirectory ? 0 : resource.size}</d:getcontentlength>
         <d:getlastmodified>${modifiedDate}</d:getlastmodified>
