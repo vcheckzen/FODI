@@ -31,7 +31,7 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
   const savedData = await getSaveDelta(path);
   const itemPathWrapped = buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, '');
   const baseEndpoint = `/me/drive/root${itemPathWrapped}`;
-  const select = '?select=name,size,lastModifiedDateTime,file,eTag';
+  const select = '?select=id,name,size,lastModifiedDateTime,file,@odata.etag';
   const reqUrl = new URL(
     savedData?.['@odata.nextLink'] ??
       savedData?.['@odata.deltaLink'] ??
@@ -74,9 +74,10 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
 
   // nextlink fetch finished, init delta link
   if (savedData && !data['@odata.nextLink'] && !data['@odata.deltaLink']) {
+    const deltaPrams = `${select},parentReference,deleted&token=latest`;
     const deltaUrl =
       buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) +
-      `/delta${select}&token=latest`;
+      `/delta${deltaPrams}`;
     const newDeltaResp = await fetchWithAuth(deltaUrl);
     if (!newDeltaResp.ok) {
       return {
@@ -92,12 +93,19 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
   // fetch delta data
   if (savedData && data['@odata.deltaLink']) {
     data.value.shift();
-    const mergedMap = new Map(savedData?.value.map((item) => [item.name, item]));
+    const mergedMap = new Map(savedData?.value.map((item) => [item.id, item]));
     for (const item of data.value) {
+      const itemParentPath = item?.parentReference?.path?.replace(`/drive/root:`, '');
+      // not direct child, skip
+      if (itemParentPath && itemParentPath !== path) {
+        continue;
+      }
+
+      item.parentReference = undefined;
       if (item.deleted) {
-        mergedMap.delete(item.name);
+        mergedMap.delete(item.id);
       } else {
-        mergedMap.set(item.name, item);
+        mergedMap.set(item.id, item);
       }
     }
     data.value = Array.from(mergedMap.values());

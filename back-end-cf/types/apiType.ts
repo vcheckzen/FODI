@@ -25,15 +25,19 @@ export interface Resource {
 }
 
 export interface DriveItem extends Resource {
+  id?: string;
   file?: {
     mimeType: string;
   };
   folder?: {
     childCount: number;
   };
+  '@odata.etag'?: string;
   '@microsoft.graph.downloadUrl'?: string;
-  eTag?: string;
   deleted?: any;
+  parentReference?: {
+    path: string;
+  };
 }
 
 export interface DriveItemCollection {
