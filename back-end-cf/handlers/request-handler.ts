@@ -2,19 +2,20 @@ import { sha256 } from '../services/utils';
 import { handleWebdav } from './dav-handler';
 import { handleGetRequest } from './get-handler';
 import { handlePostRequest } from './post-handler';
+import { secureEqual } from '../services/authUtils';
 
 export async function cacheRequest(
   request: Request,
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Response> {
-  const CACHE_TTLMAP = env.PROTECTED.CACHE_TTLMAP;
+  const CACHE_TTLMAP = env.CACHE_TTLMAP;
   const requestMethod = request.method as keyof typeof CACHE_TTLMAP;
   if (CACHE_TTLMAP[requestMethod]) {
     const keyGenerators: {
       [key: string]: () => string | Promise<string>;
     } = {
-      GET: () => request.url.toLowerCase(),
+      GET: () => '',
       POST: async () => await request.clone().text(),
     };
     const cacheKeySource = await keyGenerators[requestMethod]();
@@ -31,7 +32,11 @@ export async function cacheRequest(
     const cachedAccessedTime = new Date(lastAccessedTime).getTime();
     const isExpired = (Date.now() - cachedAccessedTime) / 1000 > CACHE_TTLMAP[requestMethod];
     const isForceRefresh =
-      env.PASSWORD && cacheUrl.searchParams.get('forceRefresh') === (await sha256(env.PASSWORD));
+      env.PASSWORD &&
+      secureEqual(
+        cacheUrl.searchParams.get('flush')?.toLowerCase() || undefined,
+        await sha256(env.PASSWORD),
+      );
 
     if (!response || isExpired || isForceRefresh) {
       response = await handleRequest(request, env);

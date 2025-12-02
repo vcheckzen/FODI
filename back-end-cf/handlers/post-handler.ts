@@ -1,5 +1,5 @@
 import type { PostPayload } from '../types/apiType';
-import { authenticate } from '../services/authUtils';
+import { authenticatePost } from '../services/authUtils';
 import { downloadFile, fetchFiles, fetchUploadLinks } from '../services/fileMethods';
 import { saveDeployData } from '../services/deployMethods';
 
@@ -22,7 +22,7 @@ export async function handlePostRequest(
   };
   const body: PostPayload = await request.json();
   const requestPath = body.path || '/';
-  const isAuthorized = await authenticate(requestPath, body.passwd, env.PASSWORD);
+  const isAuthorized = await authenticatePost(requestPath, body.passwd, env.PASSWORD);
 
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
