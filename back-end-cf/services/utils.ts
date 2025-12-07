@@ -21,3 +21,22 @@ export async function getSaveDelta(
 
   return dData;
 }
+
+export function secureEqual(input: string | undefined, expected: string | undefined): boolean {
+  if (!expected) {
+    return false;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const inputData = encoder.encode(input);
+    const expectedData = encoder.encode(expected);
+    return (
+      inputData.byteLength === expectedData.byteLength &&
+      // @ts-ignore
+      crypto.subtle.timingSafeEqual(inputData, expectedData)
+    );
+  } catch (e) {
+    return false;
+  }
+}

@@ -2,7 +2,7 @@ import { sha256 } from '../services/utils';
 import { handleWebdav } from './dav-handler';
 import { handleGetRequest } from './get-handler';
 import { handlePostRequest } from './post-handler';
-import { secureEqual } from '../services/authUtils';
+import { authenticateToken } from '../services/authUtils';
 
 export async function cacheRequest(
   request: Request,
@@ -10,56 +10,71 @@ export async function cacheRequest(
   ctx: ExecutionContext,
 ): Promise<Response> {
   const CACHE_TTLMAP = env.CACHE_TTLMAP;
-  const requestMethod = request.method as keyof typeof CACHE_TTLMAP;
-  if (CACHE_TTLMAP[requestMethod]) {
-    const keyGenerators: {
-      [key: string]: () => string | Promise<string>;
-    } = {
-      GET: () => '',
-      POST: async () => await request.clone().text(),
-    };
-    const cacheKeySource = await keyGenerators[requestMethod]();
-    const hash = await sha256(cacheKeySource);
-    const cacheUrl = new URL(request.url);
-    cacheUrl.pathname = `/${requestMethod}` + cacheUrl.pathname + hash;
-    const cacheKey = new Request(cacheUrl.toString(), {
-      method: 'GET',
-    });
+  const method = request.method as keyof typeof CACHE_TTLMAP;
+  const cacheTTL = CACHE_TTLMAP[method];
 
-    const cache = (caches as any).default;
-    let response = await cache.match(cacheKey);
-    const lastAccessedTime = response?.headers.get('Last-Accessed') || 0;
-    const cachedAccessedTime = new Date(lastAccessedTime).getTime();
-    const isExpired = (Date.now() - cachedAccessedTime) / 1000 > CACHE_TTLMAP[requestMethod];
-    const isForceRefresh =
-      env.PASSWORD &&
-      secureEqual(
-        cacheUrl.searchParams.get('flush')?.toLowerCase() || undefined,
-        await sha256(env.PASSWORD),
-      );
-
-    if (!response || isExpired || isForceRefresh) {
-      response = await handleRequest(request, env);
-
-      if ([200, 302].includes(response.status)) {
-        const newResponse = new Response(response.body, response);
-        newResponse.headers.set('Last-Accessed', new Date().toUTCString());
-        response = newResponse;
-        ctx.waitUntil(cache.put(cacheKey, newResponse.clone()));
-      }
-    }
-
-    return response;
+  if (!cacheTTL || cacheTTL <= 0) {
+    return handleRequest(request, env);
   }
-  return handleRequest(request, env);
+
+  // WebDAV bypass
+  if (request.headers.get('Authorization')) {
+    return handleRequest(request, env);
+  }
+
+  const cacheUrl = new URL(request.url);
+  const isInProtected =
+    cacheUrl.pathname.replace(`/${env.PROTECTED.PROXY_KEYWORD}/`, '').split('/').length <=
+    env.PROTECTED.PROTECTED_LAYERS;
+  const tokenScopeList = cacheUrl.searchParams.get('ts')?.split(',') || [];
+  const isTokenValid = await authenticateToken(env.PASSWORD, cacheUrl, []);
+  const isGetAllowed =
+    !isInProtected ||
+    (env.ASSETS && cacheUrl.pathname === '/') ||
+    ((tokenScopeList.includes('download') || tokenScopeList.length === 0) && isTokenValid);
+
+  const requestKeyGenerators = {
+    GET: () => (isGetAllowed ? 'verified' : ''),
+    POST: async () => await sha256(await request.clone().text()),
+  };
+  const key = await requestKeyGenerators[method]();
+
+  cacheUrl.pathname = `/${method}` + cacheUrl.pathname + key;
+  cacheUrl.search = ''; // avoid query parameters affecting cache entry
+  const cacheKey = new Request(cacheUrl.toString());
+  const cache = (caches as any).default;
+  const cachedResponse: Response | null = await cache.match(cacheKey);
+
+  const cachedAgeSec =
+    (Date.now() - new Date(cachedResponse?.headers.get('Expires') || 0).getTime()) / 1000;
+
+  // skip refresh for 302 OneDrive download links (valid for 1 hour)
+  if (method === 'GET' && cachedResponse?.status === 302 && cachedAgeSec < 3600) {
+    return cachedResponse;
+  }
+
+  // expired or forced refresh
+  const isCacheExpired = cachedAgeSec > cacheTTL;
+  const isForceRefresh = tokenScopeList.includes('refresh') && isTokenValid;
+
+  if (!cachedResponse || isCacheExpired || isForceRefresh) {
+    const upstreamResponse = await handleRequest(request, env);
+    const freshResponse = new Response(upstreamResponse.body, upstreamResponse);
+
+    freshResponse.headers.set('Expires', new Date(Date.now() + cacheTTL * 1000).toUTCString());
+    freshResponse.headers.set('Cache-Control', `max-age=${cacheTTL}`);
+
+    ctx.waitUntil(cache.put(cacheKey, freshResponse.clone()));
+    return freshResponse;
+  }
+
+  return cachedResponse;
 }
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
-  const requestUrl = new URL(request.url);
-
-  const handlers: {
-    [key: string]: () => Promise<Response> | Response;
-  } = {
+  const url = new URL(request.url);
+  const method = request.method as keyof typeof handlers;
+  const handlers = {
     // Preflight
     OPTIONS: () => {
       return new Response(null, {
@@ -75,19 +90,19 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       });
     },
     // Download a file or display web
-    GET: () => handleGetRequest(request, env, requestUrl),
+    GET: () => handleGetRequest(request, env, url),
     // Upload or List files
-    POST: () => handlePostRequest(request, env, requestUrl),
+    POST: () => handlePostRequest(request, env, url),
   };
 
-  const handler = handlers[request.method];
+  const handler = handlers[method];
   if (handler) {
     return handler();
   }
 
   const davMethods = ['COPY', 'DELETE', 'HEAD', 'MKCOL', 'MOVE', 'PROPFIND', 'PUT'];
-  if (davMethods.includes(request.method)) {
-    return handleWebdav(request, env, requestUrl);
+  if (davMethods.includes(method)) {
+    return handleWebdav(request, env, url);
   }
 
   return new Response(null, { status: 405 });
