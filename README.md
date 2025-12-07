@@ -60,6 +60,19 @@ npx wrangler secret put PASSWORD
 
 [![使用 EdgeOne Pages 部署](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Fvcheckzen%2FFODI%2Ftree%2Fmaster%2Ffront-end)
 
+### 参数
+
+| 参数名            | 值                          | 作用                         |
+| ----------------- | --------------------------- | ---------------------------- |
+| path              | path                        | 前端起始目录                 |
+| token             | sha256(PASSWORD,path,ts,te) | 令牌，除密码外为可选参数     |
+| ts(token scope)   | download,refresh            | token 权限，不填默认下载     |
+| te(token expires) | uninx timestamp, seconds    | token 失效日期，不填默认永久 |
+| format            | [支持格式](#下载)           | 下载时转换源文件为format格式 |
+
+> 例: 想下载/Abc/a.txt，密码为 123456，路径 /Abc，过期时间 1735660800(2025-01-01 00:00:00)
+> `123456,/Abc,download,1735660800` 经 sha256 得到 `https://example.com/Abc/a.txt?token=73a934a6d7d995c0ad1f7745e7a0d0261323a2e5243773b418a3c3c2a71b7a53&te=1735660800&format=pdf`
+
 <details>
     <summary>其它事项</summary>
 
@@ -69,16 +82,6 @@ npx wrangler secret put PASSWORD
 
 - 方式 1：在自定义的密码文件中填入 sha256 后的哈希值
 - 方式 2：环境变量 `PASSWORD` 的值
-
-### 参数
-
-| 参数名 | 值                | 作用                         |
-| ------ | ----------------- | ---------------------------- |
-| flush  | PASSWORD sha256   | 刷新缓存                     |
-| dpw    | PASSWORD sha256   | 下载保护目录下文件           |
-| format | [支持格式](#下载) | 下载时转换源文件为format格式 |
-
-例: `https://example.com/a.txt?dpw=8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92&format=pdf`
 
 ### WEBDAV
 
@@ -94,7 +97,6 @@ npx wrangler secret put PASSWORD
 
 - 通过 `PROXY_KEYWORD` 访问可让 worker 代理
 - 访问 `https://example.com/a.html?format=` 可添加转换的目标格式，[支持转换格式](https://learn.microsoft.com/zh-cn/onedrive/developer/rest-api/api/driveitem_get_content_format?view=odsp-graph-online#format-options)
-- 链接携带参数名 `forceRefresh`，值为 sha256 后的 `PASSWORD` 可强制刷新缓存
 
 ## 开发
 

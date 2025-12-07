@@ -1,11 +1,12 @@
 import { runtimeEnv } from '../types/env';
-import { sha256 } from './utils';
+import { sha256, secureEqual } from './utils';
 import { downloadFile } from './fileMethods';
+import { TokenScope } from '../types/apiType';
 
 export async function authenticatePost(
   path: string,
   passwd?: string,
-  envPassword?: string,
+  envPasswd?: string,
 ): Promise<boolean> {
   try {
     // empty input password, improve loading speed
@@ -14,16 +15,12 @@ export async function authenticatePost(
     }
 
     // check env password
-    const [hashedPasswd, hashedEnvPassword] = await Promise.all([
-      sha256(passwd || ''),
-      sha256(envPassword || ''),
-    ]);
-
-    if (envPassword && secureEqual(hashedPasswd, hashedEnvPassword)) {
+    if (envPasswd && secureEqual(passwd, envPasswd)) {
       return true;
     }
 
     // check password files in onedrive
+    const hashedPasswd = await sha256(passwd || '');
     const pathsToTry = [path === '/' ? '' : path];
     if (path !== '/' && path.split('/').length <= runtimeEnv.PROTECTED.PROTECTED_LAYERS) {
       pathsToTry.push('');
@@ -59,21 +56,44 @@ export function authenticateWebdav(
   return secureEqual(davAuthHeader, `Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`);
 }
 
-export function secureEqual(input: string | undefined, expected: string | undefined): boolean {
-  if (!expected) {
+/**
+ * @param envPasswd The environment password used to generate and validate the token.
+ * @param url The URL object containing the token and related query parameters.
+ * @param needScope An array of required scopes that the token must include.
+ * @returns Returns true if the token is valid, has the required scopes, and is not expired; false otherwise.
+ */
+export async function authenticateToken(
+  envPasswd: string | undefined,
+  url: URL,
+  needScope: TokenScope[],
+): Promise<boolean> {
+  const token = url.searchParams.get('token')?.toLowerCase();
+  if (!token || !envPasswd) {
     return false;
   }
 
-  try {
-    const encoder = new TextEncoder();
-    const inputData = encoder.encode(input);
-    const expectedData = encoder.encode(expected);
-    return (
-      inputData.byteLength === expectedData.byteLength &&
-      // @ts-ignore
-      crypto.subtle.timingSafeEqual(inputData, expectedData)
-    );
-  } catch (e) {
+  const userScope = (url.searchParams.get('ts') || 'download').split(',');
+  if (!needScope.every((s) => userScope.includes(s))) {
     return false;
   }
+
+  const expires = url.searchParams.get('te');
+  if (expires) {
+    const now = Math.floor(Date.now() / 1000);
+    const exp = parseInt(expires);
+    if (isNaN(exp) || now > exp) {
+      return false;
+    }
+  }
+
+  const path = url.pathname;
+  const parent = path.split('/').slice(0, -1).join('/') || '/';
+  const tokenArgString = [userScope.join(','), expires].filter(Boolean).join(',');
+  const pathSign = [envPasswd, path, tokenArgString].join(',');
+  const parentSign = [envPasswd, parent, tokenArgString].join(',');
+
+  const validTokens = Promise.all([sha256(pathSign), sha256(parentSign)]);
+  const isValid = (await validTokens).some((validToken) => secureEqual(token, validToken));
+
+  return isValid;
 }

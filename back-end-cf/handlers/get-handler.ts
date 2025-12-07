@@ -1,8 +1,7 @@
 import { downloadFile } from '../services/fileMethods';
 import { parsePath } from '../services/pathUtils';
 import { renderDeployHtml } from '../services/deployMethods';
-import { authenticateWebdav, secureEqual } from '../services/authUtils';
-import { sha256 } from '../services/utils';
+import { authenticateToken, authenticateWebdav } from '../services/authUtils';
 
 export async function handleGetRequest(
   request: Request,
@@ -34,9 +33,7 @@ export async function handleGetRequest(
 
   const isPwRight =
     authenticateWebdav(request.headers.get('Authorization'), env.USERNAME, env.PASSWORD) ||
-    (env.PASSWORD &&
-      secureEqual(requestUrl.searchParams.get('dpw')?.toLowerCase(), await sha256(env.PASSWORD)));
-
+    (await authenticateToken(env.PASSWORD, requestUrl, ['download']));
   const isAccessDenied =
     fileName.toLowerCase() === env.PROTECTED.PASSWD_FILENAME.toLowerCase() ||
     (filePath.split('/').length <= env.PROTECTED.PROTECTED_LAYERS && !isPwRight);
