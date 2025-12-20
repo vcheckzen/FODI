@@ -1,47 +1,38 @@
-import { runtimeEnv } from '../types/env';
-import { sha256, secureEqual } from './utils';
+import { sha256, secureEqual, hmacSha256 } from './utils';
 import { downloadFile } from './fileMethods';
-import { TokenScope } from '../types/apiType';
+import type { TokenScope } from '../types/apiType';
 
-export async function authenticatePost(
-  path: string,
-  passwd?: string,
-  envPasswd?: string,
-): Promise<boolean> {
-  try {
-    // empty input password, improve loading speed
-    if (!passwd && path.split('/').length <= runtimeEnv.PROTECTED.PROTECTED_LAYERS) {
-      return false;
-    }
-
-    // check env password
-    if (envPasswd && secureEqual(passwd, envPasswd)) {
-      return true;
-    }
-
-    // check password files in onedrive
-    const hashedPasswd = await sha256(passwd || '');
-    const pathsToTry = [path === '/' ? '' : path];
-    if (path !== '/' && path.split('/').length <= runtimeEnv.PROTECTED.PROTECTED_LAYERS) {
-      pathsToTry.push('');
-    }
-    const downloads = await Promise.all(
-      pathsToTry.map((p) =>
-        downloadFile(`${p}/${runtimeEnv.PROTECTED.PASSWD_FILENAME}`, true).then((resp) =>
-          resp.status === 404 ? undefined : resp.text(),
-        ),
-      ),
-    );
-
-    for (const pwFileContent of downloads) {
-      if (pwFileContent && secureEqual(hashedPasswd, pwFileContent.toLowerCase())) {
-        return true;
-      }
-    }
-    return downloads.every((content) => content === undefined);
-  } catch (e) {
+async function authenticatePost(env: Env, path: string, passwd?: string): Promise<boolean> {
+  // empty input password, improve loading speed
+  if (!passwd) {
     return false;
   }
+
+  // check env password
+  if (env.PASSWORD && secureEqual(passwd, env.PASSWORD)) {
+    return true;
+  }
+
+  // check password files in onedrive
+  const hashedPasswd = await sha256(passwd || '');
+  const candidatePaths = new Set<string>();
+  candidatePaths.add(path === '/' ? '' : path);
+  candidatePaths.add('');
+
+  const downloads = await Promise.all(
+    Array.from(candidatePaths).map((p) =>
+      downloadFile(`${p}/${env.PROTECTED.PASSWD_FILENAME}`, true).then((resp) =>
+        resp.status === 404 ? undefined : resp.text(),
+      ),
+    ),
+  );
+
+  for (const pwFileContent of downloads) {
+    if (pwFileContent && secureEqual(hashedPasswd, pwFileContent.toLowerCase())) {
+      return true;
+    }
+  }
+  return downloads.every((content) => content === undefined);
 }
 
 export function authenticateWebdav(
@@ -56,25 +47,11 @@ export function authenticateWebdav(
   return secureEqual(davAuthHeader, `Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`);
 }
 
-/**
- * @param envPasswd The environment password used to generate and validate the token.
- * @param url The URL object containing the token and related query parameters.
- * @param needScope An array of required scopes that the token must include.
- * @returns Returns true if the token is valid, has the required scopes, and is not expired; false otherwise.
- */
-export async function authenticateToken(
-  envPasswd: string | undefined,
-  url: URL,
-  needScope: TokenScope[],
-): Promise<boolean> {
+async function getTokenScopes(envPW: string | undefined, url: URL): Promise<TokenScope[]> {
+  const tokenScopeList = (url.searchParams.get('ts') || 'download').split(',') as TokenScope[];
   const token = url.searchParams.get('token')?.toLowerCase();
-  if (!token || !envPasswd) {
-    return false;
-  }
-
-  const userScope = (url.searchParams.get('ts') || 'download').split(',');
-  if (!needScope.every((s) => userScope.includes(s))) {
-    return false;
+  if (!token || !envPW) {
+    return [];
   }
 
   const expires = url.searchParams.get('te');
@@ -82,18 +59,91 @@ export async function authenticateToken(
     const now = Math.floor(Date.now() / 1000);
     const exp = parseInt(expires);
     if (isNaN(exp) || now > exp) {
-      return false;
+      return [];
     }
   }
 
-  const path = url.pathname;
-  const parent = path.split('/').slice(0, -1).join('/') || '/';
-  const tokenArgString = [userScope.join(','), expires].filter(Boolean).join(',');
-  const pathSign = [envPasswd, path, tokenArgString].join(',');
-  const parentSign = [envPasswd, parent, tokenArgString].join(',');
+  const tokenArgString = [tokenScopeList.join(','), expires].filter(Boolean).join(',');
+  const path = decodeURIComponent(url.pathname);
 
-  const validTokens = Promise.all([sha256(pathSign), sha256(parentSign)]);
-  const isValid = (await validTokens).some((validToken) => secureEqual(token, validToken));
+  const candidatePaths = new Set<string>();
+  candidatePaths.add(path);
 
-  return isValid;
+  const childrenAuth =
+    (tokenScopeList.length === 1 && tokenScopeList[0] === 'download') ||
+    tokenScopeList.includes('children');
+  if (childrenAuth) {
+    const beginPath = path.split('/').slice(0, -1).join('/') || '/';
+    candidatePaths.add(beginPath);
+  }
+
+  if (tokenScopeList.includes('recursive')) {
+    const beginPath = url.searchParams.get('tb') || '/';
+    if (!path.startsWith(beginPath)) {
+      return [];
+    }
+    candidatePaths.add(beginPath);
+  }
+
+  for (const p of candidatePaths) {
+    const sign = await hmacSha256(envPW, [p, tokenArgString].join(','));
+    if (token === sign) {
+      return tokenScopeList.sort();
+    }
+  }
+
+  return [];
+}
+
+interface AuthContext {
+  env: Env;
+  url: URL;
+  passwd?: string;
+  postPath?: string;
+}
+
+export async function authorizeActions(
+  actions: readonly TokenScope[],
+  ctx: AuthContext,
+): Promise<Set<TokenScope>> {
+  const allowed = new Set<TokenScope>();
+  const { env, url, passwd, postPath } = ctx;
+  const publicActions: TokenScope[] = ['list', 'download'];
+
+  const tokenScopes = await getTokenScopes(env.PASSWORD, url);
+  const path = postPath || url.searchParams.get('file') || decodeURIComponent(url.pathname);
+
+  for (const action of actions) {
+    if (env.PROTECTED.REQUIRE_AUTH !== true && publicActions.includes(action)) {
+      allowed.add(action);
+      continue;
+    }
+
+    if (tokenScopes.includes(action)) {
+      allowed.add(action);
+      continue;
+    }
+
+    let ok = false;
+    // if passwd null/undefined, this auth path is skipped to improve performance
+    switch (action) {
+      case 'download':
+        ok = authenticateWebdav(passwd ?? null, env.USERNAME, env.PASSWORD);
+        break;
+
+      case 'list':
+        ok = await authenticatePost(env, path, passwd);
+        break;
+
+      case 'upload':
+        ok =
+          (await authenticatePost(env, path, passwd)) &&
+          (await downloadFile(`${path}/.upload`)).status === 302;
+        break;
+    }
+
+    if (ok) allowed.add(action);
+  }
+
+  return allowed;
 }

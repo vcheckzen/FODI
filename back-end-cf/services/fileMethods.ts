@@ -94,6 +94,9 @@ export async function downloadFile(
   if (stream) {
     const headers = new Headers(reqHeaders);
     headers.delete('Authorization');
+    if (headers.get('Range')?.toLowerCase() === 'bytes=0-') {
+      headers.delete('Range');
+    }
     const resp = await fetch(downloadUrl, { headers });
 
     const returnHeaders = new Headers();

@@ -1,8 +1,8 @@
-import { sha256 } from '../services/utils';
+import { sha256, parseJson } from '../services/utils';
+import { authorizeActions } from '../services/authUtils';
 import { handleWebdav } from './dav-handler';
 import { handleGetRequest } from './get-handler';
 import { handlePostRequest } from './post-handler';
-import { authenticateToken } from '../services/authUtils';
 
 export async function cacheRequest(
   request: Request,
@@ -18,44 +18,41 @@ export async function cacheRequest(
   }
 
   // WebDAV bypass
-  if (request.headers.get('Authorization')) {
+  const cacheUrl = new URL(request.url);
+  const isDavGetCache =
+    env.PROTECTED.PROXY_KEYWORD && cacheUrl.hostname.includes(`${env.PROTECTED.PROXY_KEYWORD}.`);
+  if (request.headers.get('Authorization') && !isDavGetCache) {
     return handleRequest(request, env);
   }
 
-  const cacheUrl = new URL(request.url);
-  const isInProtected =
-    cacheUrl.pathname.replace(`/${env.PROTECTED.PROXY_KEYWORD}/`, '').split('/').length <=
-    env.PROTECTED.PROTECTED_LAYERS;
-  const tokenScopeList = cacheUrl.searchParams.get('ts')?.split(',') || [];
-  const isTokenValid = await authenticateToken(env.PASSWORD, cacheUrl, []);
-  const isGetAllowed =
-    !isInProtected ||
-    (env.ASSETS && cacheUrl.pathname === '/') ||
-    ((tokenScopeList.includes('download') || tokenScopeList.length === 0) && isTokenValid);
+  const reqBody = method === 'POST' ? await request.clone().text() : '{}';
+  const tokenScopeSet = await authorizeActions(['download', 'refresh', 'list'], {
+    env,
+    url: cacheUrl,
+    passwd: request.headers.get('Authorization') ?? undefined,
+    postPath: parseJson<{ path: string }>(reqBody)?.path,
+  });
 
   const requestKeyGenerators = {
-    GET: () => (isGetAllowed ? 'verified' : ''),
-    POST: async () => await sha256(await request.clone().text()),
+    GET: () => (tokenScopeSet.has('download') ? 'download' : ''),
+    POST: async () =>
+      tokenScopeSet.has('list') ? `list/${await sha256(reqBody)}` : await sha256(reqBody),
   };
   const key = await requestKeyGenerators[method]();
 
-  cacheUrl.pathname = `/${method}` + cacheUrl.pathname + key;
   cacheUrl.search = ''; // avoid query parameters affecting cache entry
-  const cacheKey = new Request(cacheUrl.toString());
+  cacheUrl.pathname = `/${method}/${key}` + cacheUrl.pathname;
+  const cacheKey = new Request(cacheUrl.toString().toLowerCase());
   const cache = (caches as any).default;
   const cachedResponse: Response | null = await cache.match(cacheKey);
 
   const cachedAgeSec =
     (Date.now() - new Date(cachedResponse?.headers.get('Expires') || 0).getTime()) / 1000;
-
-  // skip refresh for 302 OneDrive download links (valid for 1 hour)
-  if (method === 'GET' && cachedResponse?.status === 302 && cachedAgeSec < 3600) {
-    return cachedResponse;
-  }
-
+  // 302 OneDrive download links are valid for 1 hour
+  const isLinkExpired = method === 'GET' && cachedResponse?.status === 302 && cachedAgeSec > 3600;
   // expired or forced refresh
-  const isCacheExpired = cachedAgeSec > cacheTTL;
-  const isForceRefresh = tokenScopeList.includes('refresh') && isTokenValid;
+  const isCacheExpired = cachedAgeSec > cacheTTL || isLinkExpired;
+  const isForceRefresh = tokenScopeSet.has('refresh');
 
   if (!cachedResponse || isCacheExpired || isForceRefresh) {
     const upstreamResponse = await handleRequest(request, env);
@@ -73,37 +70,44 @@ export async function cacheRequest(
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const method = request.method as keyof typeof handlers;
-  const handlers = {
+  const allowMethods = [
+    'COPY',
+    'DELETE',
+    'GET',
+    'HEAD',
+    'MKCOL',
+    'MOVE',
+    'OPTIONS',
+    'POST',
+    'PROPFIND',
+    'PUT',
+  ];
+
+  if (!allowMethods.includes(request.method)) {
+    return new Response(null, { status: 405 });
+  }
+
+  switch (request.method) {
     // Preflight
-    OPTIONS: () => {
+    case 'OPTIONS':
       return new Response(null, {
         status: 200,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Headers': 'Content-Type',
-          'Access-Control-Max-Age': '86400',
+          'Access-Control-Max-Age': '604800',
           DAV: '1, 3',
-          ALLOW: 'COPY, DELETE, GET, HEAD, MKCOL, MOVE, OPTIONS, POST, PROPFIND, PUT',
+          ALLOW: allowMethods.join(', '),
           'ms-author-via': 'DAV',
         },
       });
-    },
     // Download a file or display web
-    GET: () => handleGetRequest(request, env, url),
+    case 'GET':
+      return handleGetRequest(request, env, url);
     // Upload or List files
-    POST: () => handlePostRequest(request, env, url),
-  };
-
-  const handler = handlers[method];
-  if (handler) {
-    return handler();
+    case 'POST':
+      return handlePostRequest(request, env, url);
+    default:
+      return handleWebdav(request, env, url);
   }
-
-  const davMethods = ['COPY', 'DELETE', 'HEAD', 'MKCOL', 'MOVE', 'PROPFIND', 'PUT'];
-  if (davMethods.includes(method)) {
-    return handleWebdav(request, env, url);
-  }
-
-  return new Response(null, { status: 405 });
 }

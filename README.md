@@ -60,19 +60,6 @@ npx wrangler secret put PASSWORD
 
 [![使用 EdgeOne Pages 部署](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Fvcheckzen%2FFODI%2Ftree%2Fmaster%2Ffront-end)
 
-### 参数
-
-| 参数名            | 值                          | 作用                         |
-| ----------------- | --------------------------- | ---------------------------- |
-| path              | path                        | 前端起始目录                 |
-| token             | sha256(PASSWORD,path,ts,te) | 令牌，除密码外为可选参数     |
-| ts(token scope)   | download,refresh            | token 权限，不填默认下载     |
-| te(token expires) | uninx timestamp, seconds    | token 失效日期，不填默认永久 |
-| format            | [支持格式](#下载)           | 下载时转换源文件为format格式 |
-
-> 例: 想下载/Abc/a.txt，密码为 123456，路径 /Abc，过期时间 1735660800(2025-01-01 00:00:00)
-> `123456,/Abc,download,1735660800` 经 sha256 得到 `https://example.com/Abc/a.txt?token=73a934a6d7d995c0ad1f7745e7a0d0261323a2e5243773b418a3c3c2a71b7a53&te=1735660800&format=pdf`
-
 <details>
     <summary>其它事项</summary>
 
@@ -97,6 +84,19 @@ npx wrangler secret put PASSWORD
 
 - 通过 `PROXY_KEYWORD` 访问可让 worker 代理
 - 访问 `https://example.com/a.html?format=` 可添加转换的目标格式，[支持转换格式](https://learn.microsoft.com/zh-cn/onedrive/developer/rest-api/api/driveitem_get_content_format?view=odsp-graph-online#format-options)
+
+### 参数
+
+1. `path`: 前端（非特别注明皆为后端），前端起始目录
+2. `token`: 访问令牌，格式为 HMAC-SHA256 后的 `path,ts,te`
+3. `ts`: 访问令牌可选参数，token 权限，`download,refresh,list,upload,children,recursive`， 不填默认下载
+4. `te`: 访问令牌可选参数，token 失效日期，格式为 uninx timestamp (单位 s)， 不填默认永久
+5. `tb`: 访问令牌可选参数，token 作用起始目录，搭配 `recursive` 权限使用
+6. `format`: 下载时转换源文件为format格式，[支持格式](#下载)
+7. `file`: 下载文件地址，`/a/a.txt`
+
+> 例: 想下载/Abc/a.txt，密码为 123456，路径 /Abc，过期时间 1735660800(2025-01-01 00:00:00)
+> `/Abc,download,1735660800` 经 HMAC-SHA256 得到 `https://example.com/Abc/a.txt?token=b5b0b5e80533c614dc78b968685d3467f93e63a6e596cb12ffce6ff38007e034&te=1735660800&format=pdf`
 
 ## 开发
 

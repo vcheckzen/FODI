@@ -1,18 +1,13 @@
 import { downloadFile } from '../services/fileMethods';
 import { parsePath } from '../services/pathUtils';
 import { renderDeployHtml } from '../services/deployMethods';
-import { authenticateToken, authenticateWebdav } from '../services/authUtils';
+import { authorizeActions } from '../services/authUtils';
 
 export async function handleGetRequest(
   request: Request,
   env: Env,
   requestUrl: URL,
 ): Promise<Response> {
-  // display web
-  if (requestUrl.pathname === '/' && env.ASSETS) {
-    return env.ASSETS.fetch(request);
-  }
-
   // display deployment
   if (requestUrl.pathname === '/deployfodi') {
     return renderDeployHtml(env, requestUrl);
@@ -24,20 +19,22 @@ export async function handleGetRequest(
     requestUrl.pathname.startsWith(`/${env.PROTECTED.PROXY_KEYWORD}`);
   const { path: filePath, tail: fileName } = parsePath(
     requestUrl.searchParams.get('file') || decodeURIComponent(requestUrl.pathname),
-    `/${env.PROTECTED.PROXY_KEYWORD}`,
+    isProxyRequest ? `/${env.PROTECTED.PROXY_KEYWORD}` : undefined,
   );
 
   if (!fileName) {
     return new Response('Bad Request', { status: 400 });
-  }
-
-  const isPwRight =
-    authenticateWebdav(request.headers.get('Authorization'), env.USERNAME, env.PASSWORD) ||
-    (await authenticateToken(env.PASSWORD, requestUrl, ['download']));
-  const isAccessDenied =
-    fileName.toLowerCase() === env.PROTECTED.PASSWD_FILENAME.toLowerCase() ||
-    (filePath.split('/').length <= env.PROTECTED.PROTECTED_LAYERS && !isPwRight);
-  if (isAccessDenied) {
+  } else if (fileName.toLowerCase() === env.PROTECTED.PASSWD_FILENAME.toLowerCase()) {
+    return new Response('Access Denied', { status: 403 });
+  } else if (
+    !(
+      await authorizeActions(['download'], {
+        env,
+        url: requestUrl,
+        passwd: request.headers.get('Authorization') ?? '',
+      })
+    ).has('download')
+  ) {
     return new Response('Access Denied', { status: 403 });
   }
 

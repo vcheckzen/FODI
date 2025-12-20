@@ -8,10 +8,11 @@
         IS_BUSINESS: false, // 是否为商业版，E5 请改为 true
         PRELOAD: false, // 是否预加载文件列表，文件夹非常少才建议开启
         CDN_MAP: {
-          // 备用 unpkg CDN 选项（本项目不对其服务稳定性和内容安全性承担任何责任）：
-          // - //npm.webcache.cn
+          // 加速 CDN (不对其服务稳定性和内容安全性承担任何责任)
+          // unpkg: '//npm.webcache.cn',
+          // cdnjs: '//s4.zstatic.net/ajax/libs',
           unpkg: '//cdn.jsdelivr.net/npm',
-          bytedance: '//cdn.bytedance.com/cdn/expire-1-M',
+          cdnjs: '//cdnjs.cloudflare.com/ajax/libs',
         },
       };
     </script>
@@ -22,7 +23,7 @@
     />
     <link rel="icon" href="data:;base64,=" type="image/x-icon" />
     <link
-      href="//cdn.bytedance.com/cdn/expire-1-M/material-design-iconic-font/2.2.0/css/material-design-iconic-font.min.css"
+      href="//cdn.jsdelivr.net/npm/material-design-iconic-font@2.2.0/dist/css/material-design-iconic-font.min.css"
       type="text/css"
       rel="stylesheet"
     />
@@ -1463,7 +1464,7 @@
               createDplayer: (video, type, elem) => {
                 return loadResource(
                   fromCdn(
-                    'bytedance',
+                    'cdnjs',
                     '/hls.js/1.1.5/hls.light.min.js',
                     '/flv.js/1.6.2/flv.min.js',
                     '/dplayer/1.25.0/DPlayer.min.css',
@@ -1632,7 +1633,14 @@
               .querySelector('.btn.download')
               .addEventListener('click', () => (location.href = url));
             document.querySelector('.btn.quote').addEventListener('click', (event) => {
-              previewHandler.copyTextContent(null, window.api.url + path);
+              previewHandler.copyTextContent(
+                null,
+                (() => {
+                  const u = new URL(window.location.protocol + window.api.url);
+                  u.searchParams.set('file', path);
+                  return u.toString();
+                })(),
+              );
               const btn = document.querySelector('.btn.quote');
               btn.innerHTML = '已复制';
               setTimeout(() => (btn.innerHTML = '引用'), 250);
@@ -1648,7 +1656,11 @@
               };
               previewHandler.copyTextContent(
                 null,
-                window.location.origin + window.location.pathname + '?path=' + sharePath(),
+                (() => {
+                  const u = new URL(window.location.href);
+                  u.searchParams.set('path', sharePath());
+                  return u.toString();
+                })(),
               );
               const btn = document.querySelector('.btn.share');
               btn.innerHTML = '已复制';
@@ -2031,7 +2043,7 @@
           const currentPage = paginatedUpFileList[pageIndex];
           sendRequest(
             window.api.method,
-            window.api.url + '?upload',
+            window.api.url + (window.api.url.includes('?') ? '&' : '?') + 'upload',
             window.api.formatPayload(odPath, window.fileCache.get(`${odPath}/.password`), {
               files: currentPage,
             }),
@@ -2152,7 +2164,7 @@
         document.querySelector('.site').textContent = window.GLOBAL_CONFIG.SITE_NAME;
         window.api = {
           root: '/',
-          url: window.GLOBAL_CONFIG.SCF_GATEWAY,
+          url: window.GLOBAL_CONFIG.SCF_GATEWAY + window.location.search,
           method: 'POST',
           formatPayload: (path, passwd, kvs) => {
             const payload = { path, passwd, ...kvs };
