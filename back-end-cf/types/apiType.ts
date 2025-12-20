@@ -3,7 +3,6 @@ declare global {
     FODI_CACHE?: KVNamespace;
     USERNAME?: string;
     PASSWORD?: string;
-    ASSETS?: Fetcher;
   }
 }
 
@@ -94,4 +93,4 @@ export interface DavRes {
 }
 
 export type DavDepth = '0' | '1' | 'infinity';
-export type TokenScope = 'download' | 'refresh';
+export type TokenScope = 'download' | 'list' | 'upload' | 'refresh' | 'children' | 'recursive';

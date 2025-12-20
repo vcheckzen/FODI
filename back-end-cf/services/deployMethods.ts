@@ -8,7 +8,7 @@ export async function renderDeployHtml(env: Env, requestUrl: URL) {
 
   const tokenData = await env.FODI_CACHE.get('token_data');
   if (tokenData) {
-    return Response.redirect(requestUrl.origin);
+    return Response.redirect(`${requestUrl.origin}/index.html`);
   }
 
   const authUrl = [
@@ -54,7 +54,7 @@ export async function saveDeployData(env: Env, requestUrl: URL, codeUrl: string)
 
   const tokenData = await env.FODI_CACHE.get('token_data');
   if (tokenData) {
-    return Response.redirect(requestUrl.origin);
+    return Response.redirect(`${requestUrl.origin}/index.html`);
   }
 
   const urlObj = new URL(codeUrl);
@@ -70,5 +70,5 @@ export async function saveDeployData(env: Env, requestUrl: URL, codeUrl: string)
   (result as TokenResponse).save_time = Date.now();
   await env.FODI_CACHE.put('token_data', JSON.stringify(result));
 
-  return Response.redirect(requestUrl.origin);
+  return Response.redirect(`${requestUrl.origin}/index.html`);
 }

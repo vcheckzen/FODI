@@ -1,7 +1,8 @@
 import type { PostPayload } from '../types/apiType';
-import { authenticatePost } from '../services/authUtils';
-import { downloadFile, fetchFiles, fetchUploadLinks } from '../services/fileMethods';
+import { fetchFiles, fetchUploadLinks } from '../services/fileMethods';
 import { saveDeployData } from '../services/deployMethods';
+import { authorizeActions } from '../services/authUtils';
+import { parseJson } from '../services/utils';
 
 export async function handlePostRequest(
   request: Request,
@@ -15,14 +16,17 @@ export async function handlePostRequest(
     return saveDeployData(env, requestUrl, codeUrl);
   }
 
+  const body = parseJson<PostPayload>(await request.text());
+  if (!body) {
+    return new Response('invalid post body', { status: 400 });
+  }
+
   const returnHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'max-age=3600',
     'Content-Type': 'application/json; charset=utf-8',
   };
-  const body: PostPayload = await request.json();
   const requestPath = body.path || '/';
-  const isAuthorized = await authenticatePost(requestPath, body.passwd, env.PASSWORD);
 
   // Upload files
   if (requestUrl.searchParams.has('upload')) {
@@ -30,10 +34,17 @@ export async function handlePostRequest(
       return new Response('no files to upload', { status: 400 });
     }
 
-    const isUploadFileExists = (await downloadFile(`${requestPath}/.upload`)).status === 302;
+    const isUploadAllowed = (
+      await authorizeActions(['upload'], {
+        env,
+        url: requestUrl,
+        passwd: body.passwd,
+        postPath: requestPath,
+      })
+    ).has('upload');
+
     if (
-      !isUploadFileExists ||
-      !isAuthorized ||
+      !isUploadAllowed ||
       body.files?.some(
         (file) =>
           (file.remotePath.split('/').pop() ?? '').toLowerCase() ===
@@ -50,14 +61,23 @@ export async function handlePostRequest(
   }
 
   // List a folder
-  const files = isAuthorized
+  const isListAllowed = (
+    await authorizeActions(['list'], {
+      env,
+      url: requestUrl,
+      passwd: body.passwd,
+      postPath: requestPath,
+    })
+  ).has('list');
+  const filesRes = isListAllowed
     ? await fetchFiles(requestPath, body.skipToken, body.orderby)
     : {
         parent: requestPath,
         files: [],
         encrypted: true,
       };
-  return new Response(JSON.stringify(files), {
+
+  return new Response(JSON.stringify(filesRes), {
     headers: returnHeaders,
   });
 }

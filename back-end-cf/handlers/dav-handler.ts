@@ -23,12 +23,12 @@ export async function handleWebdav(request: Request, env: Env, requestUrl: URL):
     requestUrl.pathname.startsWith(`/${env.PROTECTED.PROXY_KEYWORD}`);
   const filePath = parsePath(
     decodeURIComponent(requestUrl.pathname),
-    `/${env.PROTECTED.PROXY_KEYWORD}`,
+    isProxyRequest ? `/${env.PROTECTED.PROXY_KEYWORD}` : undefined,
     true,
   ).path;
   const destination = parsePath(
     decodeURIComponent(request.headers.get('Destination') || ''),
-    `/${env.PROTECTED.PROXY_KEYWORD}`,
+    isProxyRequest ? `/${env.PROTECTED.PROXY_KEYWORD}` : undefined,
     true,
   ).path;
 
