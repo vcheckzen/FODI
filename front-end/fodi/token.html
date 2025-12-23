@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HMAC-Hash 工具</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f7f7f7;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 400px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px #0001;
+        padding: 32px 24px;
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      label {
+        display: block;
+        margin-top: 16px;
+        margin-bottom: 6px;
+        font-weight: bold;
+      }
+      input,
+      select,
+      textarea,
+      button {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 1em;
+      }
+      button {
+        background: #0078d4;
+        color: #fff;
+        border: none;
+        margin-top: 18px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #005fa3;
+      }
+      .result {
+        margin-top: 22px;
+        word-break: break-all;
+        background: #f0f0f0;
+        padding: 10px;
+        border-radius: 4px;
+        min-height: 32px;
+        font-family: monospace;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 32px;
+        color: #888;
+        font-size: 0.95em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>HMAC-Hash 工具</h2>
+
+      <label for="algoType">请选择类型</label>
+      <select id="algoType">
+        <option value="token">Token</option>
+        <option value="hmac">HMAC</option>
+        <option value="hash">Hash</option>
+      </select>
+
+      <div id="tokenBlock">
+        <label for="tokenPath">路径 (path)</label>
+        <input type="text" id="tokenPath" placeholder="如 /Abc" />
+
+        <label for="tokenScope">权限 (scope，可多选)</label>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px">
+          <button type="button" id="scopeAll">全选</button>
+          <button type="button" id="scopeCommon">常用</button>
+        </div>
+        <select id="tokenScope" multiple size="6" style="height: 120px">
+          <option value="download">download</option>
+          <option value="list">list</option>
+          <option value="upload">upload</option>
+          <option value="refresh">refresh</option>
+          <option value="children">children</option>
+          <option value="recursive">recursive</option>
+        </select>
+
+        <label for="tokenExpire">过期时间 (te)</label>
+        <select id="tokenExpire">
+          <option value="1d">一天后</option>
+          <option value="7d">一周后</option>
+          <option value="">永久</option>
+          <option value="custom">自定义</option>
+        </select>
+        <input
+          type="datetime-local"
+          id="tokenExpireCustom"
+          style="display: none; margin-top: 6px"
+        />
+
+        <div id="tbBlock" style="display: none">
+          <label for="tokenTB">起始目录 (tb, 仅children/recursive)</label>
+          <input type="text" id="tokenTB" placeholder="如 /Abc" />
+        </div>
+      </div>
+
+      <div id="messageBlock">
+        <label for="message">消息 (Message)</label>
+        <textarea id="message" rows="3" placeholder="输入要加密的消息"></textarea>
+      </div>
+
+      <div id="keyBlock">
+        <label for="key">密钥 (Key)</label>
+        <input type="text" id="key" placeholder="输入密钥" />
+      </div>
+
+      <div id="algoBlock">
+        <label for="algo">哈希算法 (Algorithm)</label>
+        <select id="algo">
+          <option value="SHA-256">SHA-256</option>
+          <option value="SHA-1">SHA-1</option>
+          <option value="SHA-384">SHA-384</option>
+          <option value="SHA-512">SHA-512</option>
+        </select>
+      </div>
+
+      <button id="calc">计算</button>
+
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 22px">
+        <div class="result" id="result" style="flex: 1" placeholder="结果会显示在这里"></div>
+        <button id="copyBtn" title="复制结果" style="width: 60px">复制</button>
+      </div>
+    </div>
+    <div class="footer">Powered by Web Crypto API</div>
+    <script>
+      async function hmacHash(message, key, algorithm) {
+        const enc = new TextEncoder();
+        const keyData = enc.encode(key);
+        const msgData = enc.encode(message);
+        const cryptoKey = await window.crypto.subtle.importKey(
+          'raw',
+          keyData,
+          { name: 'HMAC', hash: { name: algorithm } },
+          false,
+          ['sign'],
+        );
+        const sig = await window.crypto.subtle.sign('HMAC', cryptoKey, msgData);
+        return Array.from(new Uint8Array(sig))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+      }
+      async function hashOnly(message, algorithm) {
+        const enc = new TextEncoder();
+        const msgData = enc.encode(message);
+        const hashBuffer = await window.crypto.subtle.digest(algorithm, msgData);
+        return Array.from(new Uint8Array(hashBuffer))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+      }
+      document.getElementById('algoType').onchange = function () {
+        const type = this.value;
+        document.getElementById('keyBlock').style.display =
+          type === 'hmac' || type === 'token' ? '' : 'none';
+        document.getElementById('tokenBlock').style.display = type === 'token' ? '' : 'none';
+        document.getElementById('messageBlock').style.display =
+          type === 'hmac' || type === 'hash' ? '' : 'none';
+        document.getElementById('algoBlock').style.display =
+          type === 'hmac' || type === 'hash' ? '' : 'none';
+      };
+      document.getElementById('tokenExpire').onchange = function () {
+        const v = this.value;
+        document.getElementById('tokenExpireCustom').style.display = v === 'custom' ? '' : 'none';
+        if (v === 'custom') {
+          // 默认填充当前时间+1天
+          const now = new Date();
+          now.setDate(now.getDate() + 1);
+          document.getElementById('tokenExpireCustom').value = now.toISOString().slice(0, 16);
+        }
+      };
+
+      // scope多选优化
+      document.getElementById('scopeAll').onclick = function () {
+        const sel = document.getElementById('tokenScope');
+        for (let i = 0; i < sel.options.length; i++) sel.options[i].selected = true;
+        updateTBBlock();
+      };
+      document.getElementById('scopeCommon').onclick = function () {
+        const sel = document.getElementById('tokenScope');
+        const common = ['download', 'list'];
+        for (let i = 0; i < sel.options.length; i++)
+          sel.options[i].selected = common.includes(sel.options[i].value);
+        updateTBBlock();
+      };
+
+      document.getElementById('tokenScope').onchange = updateTBBlock;
+      function updateTBBlock() {
+        const sel = document.getElementById('tokenScope');
+        const scopes = Array.from(sel.selectedOptions).map((o) => o.value);
+        document.getElementById('tbBlock').style.display =
+          scopes.includes('children') || scopes.includes('recursive') ? '' : 'none';
+      }
+
+      document.getElementById('calc').onclick = async function () {
+        const type = document.getElementById('algoType').value;
+        const key = document.getElementById('key').value;
+        const resultDiv = document.getElementById('result');
+        resultDiv.textContent = '计算中...';
+        if (!key) {
+          resultDiv.textContent = '请输入密钥';
+          return;
+        }
+        if (type === 'token') {
+          // 获取 path
+          const path = document.getElementById('tokenPath').value.trim();
+          // 获取 scope 多选
+          const scopeSel = document.getElementById('tokenScope');
+          const scopes = Array.from(scopeSel.selectedOptions).map((o) => o.value);
+          // 获取过期时间
+          let te = '';
+          const expireSel = document.getElementById('tokenExpire').value;
+          if (expireSel === '1d') {
+            te = Math.floor(Date.now() / 1000) + 86400;
+          } else if (expireSel === '7d') {
+            te = Math.floor(Date.now() / 1000) + 86400 * 7;
+          } else if (expireSel === 'custom') {
+            const dt = document.getElementById('tokenExpireCustom').value;
+            if (dt) te = Math.floor(new Date(dt).getTime() / 1000);
+          }
+          // tb参数
+          let tb = '';
+          if (scopes.includes('children') || scopes.includes('recursive')) {
+            tb = document.getElementById('tokenTB').value.trim();
+            if (!tb) {
+              resultDiv.textContent = '请选择children/recursive权限时填写tb参数';
+              return;
+            }
+          }
+          // 拼接 token 字符串
+          let tokenStr = path;
+          if (scopes.length > 0) tokenStr += ',' + scopes.join(',');
+          if (te) tokenStr += ',' + te;
+          if (!path) {
+            resultDiv.textContent = '请输入路径';
+            return;
+          }
+          // HMAC-SHA256
+          try {
+            const hash = await hmacHash(tokenStr, key, 'SHA-256');
+            // 生成完整参数串
+            let param = '?token=' + hash;
+            param += '&path=' + encodeURIComponent(path);
+            if (scopes.length > 0) param += '&ts=' + scopes.join(',');
+            if (te) param += '&te=' + te;
+            if (tb) param += '&tb=' + encodeURIComponent(tb);
+            resultDiv.textContent = param;
+          } catch (e) {
+            resultDiv.textContent = '计算失败: ' + e.message;
+          }
+          return;
+        }
+        // HMAC/Hash
+        const message = document.getElementById('message').value;
+        const algo = document.getElementById('algo').value;
+        if (!message || (type === 'hmac' && !key)) {
+          resultDiv.textContent = '请输入消息' + (type === 'hmac' ? '和密钥' : '');
+          return;
+        }
+        try {
+          let hash;
+          if (type === 'hmac') {
+            hash = await hmacHash(message, key, algo);
+          } else {
+            hash = await hashOnly(message, algo);
+          }
+          resultDiv.textContent = hash;
+        } catch (e) {
+          resultDiv.textContent = '计算失败: ' + e.message;
+        }
+      };
+      // 初始化各区块显示
+      const typeInit = document.getElementById('algoType').value;
+      document.getElementById('keyBlock').style.display =
+        typeInit === 'hmac' || typeInit === 'token' ? '' : 'none';
+      document.getElementById('tokenBlock').style.display = typeInit === 'token' ? '' : 'none';
+      document.getElementById('messageBlock').style.display =
+        typeInit === 'hmac' || typeInit === 'hash' ? '' : 'none';
+      document.getElementById('algoBlock').style.display =
+        typeInit === 'hmac' || typeInit === 'hash' ? '' : 'none';
+
+      // 复制按钮功能
+      document.getElementById('copyBtn').onclick = async function () {
+        const result = document.getElementById('result').textContent;
+        if (
+          !result ||
+          result === '计算中...' ||
+          result.startsWith('请输入') ||
+          result.startsWith('计算失败')
+        ) {
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(result);
+          const btn = document.getElementById('copyBtn');
+          const oldText = btn.textContent;
+          btn.textContent = '已复制';
+          btn.disabled = true;
+          setTimeout(() => {
+            btn.textContent = oldText;
+            btn.disabled = false;
+          }, 1200);
+        } catch (e) {
+          alert('复制失败: ' + e.message);
+        }
+      };
+    </script>
+  </body>
+</html>
