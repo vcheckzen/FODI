@@ -47,14 +47,18 @@ export function authenticateWebdav(
   return secureEqual(davAuthHeader, `Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`);
 }
 
-async function getTokenScopes(envPW: string | undefined, url: URL): Promise<TokenScope[]> {
-  const tokenScopeList = (url.searchParams.get('ts') || 'download').split(',') as TokenScope[];
-  const token = url.searchParams.get('token')?.toLowerCase();
+async function getTokenScopes(
+  envPW: string | undefined,
+  pathname: string,
+  searchParams: URLSearchParams,
+): Promise<TokenScope[]> {
+  const tokenScopeList = (searchParams.get('ts') || 'download').split(',') as TokenScope[];
+  const token = searchParams.get('token')?.toLowerCase();
   if (!token || !envPW) {
     return [];
   }
 
-  const expires = url.searchParams.get('te');
+  const expires = searchParams.get('te');
   if (expires) {
     const now = Math.floor(Date.now() / 1000);
     const exp = parseInt(expires);
@@ -64,7 +68,7 @@ async function getTokenScopes(envPW: string | undefined, url: URL): Promise<Toke
   }
 
   const tokenArgString = [tokenScopeList.join(','), expires].filter(Boolean).join(',');
-  const path = decodeURIComponent(url.pathname);
+  const path = decodeURIComponent(pathname);
 
   const candidatePaths = new Set<string>();
   candidatePaths.add(path);
@@ -78,7 +82,7 @@ async function getTokenScopes(envPW: string | undefined, url: URL): Promise<Toke
   }
 
   if (tokenScopeList.includes('recursive')) {
-    const beginPath = url.searchParams.get('tb') || '/';
+    const beginPath = searchParams.get('tb') || '/';
     if (!path.startsWith(beginPath)) {
       return [];
     }
@@ -110,8 +114,8 @@ export async function authorizeActions(
   const { env, url, passwd, postPath } = ctx;
   const publicActions: TokenScope[] = ['list', 'download'];
 
-  const tokenScopes = await getTokenScopes(env.PASSWORD, url);
   const path = postPath || url.searchParams.get('file') || decodeURIComponent(url.pathname);
+  const tokenScopes = await getTokenScopes(env.PASSWORD, path, url.searchParams);
 
   for (const action of actions) {
     if (env.PROTECTED.REQUIRE_AUTH !== true && publicActions.includes(action)) {

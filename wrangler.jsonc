@@ -6,8 +6,10 @@
   "assets": {
     "directory": "./front-end/",
     "binding": "ASSETS",
-    "html_handling": "none",
-    "run_worker_first": ["/deployfodi", "!/index.html"]
+    "run_worker_first": [
+      "/deployfodi",
+      "!/fodi/*"
+    ]
   },
   "kv_namespaces": [
     {
