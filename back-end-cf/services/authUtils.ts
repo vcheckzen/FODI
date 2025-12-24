@@ -48,17 +48,23 @@ export function authenticateWebdav(
 }
 
 async function getTokenScopes(
-  envPW: string | undefined,
-  pathname: string,
+  secret: string | undefined,
+  reqPath: string,
   searchParams: URLSearchParams,
 ): Promise<TokenScope[]> {
-  const tokenScopeList = (searchParams.get('ts') || 'download').split(',') as TokenScope[];
   const token = searchParams.get('token')?.toLowerCase();
-  if (!token || !envPW) {
+  if (!token || !secret) {
     return [];
   }
 
+  const tokenScope = searchParams.get('ts') || 'download';
   const expires = searchParams.get('te');
+  const authPath = searchParams.get('tb') ?? '/';
+  const tokenArgString = [tokenScope, expires].filter(Boolean).join(',');
+
+  const candidatePaths = new Set<string>();
+  candidatePaths.add(reqPath);
+
   if (expires) {
     const now = Math.floor(Date.now() / 1000);
     const exp = parseInt(expires);
@@ -67,32 +73,21 @@ async function getTokenScopes(
     }
   }
 
-  const tokenArgString = [tokenScopeList.join(','), expires].filter(Boolean).join(',');
-  const path = decodeURIComponent(pathname);
-
-  const candidatePaths = new Set<string>();
-  candidatePaths.add(path);
-
-  const childrenAuth =
-    (tokenScopeList.length === 1 && tokenScopeList[0] === 'download') ||
-    tokenScopeList.includes('children');
-  if (childrenAuth) {
-    const beginPath = path.split('/').slice(0, -1).join('/') || '/';
+  if (tokenScope.includes('children') || tokenScope === 'download') {
+    const beginPath = reqPath.split('/').slice(0, -1).join('/') || '/';
     candidatePaths.add(beginPath);
   }
 
-  if (tokenScopeList.includes('recursive')) {
-    const beginPath = searchParams.get('tb') || '/';
-    if (!path.startsWith(beginPath)) {
-      return [];
+  if (tokenScope.includes('recursive')) {
+    if (reqPath.startsWith(authPath)) {
+      candidatePaths.add(authPath);
     }
-    candidatePaths.add(beginPath);
   }
 
   for (const p of candidatePaths) {
-    const sign = await hmacSha256(envPW, [p, tokenArgString].join(','));
-    if (token === sign) {
-      return tokenScopeList.sort();
+    const expectedSign = await hmacSha256(secret, `${p},${tokenArgString}`);
+    if (token === expectedSign) {
+      return tokenScope.split(',').sort() as TokenScope[];
     }
   }
 
