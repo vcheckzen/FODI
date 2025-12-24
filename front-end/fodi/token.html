@@ -80,10 +80,24 @@
       </select>
 
       <div id="tokenBlock">
-        <label for="tokenPath">路径 (path)</label>
+        <label for="tokenPath">Token Path</label>
         <input type="text" id="tokenPath" placeholder="如 /Abc" />
 
-        <label for="tokenScope">权限 (scope，可多选)</label>
+        <label for="tokenScope">
+          <details>
+            <summary>权限 (Scopes)</summary>
+
+            <ul>
+              <li>download: 下载文件(单独选择时，自动包含 children 权限)</li>
+              <li>list: 列出目录内容</li>
+              <li>upload: 上传文件</li>
+              <li>refresh: 刷新缓存</li>
+              <li>children: 访问子路径</li>
+              <li>recursive: 递归访问子路径</li>
+            </ul>
+          </details></label
+        >
+
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px">
           <button type="button" id="scopeAll">全选</button>
           <button type="button" id="scopeCommon">常用</button>
@@ -97,7 +111,7 @@
           <option value="recursive">recursive</option>
         </select>
 
-        <label for="tokenExpire">过期时间 (te)</label>
+        <label for="tokenExpire">过期时间 (Token Expire)</label>
         <select id="tokenExpire">
           <option value="1d">一天后</option>
           <option value="7d">一周后</option>
@@ -109,11 +123,6 @@
           id="tokenExpireCustom"
           style="display: none; margin-top: 6px"
         />
-
-        <div id="tbBlock" style="display: none">
-          <label for="tokenTB">起始目录 (tb, 仅children/recursive)</label>
-          <input type="text" id="tokenTB" placeholder="如 /Abc" />
-        </div>
       </div>
 
       <div id="messageBlock">
@@ -204,20 +213,14 @@
         updateTBBlock();
       };
 
-      document.getElementById('tokenScope').onchange = updateTBBlock;
-      function updateTBBlock() {
-        const sel = document.getElementById('tokenScope');
-        const scopes = Array.from(sel.selectedOptions).map((o) => o.value);
-        document.getElementById('tbBlock').style.display =
-          scopes.includes('children') || scopes.includes('recursive') ? '' : 'none';
-      }
+      document.getElementById('tokenScope').onchange = function () {};
 
       document.getElementById('calc').onclick = async function () {
         const type = document.getElementById('algoType').value;
         const key = document.getElementById('key').value;
         const resultDiv = document.getElementById('result');
         resultDiv.textContent = '计算中...';
-        if (!key) {
+        if ((type === 'hmac' || type === 'token') && !key) {
           resultDiv.textContent = '请输入密钥';
           return;
         }
@@ -238,14 +241,10 @@
             const dt = document.getElementById('tokenExpireCustom').value;
             if (dt) te = Math.floor(new Date(dt).getTime() / 1000);
           }
-          // tb参数
+          // tb参数自动等于path
           let tb = '';
           if (scopes.includes('children') || scopes.includes('recursive')) {
-            tb = document.getElementById('tokenTB').value.trim();
-            if (!tb) {
-              resultDiv.textContent = '请选择children/recursive权限时填写tb参数';
-              return;
-            }
+            tb = path;
           }
           // 拼接 token 字符串
           let tokenStr = path;
@@ -263,7 +262,8 @@
             param += '&path=' + encodeURIComponent(path);
             if (scopes.length > 0) param += '&ts=' + scopes.join(',');
             if (te) param += '&te=' + te;
-            if (tb) param += '&tb=' + encodeURIComponent(tb);
+            if (tb && (scopes.includes('children') || scopes.includes('recursive')))
+              param += '&tb=' + encodeURIComponent(tb);
             resultDiv.textContent = param;
           } catch (e) {
             resultDiv.textContent = '计算失败: ' + e.message;
@@ -273,8 +273,12 @@
         // HMAC/Hash
         const message = document.getElementById('message').value;
         const algo = document.getElementById('algo').value;
-        if (!message || (type === 'hmac' && !key)) {
-          resultDiv.textContent = '请输入消息' + (type === 'hmac' ? '和密钥' : '');
+        if (!message) {
+          resultDiv.textContent = '请输入消息';
+          return;
+        }
+        if (type === 'hmac' && !key) {
+          resultDiv.textContent = '请输入消息和密钥';
           return;
         }
         try {
