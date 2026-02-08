@@ -94,9 +94,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return new Response(null, {
         status: 200,
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Content-Type',
-          'Access-Control-Max-Age': '604800',
+          'Access-Control-Allow-Origin': env.RESP_HEADERS['Access-Control-Allow-Origin'],
+          'Access-Control-Allow-Headers': env.RESP_HEADERS['Access-Control-Allow-Headers'],
+          'Access-Control-Max-Age': env.RESP_HEADERS['Access-Control-Max-Age'],
           DAV: '1, 3',
           ALLOW: allowMethods.join(', '),
           'ms-author-via': 'DAV',
