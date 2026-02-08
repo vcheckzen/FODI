@@ -52,6 +52,11 @@
     "CACHE_TTLMAP": {
       "GET": 0,
       "POST": 0
+    },
+    "RESP_HEADERS": {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "604800"
     }
   },
   // "build": {

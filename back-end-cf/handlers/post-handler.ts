@@ -22,8 +22,7 @@ export async function handlePostRequest(
   }
 
   const returnHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'max-age=3600',
+    'Access-Control-Allow-Origin': env.RESP_HEADERS['Access-Control-Allow-Origin'],
     'Content-Type': 'application/json; charset=utf-8',
   };
   const requestPath = body.path || '/';

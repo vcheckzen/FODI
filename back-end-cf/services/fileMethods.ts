@@ -100,6 +100,10 @@ export async function downloadFile(
     const resp = await fetch(downloadUrl, { headers });
 
     const returnHeaders = new Headers();
+    returnHeaders.set(
+      'Access-Control-Allow-Origin',
+      runtimeEnv.RESP_HEADERS['Access-Control-Allow-Origin'],
+    );
     const keepHeaders = [
       'Content-Length',
       'Content-Type',
