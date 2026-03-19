@@ -8,11 +8,6 @@ async function authenticatePost(env: Env, path: string, passwd?: string): Promis
     return false;
   }
 
-  // check env password
-  if (env.PASSWORD && secureEqual(passwd, env.PASSWORD)) {
-    return true;
-  }
-
   // check password files in onedrive
   const hashedPasswd = await sha256(passwd || '');
   const candidatePaths = new Set<string>();
@@ -47,7 +42,7 @@ export function authenticateWebdav(
   return secureEqual(davAuthHeader, `Basic ${btoa(`${USERNAME}:${PASSWORD}`)}`);
 }
 
-async function getTokenScopes(
+async function authorizeToken(
   secret: string | undefined,
   reqPath: string,
   searchParams: URLSearchParams,
@@ -97,51 +92,54 @@ async function getTokenScopes(
 interface AuthContext {
   env: Env;
   url: URL;
-  passwd?: string;
-  postPath?: string;
+  credentials: string;
+  path: string;
 }
 
-export async function authorizeActions(
-  actions: readonly TokenScope[],
+export async function authorizeScopes(
+  requiredScopes: readonly TokenScope[],
   ctx: AuthContext,
-): Promise<Set<TokenScope>> {
+): Promise<ReadonlySet<TokenScope>> {
   const allowed = new Set<TokenScope>();
-  const { env, url, passwd, postPath } = ctx;
-  const publicActions: TokenScope[] = ['list', 'download'];
+  const { env, url, credentials, path } = ctx;
+  const tokenScopes = await authorizeToken(env.PASSWORD, path, url.searchParams);
 
-  const path = postPath || url.searchParams.get('file') || decodeURIComponent(url.pathname);
-  const tokenScopes = await getTokenScopes(env.PASSWORD, path, url.searchParams);
+  const authPaths = env.PROTECTED.AUTH_PATHS.map((item) => item.toLowerCase());
+  const isExceptionPath = authPaths.includes(path.toLowerCase());
+  const requiresAuthForPath = env.PROTECTED.REQUIRE_AUTH ? !isExceptionPath : isExceptionPath;
 
-  for (const action of actions) {
-    if (env.PROTECTED.REQUIRE_AUTH !== true && publicActions.includes(action)) {
-      allowed.add(action);
-      continue;
-    }
-
-    if (tokenScopes.includes(action)) {
-      allowed.add(action);
+  for (const scope of requiredScopes) {
+    if (tokenScopes.includes(scope)) {
+      allowed.add(scope);
       continue;
     }
 
     let ok = false;
-    // if passwd null/undefined, this auth path is skipped to improve performance
-    switch (action) {
+    switch (scope) {
       case 'download':
-        ok = authenticateWebdav(passwd ?? null, env.USERNAME, env.PASSWORD);
+        ok =
+          !requiresAuthForPath ||
+          authenticateWebdav(credentials ?? null, env.USERNAME, env.PASSWORD);
         break;
 
       case 'list':
-        ok = await authenticatePost(env, path, passwd);
+        ok =
+          !requiresAuthForPath ||
+          secureEqual(credentials, env.PASSWORD) ||
+          (await authenticatePost(env, path, credentials));
         break;
 
       case 'upload':
         ok =
-          (await authenticatePost(env, path, passwd)) &&
+          (secureEqual(credentials, env.PASSWORD) ||
+            (await authenticatePost(env, path, credentials))) &&
           (await downloadFile(`${path}/.upload`)).status === 302;
         break;
     }
 
-    if (ok) allowed.add(action);
+    if (ok) {
+      allowed.add(scope);
+    }
   }
 
   return allowed;

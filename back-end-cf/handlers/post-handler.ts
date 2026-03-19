@@ -1,13 +1,13 @@
-import type { PostPayload } from '../types/apiType';
+import type { PostPayload, TokenScope } from '../types/apiType';
 import { fetchFiles, fetchUploadLinks } from '../services/fileMethods';
 import { saveDeployData } from '../services/deployMethods';
-import { authorizeActions } from '../services/authUtils';
 import { parseJson } from '../services/utils';
 
 export async function handlePostRequest(
   request: Request,
   env: Env,
   requestUrl: URL,
+  scopes: ReadonlySet<TokenScope>,
 ): Promise<Response> {
   // save deploy data
   if (requestUrl.pathname === '/deployreturn') {
@@ -33,17 +33,8 @@ export async function handlePostRequest(
       return new Response('no files to upload', { status: 400 });
     }
 
-    const isUploadAllowed = (
-      await authorizeActions(['upload'], {
-        env,
-        url: requestUrl,
-        passwd: body.passwd,
-        postPath: requestPath,
-      })
-    ).has('upload');
-
     if (
-      !isUploadAllowed ||
+      !scopes.has('upload') ||
       body.files?.some(
         (file) =>
           (file.remotePath.split('/').pop() ?? '').toLowerCase() ===
@@ -60,15 +51,7 @@ export async function handlePostRequest(
   }
 
   // List a folder
-  const isListAllowed = (
-    await authorizeActions(['list'], {
-      env,
-      url: requestUrl,
-      passwd: body.passwd,
-      postPath: requestPath,
-    })
-  ).has('list');
-  const filesRes = isListAllowed
+  const filesRes = scopes.has('list')
     ? await fetchFiles(requestPath, body.skipToken, body.orderby)
     : {
         parent: requestPath,

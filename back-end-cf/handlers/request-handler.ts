@@ -1,47 +1,40 @@
 import { sha256, parseJson } from '../services/utils';
-import { authorizeActions } from '../services/authUtils';
+import { authorizeScopes } from '../services/authUtils';
 import { handleWebdav } from './dav-handler';
 import { handleGetRequest } from './get-handler';
 import { handlePostRequest } from './post-handler';
+import { PostPayload, TokenScope } from '../types/apiType';
 
 export async function cacheRequest(
   request: Request,
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Response> {
-  const CACHE_TTLMAP = env.CACHE_TTLMAP;
-  const method = request.method as keyof typeof CACHE_TTLMAP;
-  const cacheTTL = CACHE_TTLMAP[method];
+  const method = request.method;
+  const rawBody = method === 'POST' ? await request.clone().text() : '{}';
+  const scopes = await resolveAuthorizedScopes(request, env, rawBody);
 
-  if (!cacheTTL || cacheTTL <= 0) {
-    return handleRequest(request, env);
+  const cacheTTL = env.CACHE_TTLMAP[method as keyof typeof env.CACHE_TTLMAP] ?? 0;
+  if (cacheTTL <= 0) {
+    return handleRequest(request, env, scopes);
   }
 
   // WebDAV bypass
   const cacheUrl = new URL(request.url);
   const isDavGetCache =
-    env.PROTECTED.PROXY_KEYWORD && cacheUrl.hostname.includes(`${env.PROTECTED.PROXY_KEYWORD}.`);
+    !!env.PROTECTED.PROXY_KEYWORD &&
+    cacheUrl.hostname.split('.')[0].endsWith(env.PROTECTED.PROXY_KEYWORD);
   if (request.headers.get('Authorization') && !isDavGetCache) {
-    return handleRequest(request, env);
+    return handleRequest(request, env, scopes);
   }
 
-  const reqBody = method === 'POST' ? await request.clone().text() : '{}';
-  const tokenScopeSet = await authorizeActions(['download', 'refresh', 'list'], {
-    env,
-    url: cacheUrl,
-    passwd: request.headers.get('Authorization') ?? undefined,
-    postPath: parseJson<{ path: string }>(reqBody)?.path,
-  });
-
-  const requestKeyGenerators = {
-    GET: () => (tokenScopeSet.has('download') ? 'download' : ''),
-    POST: async () =>
-      tokenScopeSet.has('list') ? `list/${await sha256(reqBody)}` : await sha256(reqBody),
-  };
-  const key = await requestKeyGenerators[method]();
+  const scopeKey = scopes.toString();
+  const pathKey =
+    rawBody === '{}' ? await sha256(cacheUrl.pathname.toLowerCase()) : await sha256(rawBody);
 
   cacheUrl.search = ''; // avoid query parameters affecting cache entry
-  cacheUrl.pathname = `/${method}/${key}` + cacheUrl.pathname;
+  cacheUrl.pathname = `/${method}/${scopeKey}/${pathKey}`;
+
   const cacheKey = new Request(cacheUrl.toString().toLowerCase());
   const cache = (caches as any).default;
   const cachedResponse: Response | null = await cache.match(cacheKey);
@@ -53,10 +46,10 @@ export async function cacheRequest(
   const isLinkExpired = method === 'GET' && cachedResponse?.status === 302 && cachedAgeSec > 3600;
   // expired or forced refresh
   const isCacheExpired = cachedAgeSec > cacheTTL || isLinkExpired;
-  const isForceRefresh = tokenScopeSet.has('refresh');
+  const isForceRefresh = scopes.has('refresh');
 
   if (!cachedResponse || isCacheExpired || isForceRefresh) {
-    const upstreamResponse = await handleRequest(request, env);
+    const upstreamResponse = await handleRequest(request, env, scopes);
     const freshResponse = new Response(upstreamResponse.body, upstreamResponse);
 
     freshResponse.headers.set('Expires', new Date(Date.now() + cacheTTL * 1000).toUTCString());
@@ -69,7 +62,11 @@ export async function cacheRequest(
   return cachedResponse;
 }
 
-async function handleRequest(request: Request, env: Env): Promise<Response> {
+async function handleRequest(
+  request: Request,
+  env: Env,
+  scopes: ReadonlySet<TokenScope>,
+): Promise<Response> {
   const url = new URL(request.url);
   const allowMethods = [
     'COPY',
@@ -104,11 +101,32 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       });
     // Download a file or display web
     case 'GET':
-      return handleGetRequest(request, env, url);
+      return handleGetRequest(request, env, url, scopes);
     // Upload or List files
     case 'POST':
-      return handlePostRequest(request, env, url);
+      return handlePostRequest(request, env, url, scopes);
+    // WebDAV
     default:
       return handleWebdav(request, env, url);
   }
+}
+
+async function resolveAuthorizedScopes(request: Request, env: Env, rawBody: string) {
+  const url = new URL(request.url);
+  const requiredScopes = ['download', 'list'] as TokenScope[];
+
+  if (url.searchParams.has('uplaod')) {
+    requiredScopes.push('upload');
+  }
+
+  const jsonBody = parseJson<PostPayload>(rawBody);
+  const path = jsonBody?.path || url.searchParams.get('file') || decodeURIComponent(url.pathname);
+  const scopes = await authorizeScopes(requiredScopes, {
+    env,
+    url,
+    credentials: request.headers.get('Authorization') || jsonBody?.passwd || '',
+    path,
+  });
+
+  return scopes;
 }

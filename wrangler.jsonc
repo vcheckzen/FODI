@@ -38,13 +38,16 @@
       "EXPOSE_PATH": "",
       // Require authentication for all paths | 是否对所有路径启用鉴权
       "REQUIRE_AUTH": false,
+      // auth paths, case-insensitive. when REQUIRE_AUTH=true, these paths are public; otherwise, these paths require auth
+      // 鉴权路径，不区分大小写。当 REQUIRE_AUTH=true，则这些路径为公开路径；否则，这些路径需要身份验证
+      "AUTH_PATHS": [],
       // If authentication is enabled, the filename to store passwords, passwords are in sha256 hex format
       // 开启鉴权后生效，用于存放密码的文件名，密码为 sha256 hex 格式
       "PASSWD_FILENAME": ".password",
       // 1) If set, you can proxy file downloads via worker, e.g. example.com/{keyword}/file
-      // 2) If the request domain contains `{keyword}.example`, WebDAV GET responses will be cached
+      // 2) If the request domain contains {keyword}.example, WebDAV GET responses will be cached
       // 1）设置后可通过 worker 代理下载文件，例如 example.com/{keyword}/file
-      // 2）当请求域名包含 `{keyword}.example` 时，WebDAV GET 响应将启用缓存
+      // 2）当请求域名包含 {keyword}.example 时，WebDAV GET 响应将启用缓存
       "PROXY_KEYWORD": ""
     },
     // Method-based cache TTL (seconds) | 请求方法缓存时长（秒）

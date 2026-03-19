@@ -52,6 +52,14 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
 
   for (const resp of batchResult.responses) {
     if (resp.status !== 200) {
+      // file can't use /children endpoint
+      if (
+        resp.id === '2' &&
+        (resp.body as any)?.error?.innerError?.innerError?.code === 'getChildrenOnNonFolder'
+      ) {
+        continue;
+      }
+
       return {
         davXml: createReturnXml(filePath, resp.status, 'Failed to fetch files'),
         davStatus: resp.status,
