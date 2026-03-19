@@ -1,0 +1,2219 @@
+<!doctype html>
+<html>
+  <head>
+    <script>
+      window.GLOBAL_CONFIG = {
+        SCF_GATEWAY: `//${window.location.host}`, // worker 地址
+        SITE_NAME: `FODI`, // 站点名称
+        IS_BUSINESS: false, // 是否为商业版，E5 请改为 true
+        PRELOAD: false, // 是否预加载文件列表，文件夹非常少才建议开启
+        CDN_MAP: {
+          // 加速 CDN (不对其服务稳定性和内容安全性承担任何责任)
+          unpkg: '//npm.webcache.cn',
+          cdnjs: '//s4.zstatic.net/ajax/libs',
+        },
+      };
+    </script>
+    <meta charset="utf-8" />
+    <meta
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
+      name="viewport"
+    />
+    <link rel="icon" href="data:;base64,=" type="image/x-icon" />
+    <link
+      href="//npm.webcache.cn/material-design-iconic-font@2.2.0/dist/css/material-design-iconic-font.min.css"
+      type="text/css"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        background: #f4f6fb;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        color: #1e293b;
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 20px;
+        transition: background 0.2s;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      [data-hidden='1'] {
+        display: none !important;
+      }
+
+      .header-wrapper {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        height: 64px;
+        backdrop-filter: blur(16px) saturate(180%);
+        background: rgba(255, 255, 255, 0.7);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        z-index: 50;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      }
+
+      .header {
+        height: 100%;
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .header i {
+        font-size: 24px !important;
+        color: #475569;
+        transition: all 0.15s;
+        cursor: pointer;
+        border-radius: 30px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .header i:active {
+        background: rgba(15, 23, 42, 0.05);
+      }
+      .header i[disabled] {
+        opacity: 0.3;
+        pointer-events: none;
+        color: #94a3b8;
+      }
+      #main-page {
+        background: #eef2ff;
+        color: #4f46e5;
+      }
+      #main-page:active {
+        background: #dbeafe;
+      }
+
+      .nav {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+        color: #334155;
+        overflow: hidden;
+        min-width: 0;
+      }
+
+      #path {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        min-width: 0;
+        flex: 1;
+        -webkit-overflow-scrolling: touch;
+      }
+      #path::-webkit-scrollbar {
+        display: none;
+      }
+
+      .nav-path,
+      .nav-arr {
+        background: rgba(0, 0, 0, 0.03);
+        padding: 4px 12px;
+        border-radius: 40px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.15s;
+        border: 0.5px solid rgba(148, 163, 184, 0.2);
+        backdrop-filter: blur(4px);
+      }
+      .nav-path:hover {
+        background: rgba(79, 70, 229, 0.1);
+        color: #4f46e5;
+      }
+      .nav-arr {
+        background: transparent;
+        border: none;
+        cursor: default;
+      }
+
+      /* ----- 主容器 ----- */
+      .container {
+        margin-top: 64px;
+        height: calc(100vh - 64px);
+        width: 100%;
+        position: relative;
+      }
+
+      .main {
+        display: flex;
+        height: 100%;
+        width: 100%;
+      }
+
+      /* 左侧树 (折叠/展开 优雅卡片) */
+      .left {
+        width: 260px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(12px);
+        border-right: 1px solid rgba(203, 213, 225, 0.5);
+        overflow-y: auto;
+        padding: 20px 0 20px 12px;
+        transition: width 0.2s;
+        box-shadow: 4px 0 12px rgba(0, 0, 0, 0.02);
+      }
+
+      #tree-root {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .tree-node-wrapper {
+        margin-left: 0px;
+      }
+      .tree-node {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px 8px 8px;
+        border-radius: 30px;
+        transition: all 0.15s;
+        cursor: pointer;
+        color: #334155;
+        font-weight: 450;
+        width: fit-content;
+        min-width: 160px;
+      }
+      .tree-node:hover {
+        background: rgba(79, 70, 229, 0.08);
+        color: #1e1b4b;
+      }
+      .tree-node:active {
+        background: rgba(79, 70, 229, 0.15);
+      }
+      .tree-node i {
+        font-size: 18px !important;
+        min-width: 22px;
+        color: #64748b;
+      }
+      .tree-node-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 13px;
+      }
+      .tree-node-wrapper .tree-node-wrapper {
+        margin-left: 22px;
+        border-left: 1.5px dashed #cbd5e1;
+        padding-left: 6px;
+      }
+
+      /* 右侧内容区 */
+      .right {
+        flex: 1;
+        background: white;
+        overflow-y: auto;
+        padding: 0;
+        border-top-left-radius: 20px; /* 柔和过渡 */
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02);
+        background: #fafcff;
+      }
+
+      /* 列表头部 (排序栏) */
+      .list-header .row {
+        background: #ffffffd6;
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid #e9eef3;
+        padding: 0 20px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+      }
+
+      .file {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 12px;
+      }
+
+      .name,
+      .lastModifiedDateTime,
+      .size {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        padding: 6px 8px;
+        border-radius: 30px;
+        transition: background 0.1s;
+        white-space: nowrap;
+      }
+      .name:hover,
+      .lastModifiedDateTime:hover,
+      .size:hover {
+        background: #f1f4f9;
+      }
+      .name i,
+      .lastModifiedDateTime i,
+      .size i {
+        font-size: 16px !important;
+        opacity: 0.7;
+      }
+      .name {
+        width: 50%;
+      }
+      .lastModifiedDateTime {
+        width: 25%;
+      }
+      .size {
+        width: 25%;
+        justify-content: flex-end;
+      }
+
+      /* 文件列表行 */
+      .row.file-wrapper {
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        height: 52px;
+        border-bottom: 1px solid #ecf1f7;
+        transition: background 0.15s;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .row.file-wrapper:hover {
+        background: #f1f5fe;
+      }
+      .row.file-wrapper .file i {
+        font-size: 20px !important;
+        min-width: 28px;
+        color: #5b6b8c;
+      }
+      .row.file-wrapper .name {
+        width: 50%;
+        color: #1e293b;
+        font-weight: 450;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row.file-wrapper .lastModifiedDateTime {
+        width: 25%;
+        color: #5b6b8c;
+      }
+      .row.file-wrapper .size {
+        width: 25%;
+        color: #475569;
+        font-feature-settings: 'tnum';
+      }
+
+      /* 上传区域 (集成卡片) */
+      .upload-entry-wrapper {
+        padding: 16px 20px 8px;
+        background: linear-gradient(to bottom, #ffffff, #f9fcff);
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .upload-entry-btn {
+        width: 100%;
+        background: white;
+        border: 1.5px dashed #a5b4cb;
+        border-radius: 40px;
+        padding: 12px;
+        font-weight: 500;
+        color: #334155;
+        transition: all 0.2s;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        font-size: 13px;
+      }
+      .upload-entry-btn:hover {
+        border-color: #4f46e5;
+        background: #f5f3ff;
+        color: #312e81;
+      }
+
+      /* README markdown 卡片 */
+      .markdown-body {
+        border-radius: 24px;
+        margin: 20px;
+        padding: 24px !important;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+        border: 1px solid #edf2f9;
+      }
+      #readme {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .markdown-alert {
+        padding: 0 1em;
+        margin-bottom: 16px;
+        color: inherit;
+        border-left: 0.25em solid var(--alert-color, #444c56);
+      }
+
+      .markdown-alert-title {
+        display: inline-flex;
+        align-items: center;
+        font-weight: 500;
+        color: var(--alert-color, inherit);
+      }
+
+      .markdown-alert-note {
+        --alert-color: #539bf5;
+      }
+
+      .markdown-alert-tip {
+        --alert-color: #57ab5a;
+      }
+
+      .markdown-alert-important {
+        --alert-color: #986ee2;
+      }
+
+      .markdown-alert-warning {
+        --alert-color: #c69026;
+      }
+
+      .markdown-alert-caution {
+        --alert-color: #e5534b;
+      }
+
+      .mr-2 {
+        margin-right: 0.5rem;
+      }
+
+      .markdown-body pre {
+        background: #f1f5f9;
+        border-radius: 20px;
+        padding: 16px;
+      }
+
+      .preview {
+        background: #ffffff;
+        min-height: 100%;
+      }
+      .preview .info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 24px;
+        background: #f8fafd;
+        border-bottom: 1px solid #e2e8f0;
+        flex-wrap: wrap;
+      }
+      .file-name {
+        font-weight: 600;
+        font-size: 16px;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #0f172a;
+      }
+
+      .btn {
+        padding: 6px 18px;
+        border-radius: 40px;
+        background: white;
+        border: 1px solid #d9e2ef;
+        font-size: 13px;
+        font-weight: 500;
+        color: #334155;
+        cursor: pointer;
+        transition: all 0.15s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      }
+      .btn:hover {
+        background: #f1f4f9;
+        border-color: #b9c7da;
+      }
+      .btn:active {
+        background: #e2e8f0;
+        transform: scale(0.97);
+      }
+
+      .content {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        min-height: 300px;
+      }
+
+      .password-wrapper {
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .password {
+        display: flex;
+        gap: 12px;
+        background: white;
+        padding: 12px 16px;
+        border-radius: 60px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        border: 1px solid #dee7f2;
+        width: fit-content;
+      }
+      .password input {
+        border: none;
+        background: #f1f6fc;
+        padding: 12px 20px;
+        border-radius: 40px;
+        font-size: 14px;
+        outline: none;
+        width: 240px;
+      }
+      .password button {
+        background: #0f172a;
+        color: white;
+        border: none;
+        border-radius: 40px;
+        padding: 0 32px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        cursor: pointer;
+        transition: 0.15s;
+      }
+      .password button:hover {
+        background: #1e293b;
+      }
+
+      /* 上传进度区域 */
+      .file-upload-wrapper {
+        padding: 24px;
+      }
+      .file-upload-chooser {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        background: #f1f6fc;
+        padding: 16px;
+        border-radius: 40px;
+        flex-wrap: wrap;
+      }
+      .file-upload-chooser select,
+      .file-upload-chooser button,
+      .file-upload-label {
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 40px;
+        padding: 10px 18px;
+        font-size: 13px;
+        cursor: pointer;
+        outline: none;
+      }
+      .file-upload-name {
+        background: white;
+        padding: 8px 16px;
+        border-radius: 40px;
+        min-width: 180px;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .file-upload-progress {
+        margin-top: 20px;
+        background: #f8fafc;
+        border-radius: 24px;
+        padding: 16px;
+        font-family: monospace;
+        font-size: 12px;
+        border: 1px solid #e9edf3;
+      }
+
+      /* 返回顶部按钮 */
+      #back-to-top {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: white;
+        border-radius: 50px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        transition: 0.2s;
+        z-index: 99;
+      }
+      #back-to-top i {
+        font-size: 28px !important;
+        color: #4f46e5;
+      }
+      #back-to-top:hover {
+        background: #eef2ff;
+        transform: translateY(-4px);
+      }
+
+      .sk-folding-cube {
+        margin: 30px auto;
+        width: 40px;
+        height: 40px;
+        position: relative;
+      }
+      .sk-folding-cube .sk-cube:before {
+        background-color: #4f46e5;
+      }
+
+      .loading-wrapper {
+        position: fixed;
+        top: 70px; /* 定位在头部下方 */
+        left: 50%;
+        transform: translateX(-50%);
+        height: 2.5em;
+        line-height: 2.5em;
+        width: auto;
+        z-index: 1000;
+        pointer-events: none; /* 让点击穿透 */
+      }
+
+      .loading {
+        color: #1e293b;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px);
+        height: 100%;
+        width: fit-content;
+        min-width: 10em;
+        padding: 0 1.5em;
+        margin: 0 auto;
+        text-align: center;
+        border-radius: 40px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        font-weight: 500;
+        font-size: 13px;
+      }
+
+      /* 响应式: 小屏幕隐藏左侧，右区全宽 */
+      @media screen and (max-width: 900px) {
+        .left {
+          display: none;
+        }
+        .right {
+          border-radius: 20px 20px 0 0;
+        }
+        .name {
+          width: 60%;
+        }
+        .lastModifiedDateTime {
+          display: none;
+        }
+        .size {
+          width: 40%;
+        }
+        .list-header .row .lastModifiedDateTime {
+          display: none;
+        }
+        .header {
+          padding: 0 12px;
+        }
+      }
+    </style>
+
+    <script>
+      async function sendRequest(method, url, data, headers, callback, error, times = 0) {
+        const options = {
+          method,
+          headers: headers ? headers : {},
+          body: data,
+        };
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 60000 /* 60s */);
+          options.signal = controller.signal;
+
+          const response = await fetch(url, options);
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const responseData = await response.text();
+            callback(responseData);
+          } else {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+        } catch (err) {
+          console.log({ url, data, times });
+          if (times < 1) {
+            sendRequest(method, url, data, headers, callback, error, times + 1);
+          } else if (typeof error === 'function') {
+            error();
+          }
+        }
+      }
+
+      function fromCdn(cdnName, ...resources) {
+        const baseURL = window.GLOBAL_CONFIG.CDN_MAP[cdnName];
+        return resources.map((r) => `${baseURL}${r}`);
+      }
+
+      function loadResource(...resources) {
+        const allResources = resources.flat();
+        return Promise.all(allResources.map(load));
+
+        function load(resource) {
+          if (!window.resourceCache[resource]) {
+            window.resourceCache[resource] = handle();
+          }
+          return window.resourceCache[resource];
+
+          function handle() {
+            return new Promise((resolve, reject) => {
+              const timeout = 5000;
+              let element;
+              switch (resource.split('.').pop()) {
+                case 'css':
+                  element = document.createElement('link');
+                  element.href = resource;
+                  element.rel = 'stylesheet';
+                  break;
+                case 'js':
+                  element = document.createElement('script');
+                  element.src = resource;
+                  break;
+                default:
+                  return reject(new Error('Unsupported resource type'));
+              }
+
+              let loaded = false;
+              element.onload = () => {
+                loaded = true;
+                resolve();
+              };
+
+              function error(reason) {
+                if (!loaded) {
+                  document.head.removeChild(element);
+                  delete window.resourceCache[resource];
+                  reject(new Error(`${reason}: ${resource}`));
+                }
+              }
+              element.onerror = () => error('Failed to load resource');
+              setTimeout(() => error('Resource loading timed out'), timeout);
+
+              document.head.insertBefore(element, document.head.firstElementChild);
+            });
+          }
+        }
+      }
+
+      function putPreviewLoadingAnimation(selectorOrElem) {
+        const elem =
+          typeof selectorOrElem === 'string'
+            ? document.querySelector(selectorOrElem)
+            : selectorOrElem;
+        if (!elem.querySelector('.sk-folding-cube')) {
+          elem.innerHTML = '';
+          elem.appendChild(
+            document.getElementById('loading-animation-template').content.cloneNode(true),
+          );
+        }
+      }
+
+      function createGlobalLoadingIndicator(msg, timeout) {
+        const parent = document.querySelector('.loading-indicator');
+        const fragment = document
+          .getElementById('loading-wrapper-template')
+          .content.cloneNode(true);
+        const loadingWrapper = fragment.firstElementChild;
+        let alive = true;
+
+        const text = (txt) => {
+          if (!alive) {
+            return;
+          }
+          loadingWrapper.querySelector('.loading').innerText = txt;
+        };
+        const remove = () => {
+          if (!alive) {
+            return;
+          }
+          alive = false;
+          try {
+            parent.removeChild(loadingWrapper);
+          } catch (error) {}
+        };
+        const close = (txt, timeout) => {
+          if (!alive) {
+            return;
+          }
+          if (txt) {
+            text(txt);
+            setTimeout(remove, timeout || 3000);
+          } else {
+            remove();
+          }
+        };
+
+        text(msg || 'Loading...');
+        loadingWrapper.dataset.hidden = '0';
+        parent.appendChild(fragment);
+
+        if (timeout && typeof timeout === 'number') {
+          setTimeout(close, timeout);
+        }
+
+        return { text, close };
+      }
+
+      function renderPage(data, cache, fromLoadNextPage) {
+        if (!fromLoadNextPage) {
+          document.getElementById('back-to-top').click();
+        }
+
+        let files;
+        if (data?.parent) {
+          files = data;
+          window.fileCache.set(files.parent, files);
+          preCache(files, 0);
+        } else {
+          files = cache;
+        }
+        if (files.parent === window.backForwardCache.current) {
+          renderPath(files.parent);
+          if (files.encrypted) {
+            handleEncryptedFolder(files);
+          } else {
+            renderFileList(files, fromLoadNextPage);
+          }
+          renderTreeNode(files);
+        }
+      }
+
+      function renderPath(path) {
+        const createPathSpan = (text, path) => {
+          const pathSpan = document.createElement('span');
+          pathSpan.innerHTML = text.length > 20 ? text.substring(0, 20) + '..' : text;
+          pathSpan.className = text === '/' ? 'nav-arr' : 'nav-path';
+          if (path) {
+            addPathListener(pathSpan, path);
+          }
+          return pathSpan;
+        };
+
+        const paths = path.split('/');
+        const pathSpanWrapper = document.getElementById('path');
+        pathSpanWrapper.innerHTML = '';
+        pathSpanWrapper.appendChild(createPathSpan(window.api.root));
+        let continualPath = '/';
+        for (let i = 1; i < paths.length; i++) {
+          continualPath += paths[i];
+          pathSpanWrapper.appendChild(createPathSpan(paths[i], continualPath));
+          if (i !== paths.length - 1) {
+            pathSpanWrapper.appendChild(createPathSpan('/'));
+            continualPath += '/';
+          }
+        }
+      }
+
+      function renderFileList(page, fromLoadNextPage) {
+        switchRightDisplay('list');
+
+        const formatDate = (date) => {
+          date = new Date(date);
+          const addZero = (num) => `${num}`.padStart(2, '0');
+          const year = date.getFullYear();
+          const month = addZero(date.getMonth() + 1);
+          const day = addZero(date.getDate());
+          const hour = addZero(date.getHours());
+          const minute = addZero(date.getMinutes());
+          const second = addZero(date.getSeconds());
+          return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+        };
+
+        const formatSize = (size) => {
+          let count = 0;
+          while (size >= 1024) {
+            size /= 1024;
+            count++;
+          }
+          return [size.toFixed(2), `${['', 'K', 'M', 'G', 'T', 'P'][count]}B`];
+        };
+
+        const createFileWrapper = (type, name, time, size, path, url) => {
+          const fileWrapper = document
+            .getElementById('file-wrapper-template')
+            .content.cloneNode(true);
+          fileWrapper.querySelector('i').className = `zmdi zmdi-${type}`;
+          fileWrapper.querySelector('.name').innerText = name;
+          fileWrapper.querySelector('.lastModifiedDateTime').innerText = formatDate(time);
+          [
+            fileWrapper.querySelector('.size .value').innerText,
+            fileWrapper.querySelector('.size .unit').innerText,
+          ] = formatSize(size);
+          addFileListLineListener(fileWrapper.querySelector('.row.file-wrapper'), path, url, size);
+          return fileWrapper;
+        };
+
+        const children = [];
+        const parent = page.parent === window.api.root ? '' : page.parent;
+        page.files.forEach((file) => {
+          // Only load readme not all .md files for performance reason.
+          if (file.name.toLowerCase() === 'readme.md') {
+            if (file.url) {
+              renderMarkdown(page.parent + (page.parent === '/' ? '' : '/') + file.name, file.url);
+            }
+          } else if (file.name === '.upload') {
+            document.querySelector('.upload-entry-wrapper').dataset.hidden = '0';
+            document.querySelector('.upload-entry-btn').onclick = () => {
+              window.backForwardCache.preview = true;
+              switchRightDisplay('upload');
+            };
+          } else {
+            if (!file.toFragment) {
+              file.toFragment = createFileWrapper.bind(
+                null,
+                file.url ? 'file' : 'folder',
+                file.name,
+                file.lastModifiedDateTime,
+                file.size,
+                parent + '/' + file.name,
+                file.url,
+              );
+            }
+            children.push(file);
+          }
+        });
+
+        if (!page.lazyRenderStat) {
+          page.lazyRenderStat = { pageSize: 200 };
+          const stat = page.lazyRenderStat;
+          stat.observer = new IntersectionObserver((entries) => {
+            if (Date.now() - stat.lastRenderedTs <= 500 /* 0.5s */) {
+              return;
+            }
+
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                stat.lastRenderedTs = Date.now();
+                // Do not load next page before all the data loaded being rendered.
+                if (stat.renderedItems >= stat.children.length && page.skipToken) {
+                  loadNextPage(page);
+                } else {
+                  renderItems();
+                }
+                return;
+              }
+            });
+          });
+        }
+        const stat = page.lazyRenderStat;
+        stat.children = children;
+        if (page.compare && !page.skipToken && !fromLoadNextPage) {
+          // All data loaded before this call, sort them all.
+          stat.children.sort(page.compare);
+        }
+        if (!fromLoadNextPage) {
+          // Rendering from start, sort all loaded data for business version even if there is data unloaded.
+          stat.renderedItems = 0;
+          if (page.compare && page.skipToken && window.GLOBAL_CONFIG.IS_BUSINESS) {
+            stat.children.sort(page.compare);
+          }
+        }
+        renderItems(fromLoadNextPage);
+
+        // The arg is necessary, or it will always be the value captured at the first time.
+        function renderItems(fromLoadNextPage) {
+          const startIndex = stat.renderedItems;
+          stat.renderedItems += stat.pageSize;
+          stat.renderedItems = Math.min(stat.renderedItems, stat.children.length);
+          const toBeRendered = stat.children.slice(startIndex, stat.renderedItems);
+          if (page.compare && window.GLOBAL_CONFIG.IS_BUSINESS && fromLoadNextPage) {
+            // Sort the new loaded slice for business version.
+            toBeRendered.sort(page.compare);
+          }
+
+          const fragment = document.createDocumentFragment();
+          fragment.append(...toBeRendered.map(({ toFragment }) => toFragment()));
+          const listContainer = document.getElementById('file-list');
+          if (startIndex === 0) {
+            listContainer.replaceChildren(fragment);
+          } else {
+            listContainer.lastElementChild.style.backgroundColor = '#f1f1f1';
+            listContainer.appendChild(fragment);
+          }
+          stat.observer?.disconnect();
+          if (page.skipToken || stat.renderedItems < stat.children.length) {
+            stat.observer.observe(listContainer.lastElementChild);
+          }
+        }
+      }
+
+      async function renderTreeNode(files) {
+        const createTreeNodeWrapper = (caretType, folderType, name, path) => {
+          const treeNodeWrapper = document
+            .getElementById('tree-node-wrapper-template')
+            .content.cloneNode(true);
+          const icons = treeNodeWrapper.querySelectorAll('i');
+          icons[0].className = `zmdi zmdi-${caretType}`;
+          icons[1].className = `zmdi zmdi-${folderType}`;
+          treeNodeWrapper.querySelector('.tree-node-name').innerText = name;
+          treeNodeWrapper.appendNode = (node) =>
+            treeNodeWrapper.querySelector('.tree-node-wrapper').append(node);
+          addTreeNodeListener(treeNodeWrapper.querySelector('.tree-node'), path);
+          return treeNodeWrapper;
+        };
+
+        const paths = files.parent.split('/');
+        const absolutePath = (max) => {
+          let absPath = '';
+          for (let j = 1; j <= max; j++) {
+            absPath += '/' + paths[j];
+          }
+          return absPath;
+        };
+        const maxIndex = paths.length - 1;
+        let currentTreeNode = createTreeNodeWrapper(
+          'caret-down',
+          'folder-outline',
+          paths[maxIndex],
+          absolutePath(maxIndex),
+        );
+        files.files.forEach((file) => {
+          if (!file.url) {
+            currentTreeNode.appendNode(
+              createTreeNodeWrapper(
+                'caret-right',
+                'folder',
+                file.name,
+                files.parent + '/' + file.name,
+              ),
+            );
+          }
+        });
+
+        for (let i = maxIndex - 1; i > 0; i--) {
+          const currentTreeNodeParentAbsolutePath = absolutePath(i);
+          const currentTreeNodeParent = createTreeNodeWrapper(
+            'caret-down',
+            'folder',
+            paths[i],
+            currentTreeNodeParentAbsolutePath,
+          );
+          const cache = window.fileCache.get(currentTreeNodeParentAbsolutePath);
+          if (cache) {
+            cache.files.forEach((file) => {
+              if (!file.url) {
+                if (file.name === paths[i + 1]) {
+                  currentTreeNodeParent.appendNode(currentTreeNode);
+                } else {
+                  currentTreeNodeParent.appendNode(
+                    createTreeNodeWrapper(
+                      'caret-right',
+                      'folder',
+                      file.name,
+                      currentTreeNodeParentAbsolutePath + '/' + file.name,
+                    ),
+                  );
+                }
+              }
+            });
+          } else {
+            currentTreeNodeParent.appendNode(currentTreeNode);
+          }
+          currentTreeNode = currentTreeNodeParent;
+        }
+
+        const treeRoot = document.getElementById('tree-root');
+        treeRoot.innerHTML = '';
+        const cache = window.fileCache.get(window.api.root);
+        const currentNodeName = currentTreeNode.querySelector('.tree-node-name').innerText;
+        if (cache) {
+          cache.files.forEach((file) => {
+            if (!file.url) {
+              if (file.name === currentNodeName) {
+                treeRoot.append(currentTreeNode);
+              } else {
+                treeRoot.append(
+                  createTreeNodeWrapper(
+                    'caret-right',
+                    'folder',
+                    file.name,
+                    window.api.root + file.name,
+                  ),
+                );
+              }
+            }
+          });
+        } else {
+          treeRoot.append(currentTreeNode);
+        }
+      }
+
+      async function renderMarkdown(path, url) {
+        const isReadMe = () =>
+          window.backForwardCache.current +
+            (window.backForwardCache.current === '/' ? '' : '/') +
+            'README.md' ===
+          path;
+
+        if (isReadMe()) {
+          putPreviewLoadingAnimation('#readme');
+        }
+
+        await loadResource(
+          fromCdn(
+            'unpkg',
+            '/marked@16.2.0/lib/marked.umd.min.js',
+            '/marked-highlight@2.2.2/lib/index.umd.min.js',
+          ),
+          fromCdn(
+            'unpkg',
+            '/github-markdown-css@5.8.1/github-markdown.min.css',
+            '/@highlightjs/cdn-assets@11.11.1/styles/github.min.css',
+            '/@highlightjs/cdn-assets@11.11.1/highlight.min.js',
+          ),
+          // Optional Markdown extensions
+          // fromCdn('unpkg', '/marked-alert@2.1.2/dist/index.umd.js'),
+          // fromCdn(
+          //   'unpkg',
+          //   '/marked-katex-extension@5.1.5/lib/index.umd.min.js',
+          //   '/katex@0.16.22/dist/katex.min.css',
+          //   '/katex@0.16.22/dist/katex.min.js',
+          // ),
+        );
+
+        const render = (text) => {
+          const cache = window.fileCache.get(path);
+          if (!cache || cache === true) {
+            window.fileCache.set(path, text);
+          }
+          if (!isReadMe() && !window.backForwardCache.preview) {
+            return;
+          }
+
+          const transformHref = (href) => {
+            if (href.startsWith('http') || href.startsWith('//')) {
+              return href;
+            }
+
+            const dummyBase = new URL(window.backForwardCache.current + '/', location);
+            const absPath = new URL(href, dummyBase).href.slice(location.origin.length);
+            const parent = absPath.slice(0, absPath.lastIndexOf('/')) || '/';
+
+            return (
+              window.fileCache
+                .get(parent)
+                ?.files.find(({ name }) => name === absPath.split('/').pop())?.url ||
+              window.GLOBAL_CONFIG.SCF_GATEWAY.replace(/\/$/, '') + absPath
+            );
+          };
+
+          const renderer = new marked.Renderer();
+          renderer.image = (href) => `<img src="${transformHref(href.href)}" alt="${href.text}">`;
+          renderer.link = (href) => `<a href="${transformHref(href.href)}">${href.text}</a>`;
+
+          text = new marked.Marked(
+            markedHighlight.markedHighlight({
+              langPrefix: 'hljs language-',
+              highlight(code, lang, info) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+              },
+            }),
+            // Optional Markdown extensions
+            // markedAlert(),
+            // markedKatex({
+            //   throwOnError: false,
+            //   nonStandard: true,
+            // }),
+          ).parse(text, {
+            gfm: true,
+            renderer: renderer,
+          });
+
+          if (isReadMe()) {
+            document.getElementById('readme').innerHTML = text;
+          } else if (window.backForwardCache.preview) {
+            const markdownBody = document.createElement('div');
+            markdownBody.classList.add('markdown-body');
+            markdownBody.innerHTML = text;
+            const content = document.querySelector('.content');
+            content.innerHTML = '';
+            content.appendChild(markdownBody);
+          }
+        };
+
+        const text = window.fileCache.get(path);
+        if (text === true) {
+          setTimeout(() => renderMarkdown(path, url), 300);
+        } else if (text) {
+          render(text);
+        } else {
+          window.fileCache.set(path, true);
+          sendRequest(
+            'GET',
+            url,
+            null,
+            null,
+            (text) => render(text, path),
+            () => window.fileCache.delete(path),
+          );
+        }
+      }
+
+      function handleEncryptedFolder(files) {
+        switchRightDisplay('encrypted');
+        const password = document.querySelector('.password');
+        const input = password.querySelector('input');
+        const button = password.querySelector('button');
+        const buttonParent = button.parentElement;
+        const buttonClone = button.cloneNode(true);
+        buttonParent.replaceChild(buttonClone, button);
+        input.placeholder = '请输入密码';
+        buttonClone.addEventListener('click', (event) => {
+          const passwd = input.value;
+          if (!input.value) {
+            return;
+          }
+          input.value = '';
+          input.placeholder = '正在验证..';
+          sendRequest(
+            window.api.method,
+            window.api.url,
+            window.api.formatPayload(files.parent, passwd),
+            window.api.headers,
+            (data) => {
+              const newFiles = JSON.parse(data);
+              if (newFiles.encrypted) {
+                input.placeholder = '密码错误';
+              } else {
+                window.fileCache.set(newFiles.parent, newFiles);
+                window.fileCache.set(`${newFiles.parent}/.password`, passwd);
+                fetchFileList(newFiles.parent);
+              }
+            },
+          );
+        });
+      }
+
+      function addPathListener(elem, path) {
+        elem.addEventListener('click', (event) => {
+          fetchFileList(path);
+          switchBackForwardStatus(path);
+        });
+      }
+
+      function addTreeNodeListener(elem, path) {
+        elem.addEventListener('click', (event) => {
+          fetchFileList(path);
+          switchBackForwardStatus(path);
+        });
+      }
+
+      function addFileListLineListener(elem, path, url, size) {
+        if (url) {
+          elem.addEventListener('click', (event) => {
+            window.backForwardCache.preview = true;
+            const content = document.querySelector('.content');
+            putPreviewLoadingAnimation(content);
+            switchRightDisplay('preview');
+
+            const previewHandler = {
+              copyTextContent: (source, text) => {
+                let result = false;
+                const target = document.createElement('pre');
+                target.style.opacity = '0';
+                target.textContent = text || source.textContent;
+                document.body.appendChild(target);
+                try {
+                  const range = document.createRange();
+                  range.selectNode(target);
+                  window.getSelection().removeAllRanges();
+                  window.getSelection().addRange(range);
+                  document.execCommand('copy');
+                  window.getSelection().removeAllRanges();
+                  result = true;
+                } catch (_) {}
+                document.body.removeChild(target);
+                return result;
+              },
+              fileType: (suffix) => {
+                if (['mp3', 'flac', 'wav'].includes(suffix)) {
+                  return 'audio';
+                } else if (['bmp', 'jpg', 'png', 'svg', 'webp', 'gif'].includes(suffix)) {
+                  return 'image';
+                } else if (['md'].includes(suffix)) {
+                  return 'markdown';
+                } else if (
+                  [
+                    'doc',
+                    'docx',
+                    'ppt',
+                    'pptx',
+                    'xls',
+                    'xlsx',
+                    'mpp',
+                    'rtf',
+                    'vsd',
+                    'vsdx',
+                  ].includes(suffix)
+                ) {
+                  return 'office';
+                } else if (['pdf'].includes(suffix)) {
+                  return 'pdf';
+                } else if (
+                  [
+                    'txt',
+                    'ini',
+                    'conf',
+                    'js',
+                    'ts',
+                    'json',
+                    'css',
+                    'html',
+                    'xml',
+                    'yml',
+                    'yaml',
+                    'toml',
+                    'java',
+                    'kt',
+                    'clj',
+                    'scala',
+                    'groovy',
+                    'asm',
+                    'c',
+                    'h',
+                    'cpp',
+                    'hpp',
+                    'cc',
+                    'cs',
+                    'd',
+                    'rs',
+                    'swift',
+                    'm',
+                    'r',
+                    'ml',
+                    'fs',
+                    'erl',
+                    'dart',
+                    'lisp',
+                    'php',
+                    'pas',
+                    'f90',
+                    'cbl',
+                    'cmd',
+                    'vb',
+                    'vbs',
+                    'ps1',
+                    'bat',
+                    'sh',
+                    'awk',
+                    'vim',
+                    'pl',
+                    'py',
+                    'rb',
+                    'go',
+                    'asp',
+                    'hs',
+                    'rkt',
+                    'lua',
+                    'sql',
+                  ].includes(suffix)
+                ) {
+                  return 'text';
+                } else if (['upload'].includes(suffix)) {
+                  return 'upload';
+                } else if (['mp4', 'avi', 'mkv', 'flv', 'm3u8'].includes(suffix)) {
+                  return 'video';
+                }
+              },
+              createDplayer: (video, type, elem) => {
+                return loadResource(
+                  fromCdn(
+                    'cdnjs',
+                    '/hls.js/1.1.5/hls.light.min.js',
+                    '/flv.js/1.6.2/flv.min.js',
+                    '/dplayer/1.25.0/DPlayer.min.css',
+                    '/dplayer/1.25.0/DPlayer.min.js',
+                  ),
+                ).then(() => {
+                  const option = {
+                    url: video,
+                  };
+                  if (type === 'flv') {
+                    option.type = 'flv';
+                  } else if (type === 'm3u8') {
+                    option.type = 'hls';
+                  }
+                  new DPlayer({
+                    container: elem,
+                    screenshot: true,
+                    video: option,
+                  });
+                });
+              },
+              fallback: (msg = '预览失败') => {
+                const textWrapper = document.createElement('div');
+                textWrapper.style.textAlign = 'center';
+                textWrapper.innerHTML = msg;
+                content.innerHTML = '';
+                content.appendChild(textWrapper);
+              },
+              scrollToBottom: () => {
+                let start = null;
+                const right = document.querySelector('.right');
+                const scrollToBottom = (timestamp) => {
+                  if (!start) start = timestamp;
+                  const progress = timestamp - start;
+                  const last = right.scrollTop;
+                  right.scrollTo(0, right.scrollTop + 14);
+                  if (right.scrollTop !== last && progress < 1000 * 2) {
+                    window.requestAnimationFrame(scrollToBottom);
+                  }
+                };
+                window.requestAnimationFrame(scrollToBottom);
+              },
+            };
+
+            if (size === 0) {
+              previewHandler.fallback('空文件');
+            } else {
+              const name = path.split('/').pop();
+              const suffix = name.includes('.')
+                ? name.split('.').pop().toLowerCase()
+                : '__no_suffix__';
+
+              const contentType = previewHandler.fileType(suffix);
+              switch (contentType) {
+                case 'audio':
+                  const audio = new Audio();
+                  audio.style.outline = 'none';
+                  audio.preload = 'auto';
+                  audio.controls = 'controls';
+                  audio.style.width = '100%';
+                  audio.src = url;
+                  content.innerHTML = '';
+                  content.append(audio);
+                  break;
+                case 'image':
+                  const firstLoad = typeof Fancybox === 'undefined';
+                  loadResource(
+                    fromCdn(
+                      'unpkg',
+                      '/@fancyapps/ui@6.0.25/dist/fancybox/fancybox.min.css',
+                      '/@fancyapps/ui@6.0.25/dist/fancybox/fancybox.umd.min.js',
+                    ),
+                  )
+                    .then(() => {
+                      if (firstLoad) {
+                        Fancybox.bind('[data-fancybox]');
+                      }
+                      const img = new Image();
+                      img.style.maxWidth = '100%';
+                      img.src = url;
+                      const fancy = document.createElement('a');
+                      fancy.setAttribute('data-fancybox', '');
+                      fancy.dataset.src = url;
+                      fancy.append(img);
+                      content.innerHTML = '';
+                      content.append(fancy);
+                    })
+                    .catch(previewHandler.fallback);
+                  break;
+                case 'markdown':
+                  renderMarkdown(path, url);
+                  break;
+                case 'office':
+                case 'pdf':
+                  const onlineViewerUrl =
+                    (contentType === 'office'
+                      ? '//view.officeapps.live.com/op/view.aspx?src='
+                      : '//mozilla.github.io/pdf.js/web/viewer.html?file=') +
+                    encodeURIComponent(url);
+                  const div = document.createElement('div');
+                  div.style.lineHeight = '2em';
+                  div.style.background = 'rgba(218, 215, 215, 0.21)';
+                  div.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+                  div.style.cursor = 'pointer';
+                  div.style.textAlign = 'center';
+                  div.innerHTML = '新窗口打开';
+                  div.addEventListener('click', () => window.open(onlineViewerUrl));
+                  content.innerHTML = '';
+                  content.appendChild(div);
+                  if (document.body.clientWidth >= 480) {
+                    const iframe = document.createElement('iframe');
+                    iframe.width = '100%';
+                    iframe.style.aspectRatio = '16 / 9';
+                    iframe.style.border = '0';
+                    iframe.src = onlineViewerUrl;
+                    content.appendChild(iframe);
+                  }
+                  break;
+                case 'text':
+                  if (size > 2048000) {
+                    previewHandler.fallback('文件过大');
+                    break;
+                  }
+
+                  loadResource(
+                    fromCdn(
+                      'unpkg',
+                      '/@highlightjs/cdn-assets@11.11.1/styles/github.min.css',
+                      '/@highlightjs/cdn-assets@11.11.1/highlight.min.js',
+                    ),
+                  )
+                    .then(() => {
+                      sendRequest('GET', url, null, null, (data) => {
+                        const pre = document.createElement('pre');
+                        pre.style.background = 'rgb(247, 248, 250)';
+                        pre.style.padding = '5px';
+                        pre.style.whiteSpace = 'pre-wrap';
+                        pre.style.wordBreak = 'break-word';
+                        pre.style.overflowWrap = 'break-word';
+                        content.innerHTML = '';
+                        content.append(pre);
+                        pre.textContent = data;
+                        if (size <= 512000) {
+                          hljs.highlightElement(pre);
+                        }
+                      });
+                    })
+                    .catch(previewHandler.fallback);
+                  break;
+                case 'video':
+                  const video = document.createElement('div');
+                  previewHandler
+                    .createDplayer(url, suffix, video)
+                    .then(() => {
+                      content.innerHTML = '';
+                      content.append(video);
+                      previewHandler.scrollToBottom();
+                    })
+                    .catch(previewHandler.fallback);
+                  break;
+                default:
+                  previewHandler.fallback('该文件不支持预览');
+                  break;
+              }
+            }
+
+            document.querySelector('.file-name').innerHTML = path;
+            document
+              .querySelector('.btn.download')
+              .addEventListener('click', () => (location.href = url));
+            document.querySelector('.btn.quote').addEventListener('click', (event) => {
+              previewHandler.copyTextContent(
+                null,
+                (() => {
+                  const u = new URL(window.location.protocol + window.api.url);
+                  u.searchParams.set('file', path);
+                  return u.toString();
+                })(),
+              );
+              const btn = document.querySelector('.btn.quote');
+              btn.innerHTML = '已复制';
+              setTimeout(() => (btn.innerHTML = '引用'), 250);
+            });
+            document.querySelector('.btn.share').addEventListener('click', (event) => {
+              const sharePath = () => {
+                const arr = window.backForwardCache.current.split('/');
+                let r = '';
+                for (let i = 1; i < arr.length; i++) {
+                  r += '/' + arr[i];
+                }
+                return r;
+              };
+              previewHandler.copyTextContent(
+                null,
+                (() => {
+                  const u = new URL(window.location.href);
+                  u.searchParams.set('path', sharePath());
+                  return u.toString();
+                })(),
+              );
+              const btn = document.querySelector('.btn.share');
+              btn.innerHTML = '已复制';
+              setTimeout(() => (btn.innerHTML = '分享'), 250);
+            });
+          });
+        } else {
+          elem.addEventListener('click', (event) => {
+            fetchFileList(path);
+            switchBackForwardStatus(path);
+          });
+        }
+      }
+
+      function addBackForwardListener() {
+        document.getElementById('arrow-back').addEventListener('click', back);
+        document.getElementById('arrow-forward').addEventListener('click', forward);
+        document.querySelector('#main-page').addEventListener('click', () => {
+          fetchFileList(window.api.root);
+          switchBackForwardStatus(window.api.root);
+        });
+      }
+
+      function addFileUploadListener() {
+        const fileInput = document.querySelector('.file-upload-input');
+        const fileNameDisplay = document.querySelector('.file-upload-name');
+        fileInput.addEventListener('change', function () {
+          if (fileInput.files.length === 1) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+          } else if (fileInput.files.length > 1) {
+            fileNameDisplay.textContent =
+              fileInput.files[0].webkitRelativePath?.split('/')[0] ||
+              `共 ${fileInput.files.length} 个文件`;
+          } else {
+            fileNameDisplay.textContent = '未选择文件';
+          }
+        });
+      }
+
+      function addBackToTopListener() {
+        const right = document.querySelector('.main .right');
+        const backToTopBtn = document.getElementById('back-to-top');
+
+        backToTopBtn.addEventListener('click', () => right.scrollTo(0, 0));
+        right.addEventListener(
+          'scroll',
+          () => (backToTopBtn.dataset.hidden = right.scrollTop > 500 ? '0' : '1'),
+        );
+      }
+
+      function switchRightDisplay(display) {
+        for (const c of document.querySelector('.right').children) {
+          c.dataset.hidden = '1';
+        }
+
+        if (display !== 'preview') {
+          document.querySelector('.preview .content').innerHTML = '';
+        }
+
+        if (display === 'preview') {
+          document.querySelector('.preview').dataset.hidden = '0';
+        } else if (display === 'encrypted') {
+          document.querySelector('.password-wrapper').dataset.hidden = '0';
+        } else if (display === 'upload') {
+          document.querySelector('.file-upload-progress').innerHTML = '';
+          document.querySelector('.file-upload-progress').dataset.hidden = '1';
+          document.querySelector('.file-upload-wrapper').dataset.hidden = '0';
+        } else if (display === 'list') {
+          const sortOrder = window.fileCache.get(window.backForwardCache.current)?.orderby;
+          document.querySelectorAll('.list-header .row .file > div').forEach((field) => {
+            const indicator = field.querySelector('i');
+            if (new RegExp(field.className, 'i').test(sortOrder)) {
+              indicator.className = `zmdi zmdi-chevron-${
+                sortOrder.includes('desc') ? 'down' : 'up'
+              }`;
+            } else {
+              indicator.className = 'zmdi zmdi-chevron-up disabled';
+            }
+          });
+
+          document.querySelector('#readme').innerHTML = '';
+          document.querySelector('.list-header').dataset.hidden = '0';
+          document.querySelector('#file-list').dataset.hidden = '0';
+          document.querySelector('.markdown-body').dataset.hidden = '0';
+        }
+        document.querySelector('.main').dataset.hidden = '0';
+      }
+
+      function switchBackForwardStatus(path) {
+        if (path) {
+          window.backForwardCache.deepest = path;
+        }
+        if (window.backForwardCache.root !== window.backForwardCache.current) {
+          window.backForwardCache.backable = true;
+          document.getElementById('arrow-back').removeAttribute('disabled');
+        } else {
+          window.backForwardCache.backable = false;
+          document.getElementById('arrow-back').setAttribute('disabled', true);
+        }
+        if (window.backForwardCache.deepest !== window.backForwardCache.current) {
+          window.backForwardCache.forwardable = true;
+          document.getElementById('arrow-forward').removeAttribute('disabled');
+        } else {
+          window.backForwardCache.forwardable = false;
+          document.getElementById('arrow-forward').setAttribute('disabled', true);
+        }
+      }
+
+      function back() {
+        if (!window.backForwardCache.backable) {
+          return;
+        }
+        if (window.backForwardCache.preview) {
+          fetchFileList(window.backForwardCache.current);
+        } else {
+          let former = (() => {
+            const formerEndIndex = window.backForwardCache.current.lastIndexOf('/');
+            return window.backForwardCache.current.substring(0, formerEndIndex);
+          })();
+          former = former || window.api.root;
+          fetchFileList(former);
+          switchBackForwardStatus();
+        }
+        // console.log(window.backForwardCache);
+      }
+
+      function forward() {
+        if (!window.backForwardCache.forwardable) {
+          return;
+        }
+        const current =
+          window.backForwardCache.current === window.api.root
+            ? ''
+            : window.backForwardCache.current;
+        const subLength = current ? current.length : 0;
+        const later =
+          current + '/' + window.backForwardCache.deepest.substring(subLength).split('/')[1];
+        fetchFileList(later);
+        switchBackForwardStatus();
+        // console.log(window.backForwardCache);
+      }
+
+      async function preCache(files, level) {
+        if (!window.GLOBAL_CONFIG.PRELOAD) {
+          return;
+        }
+
+        if (level > 1) return;
+        files.files.forEach((file) => {
+          const parent = files.parent === '/' ? '' : files.parent;
+          const path = parent + '/' + file.name;
+          if (!file.url) {
+            // console.log('caching ' + path + ', level ' + level);
+            window.fileCache.set(path, true);
+            sendRequest(
+              window.api.method,
+              window.api.url,
+              window.api.formatPayload(path),
+              window.api.headers,
+              (data) => {
+                const files = JSON.parse(data);
+                window.fileCache.set(path, files);
+                preCache(files, level + 1);
+              },
+              () => window.fileCache.delete(path),
+            );
+          } else if (file.name.endsWith('.md')) {
+            // console.log('caching ' + path + ', level ' + level);
+            window.fileCache.set(path, true);
+            sendRequest(
+              'GET',
+              file.url,
+              null,
+              null,
+              (text) => window.fileCache.set(path, text),
+              () => window.fileCache.delete(path),
+            );
+          }
+        });
+      }
+
+      async function preCacheCheck(cache, path) {
+        if (!window.GLOBAL_CONFIG.PRELOAD) {
+          return;
+        }
+
+        cache.files.forEach((file) => {
+          const prefix = path === window.api.root ? '' : path;
+          const nextPath = prefix + '/' + file.name;
+          const pathCache = window.fileCache.get(nextPath);
+          if (!file.url) {
+            if (!pathCache) {
+              // console.log('inner caching ' + nextPath);
+              window.fileCache.set(nextPath, true);
+              sendRequest(
+                window.api.method,
+                window.api.url,
+                window.api.formatPayload(nextPath),
+                window.api.headers,
+                (data) => {
+                  const files = JSON.parse(data);
+                  window.fileCache.set(nextPath, files);
+                  preCache(files, 0);
+                },
+                () => window.fileCache.delete(nextPath),
+              );
+            } else if (pathCache.files) {
+              preCacheCheck(pathCache, nextPath);
+            }
+          } else if (file.name.endsWith('.md')) {
+            if (!pathCache && pathCache !== true) {
+              // console.log('inner caching ' + nextPath);
+              window.fileCache.set(nextPath, true);
+              sendRequest(
+                'GET',
+                file.url,
+                null,
+                null,
+                (text) => window.fileCache.set(nextPath, text),
+                () => window.fileCache.delete(nextPath),
+              );
+            }
+          }
+        });
+      }
+
+      /**
+       * 1. 不对左侧目录树排序，仅对右侧文件列表排序。
+       * 2. 若页面已加载完毕，前端对缓存拷贝整体排序。
+       * 3. 若页面未加载完毕：
+       *  A. 个人版完全依赖 API 序，前端不排序。
+       *  B. 商业版完全抛弃 API 序：
+       *    a. 从头渲染列表时（打开新文件夹或点击排序按钮），前端对已加载数据的拷贝整体排序，向下滑动时，保证已加载数据显示完再加载新页，确保新页数据渲染到已加载数据后面。
+       *    b. 加载出新页时，前端对新页拷贝单独排序，保证新页数据渲染到已加载数据之后。
+       */
+      function sortList(clickedElem) {
+        const loadedPages = window.fileCache.get(window.backForwardCache.current);
+        if (!loadedPages) {
+          createGlobalLoadingIndicator('No data!', 3000);
+          return;
+        }
+
+        const sortField = clickedElem.className;
+        const sortOrder = clickedElem.querySelector('i').className.includes('up') ? 'desc' : 'asc';
+        const reverseFactor = sortOrder === 'asc' ? 1 : -1;
+        loadedPages.orderby = `${sortField} ${sortOrder}`;
+        loadedPages.compare = (a, b) =>
+          reverseFactor *
+          a[sortField].toString().localeCompare(b[sortField].toString(), undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
+        if (!loadedPages.skipToken || window.GLOBAL_CONFIG.IS_BUSINESS) {
+          renderFileList(loadedPages);
+          return;
+        }
+        window.fileCache.delete(loadedPages.parent);
+        fetchFileList(loadedPages.parent, loadedPages.orderby);
+      }
+
+      function fetchFileList(path, orderby) {
+        // console.log('fetching ' + path);
+        window.backForwardCache.preview = false;
+        window.backForwardCache.current = path;
+
+        const cache = window.fileCache.get(path);
+        if (cache === true) {
+          setTimeout(() => fetchFileList(path), 300);
+        } else if (cache) {
+          renderPage(null, cache);
+          preCacheCheck(cache, path);
+        } else {
+          const indicator = createGlobalLoadingIndicator();
+          const fallback = () => {
+            window.fileCache.delete(path);
+            indicator.close('Failed!');
+          };
+          window.fileCache.set(path, true);
+          sendRequest(
+            window.api.method,
+            window.api.url,
+            window.api.formatPayload(path, window.fileCache.get(`${path}/.password`), {
+              orderby,
+            }),
+            window.api.headers,
+            (data) => {
+              try {
+                data = JSON.parse(data);
+              } catch (_) {
+                fallback();
+                return;
+              }
+              if (data.error || data.files === undefined) {
+                fallback();
+                return;
+              }
+              indicator.close();
+              renderPage(data);
+            },
+            fallback,
+          );
+        }
+      }
+
+      function loadNextPage(loadedPages) {
+        if (loadedPages.loadingInProgress) {
+          return;
+        }
+
+        const indicator = createGlobalLoadingIndicator('Loading next page...');
+        loadedPages.loadingInProgress = true;
+        const fallback = () => {
+          indicator.close('Failed!');
+          loadedPages.loadingInProgress = false;
+        };
+        sendRequest(
+          window.api.method,
+          window.api.url,
+          window.api.formatPayload(
+            loadedPages.parent,
+            window.fileCache.get(`${loadedPages.parent}/.password`),
+            {
+              skipToken: loadedPages.skipToken,
+              orderby: loadedPages.orderby,
+            },
+          ),
+          window.api.headers,
+          (data) => {
+            try {
+              data = JSON.parse(data);
+            } catch (_) {
+              fallback();
+              return;
+            }
+            if (data.error || data.files === undefined) {
+              fallback();
+              return;
+            }
+
+            loadedPages.files = loadedPages.files.concat(data.files);
+            loadedPages.skipToken = data.skipToken;
+            loadedPages.loadingInProgress = false;
+            indicator.close();
+            renderPage(null, loadedPages, true);
+          },
+          fallback,
+        );
+      }
+
+      function uploadFiles() {
+        const pageSize = 20;
+        const fileInput = Array.from(document.getElementById('file-upload-input').files);
+        if (!fileInput.length) {
+          return;
+        }
+
+        const odPath = window.backForwardCache.current;
+        const upFileList = fileInput.map((f) => ({
+          remotePath: `${odPath}/${relativePath(f)}`,
+          fileSize: f.size ? 1 : 0,
+        }));
+
+        function paginate(array, size) {
+          const paginatedArray = [];
+          for (let i = 0; i < array.length; i += size) {
+            paginatedArray.push(array.slice(i, i + size));
+          }
+          return paginatedArray;
+        }
+
+        const paginatedUpFileList = paginate(upFileList, pageSize);
+
+        function sendPage(pageIndex = 0) {
+          if (pageIndex >= paginatedUpFileList.length) {
+            window.fileCache.delete(window.backForwardCache.current);
+            createUploadLogLine().className = 'log-separator';
+            return;
+          }
+
+          const currentPage = paginatedUpFileList[pageIndex];
+          sendRequest(
+            window.api.method,
+            window.api.url + (window.api.url.includes('?') ? '&' : '?') + 'upload',
+            window.api.formatPayload(odPath, window.fileCache.get(`${odPath}/.password`), {
+              files: currentPage,
+            }),
+            window.api.headers,
+            (response) => {
+              const uploadLinks = JSON.parse(response).files;
+              Promise.all(
+                uploadLinks.map(({ remotePath, uploadUrl }) =>
+                  uploadFileWithProgress(
+                    fileInput.find((f) => `${odPath}/${relativePath(f)}` === remotePath),
+                    uploadUrl,
+                  ),
+                ),
+              ).finally(() => sendPage(pageIndex + 1));
+            },
+          );
+        }
+
+        createUploadLogLine().className = 'log-separator';
+        document.querySelector('.file-upload-progress').dataset.hidden = '0';
+        sendPage(0);
+
+        function relativePath(file) {
+          return `${file.webkitRelativePath || file.name}`;
+        }
+
+        function createUploadLogLine() {
+          const progressDiv = document.querySelector('.file-upload-progress');
+          const progressText = document.createElement('div');
+          const progressContainer = document.createElement('div');
+          progressDiv.appendChild(progressContainer);
+          progressContainer.appendChild(progressText);
+          return progressText;
+        }
+
+        async function uploadFileWithProgress(file, uploadUrl) {
+          const chunkSize = 1024 * 1024 * 10;
+          const fileSize = file.size;
+          let uploadedBytes = 0;
+          let start = 0;
+
+          const progressText = createUploadLogLine();
+          if (fileSize === 0) {
+            updateTotalProgress();
+          } else {
+            while (start < fileSize) {
+              try {
+                await uploadChunk(start);
+                start = Math.min(start + chunkSize, fileSize);
+              } catch (error) {
+                if (!(await handleUploadError(error))) {
+                  progressText.innerHTML += ' <mark>Upload failed!</mark>';
+                  return;
+                }
+              }
+            }
+          }
+          progressText.innerHTML += ' Upload completed!';
+
+          async function uploadChunk(start) {
+            const end = Math.min(start + chunkSize, fileSize);
+            const chunk = file.slice(start, end);
+
+            const response = await fetch(uploadUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Range': `bytes ${start}-${end - 1}/${fileSize}`,
+              },
+              body: chunk,
+            });
+
+            if (response.ok) {
+              uploadedBytes = end;
+              updateTotalProgress();
+            }
+            return response.status;
+          }
+
+          async function handleUploadError(error) {
+            let retryCount = 10,
+              delayTime = 1;
+            while (retryCount > 0) {
+              retryCount--;
+              if (error === 416) {
+                await new Promise((resolve) =>
+                  sendRequest('GET', uploadUrl, null, null, (data) => {
+                    start = parseInt(JSON.parse(data).nextExpectedRanges[0].split('-')[0]);
+                    resolve();
+                  }),
+                );
+                return true;
+              } else {
+                await new Promise((resolve) =>
+                  setTimeout(resolve, Math.min((delayTime *= 2) * 1000, 32000)),
+                );
+                try {
+                  await uploadChunk(start);
+                  return true;
+                } catch (err) {
+                  error = err;
+                }
+              }
+            }
+            return false;
+          }
+
+          function updateTotalProgress() {
+            const percentComplete = fileSize ? Math.round((uploadedBytes / fileSize) * 100) : 100;
+            const progressBar =
+              '[' + '='.repeat(percentComplete / 5) + ' '.repeat(20 - percentComplete / 5) + ']';
+            progressText.textContent = `${relativePath(file)}: ${progressBar} ${percentComplete}%`;
+          }
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.title = window.GLOBAL_CONFIG.SITE_NAME;
+        window.api = {
+          root: '/',
+          url: window.GLOBAL_CONFIG.SCF_GATEWAY + window.location.search,
+          method: 'POST',
+          formatPayload: (path, passwd, kvs) => {
+            const payload = { path, passwd, ...kvs };
+            if (window.GLOBAL_CONFIG.IS_BUSINESS) {
+              delete payload['orderby'];
+            }
+            return JSON.stringify(payload);
+          },
+          headers: {
+            'Content-type': 'application/json; charset=utf-8',
+          },
+        };
+        window.backForwardCache = {
+          root: window.api.root,
+          deepest: window.api.root,
+          current: window.api.root,
+          backable: false,
+          forwardable: false,
+          preview: false,
+        };
+        window.fileCache = new Map();
+        window.resourceCache = Object.create(null);
+        const initialPath =
+          new URLSearchParams(window.location.search).get('path') || window.api.root;
+        fetchFileList(initialPath);
+        addBackForwardListener();
+        addFileUploadListener();
+        addBackToTopListener();
+      });
+    </script>
+  </head>
+
+  <body>
+    <template id="tree-node-wrapper-template">
+      <div class="tree-node-wrapper">
+        <div class="tree-node">
+          <i></i>
+          <i></i>
+          <div class="tree-node-name"></div>
+        </div>
+      </div>
+    </template>
+    <template id="file-wrapper-template">
+      <div class="row file-wrapper">
+        <div class="file">
+          <i></i>
+          <span class="name"></span>
+          <span class="lastModifiedDateTime"></span>
+          <div class="size">
+            <span class="value"></span>
+            <span class="unit"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template id="loading-animation-template">
+      <div class="sk-folding-cube">
+        <div class="sk-cube1 sk-cube"></div>
+        <div class="sk-cube2 sk-cube"></div>
+        <div class="sk-cube4 sk-cube"></div>
+        <div class="sk-cube3 sk-cube"></div>
+      </div>
+    </template>
+    <template id="loading-wrapper-template">
+      <div class="loading-wrapper" data-hidden="1">
+        <div class="loading">Loading...</div>
+      </div>
+    </template>
+    <div class="loading-indicator"></div>
+    <div class="header-wrapper">
+      <div class="header">
+        <i id="arrow-back" disabled class="zmdi zmdi-arrow-left logo"></i>
+        <i id="arrow-forward" disabled class="zmdi zmdi-arrow-right logo"></i>
+        <i id="main-page" class="zmdi zmdi-folder logo"></i>
+        <div class="nav">
+          <span id="path"> </span>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div class="main" data-hidden="1">
+        <div class="left">
+          <div id="tree-root"></div>
+        </div>
+        <div class="right">
+          <div class="upload-entry-wrapper">
+            <button class="upload-entry-btn">在此上传文件</button>
+          </div>
+          <div class="list-header">
+            <div class="row">
+              <div class="file">
+                <div class="name" onclick="sortList(this)">
+                  <span>ITEMS</span>
+                  <i class="zmdi zmdi-chevron-up"></i>
+                </div>
+                <div class="lastModifiedDateTime" onclick="sortList(this)">
+                  <span>TIME</span>
+                  <i class="zmdi zmdi-chevron-up"></i>
+                </div>
+                <div class="size" onclick="sortList(this)">
+                  <span>SIZE</span>
+                  <i class="zmdi zmdi-chevron-up"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="file-list"></div>
+          <div class="markdown-body">
+            <div id="readme"></div>
+          </div>
+          <div class="preview">
+            <div class="info">
+              <div class="file-name"></div>
+              <div class="btn download">下载</div>
+              <div class="btn quote">引用</div>
+              <div class="btn share">分享</div>
+            </div>
+            <div class="content"></div>
+          </div>
+          <div class="password-wrapper">
+            <div class="password">
+              <input type="password" />
+              <button>提交</button>
+            </div>
+          </div>
+          <div class="file-upload-wrapper">
+            <div class="file-upload-chooser">
+              <select
+                onchange="document.getElementById('file-upload-input').webkitdirectory=this.value;"
+              >
+                <option value="">上传文件</option>
+                <option value="1">上传文件夹</option>
+              </select>
+              <label for="file-upload-input" class="file-upload-label">选择文件</label>
+              <input
+                class="file-upload-input"
+                type="file"
+                id="file-upload-input"
+                multiple="multiple"
+              />
+              <span class="file-upload-name">未选择文件</span>
+              <button onclick="uploadFiles()">上传</button>
+            </div>
+            <div class="file-upload-progress"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="back-to-top" data-hidden="1">
+      <i class="zmdi zmdi-caret-up-circle"></i>
+    </div>
+  </body>
+</html>
