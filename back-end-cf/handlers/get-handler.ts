@@ -17,7 +17,7 @@ export async function handleGetRequest(
   // download files
   const isProxyRequest =
     !!env.PROTECTED.PROXY_KEYWORD &&
-    requestUrl.pathname.startsWith(`/${env.PROTECTED.PROXY_KEYWORD}`);
+    requestUrl.pathname.startsWith(`/${env.PROTECTED.PROXY_KEYWORD}/`);
   const { path: filePath, tail: fileName } = parsePath(
     requestUrl.searchParams.get('file') || decodeURIComponent(requestUrl.pathname),
     isProxyRequest ? `/${env.PROTECTED.PROXY_KEYWORD}` : undefined,

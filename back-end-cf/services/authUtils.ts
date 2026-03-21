@@ -46,10 +46,10 @@ async function authorizeToken(
   secret: string | undefined,
   reqPath: string,
   searchParams: URLSearchParams,
-): Promise<TokenScope[]> {
+): Promise<ReadonlySet<TokenScope>> {
   const token = searchParams.get('token')?.toLowerCase();
   if (!token || !secret) {
-    return [];
+    return new Set();
   }
 
   const tokenScope = searchParams.get('ts') || 'download';
@@ -64,7 +64,7 @@ async function authorizeToken(
     const now = Math.floor(Date.now() / 1000);
     const exp = parseInt(expires);
     if (isNaN(exp) || now > exp) {
-      return [];
+      return new Set();
     }
   }
 
@@ -82,11 +82,11 @@ async function authorizeToken(
   for (const p of candidatePaths) {
     const expectedSign = await hmacSha256(secret, `${p},${tokenArgString}`);
     if (token === expectedSign) {
-      return tokenScope.split(',').sort() as TokenScope[];
+      return new Set(tokenScope.split(',') as TokenScope[]);
     }
   }
 
-  return [];
+  return new Set();
 }
 
 interface AuthContext {
@@ -97,7 +97,7 @@ interface AuthContext {
 }
 
 export async function authorizeScopes(
-  requiredScopes: readonly TokenScope[],
+  requiredScopes: Set<TokenScope>,
   ctx: AuthContext,
 ): Promise<ReadonlySet<TokenScope>> {
   const allowed = new Set<TokenScope>();
@@ -109,7 +109,7 @@ export async function authorizeScopes(
   const requiresAuthForPath = env.PROTECTED.REQUIRE_AUTH ? !isExceptionPath : isExceptionPath;
 
   for (const scope of requiredScopes) {
-    if (tokenScopes.includes(scope)) {
+    if (tokenScopes.has(scope)) {
       allowed.add(scope);
       continue;
     }
@@ -134,6 +134,10 @@ export async function authorizeScopes(
           (secureEqual(credentials, env.PASSWORD) ||
             (await authenticatePost(env, path, credentials))) &&
           (await downloadFile(`${path}/.upload`)).status === 302;
+        break;
+
+      default:
+        ok = secureEqual(credentials, env.PASSWORD);
         break;
     }
 

@@ -33,12 +33,13 @@
       "scope": "offline_access User.Read Files.ReadWrite.All"
     },
     "PROTECTED": {
-      // Exposed root path (empty=full drive), otherwise fill in like '/media/music'
-      // 展示路径（空值=全盘），否则按 '/媒体/音乐' 的格式填写
-      "EXPOSE_PATH": "",
+      // Exposed root path, fill in like '/media/music'
+      // 展示路径，填写格式 '/媒体/音乐'
+      "EXPOSE_PATH": "/",
       // Require authentication for all paths | 是否对所有路径启用鉴权
       "REQUIRE_AUTH": false,
-      // auth paths, case-insensitive. when REQUIRE_AUTH=true, these paths are public; otherwise, these paths require auth
+      // auth paths, case-insensitive
+      // when REQUIRE_AUTH=true, these paths are public; otherwise, these paths require auth
       // 鉴权路径，不区分大小写。当 REQUIRE_AUTH=true，则这些路径为公开路径；否则，这些路径需要身份验证
       "AUTH_PATHS": [],
       // If authentication is enabled, the filename to store passwords, passwords are in sha256 hex format
@@ -50,8 +51,8 @@
       // 2）当请求域名包含 {keyword}.example 时，WebDAV GET 响应将启用缓存
       "PROXY_KEYWORD": ""
     },
-    // Method-based cache TTL (seconds) | 请求方法缓存时长（秒）
-    // during this period, the OneDrive API will not be called again | 期间不再调用OneDrive API
+    // Method-based cache TTL (seconds), during this period, the OneDrive API will not be called again
+    // 请求方法缓存时长（秒），期间不再调用OneDrive API
     "CACHE_TTLMAP": {
       "GET": 0,
       "POST": 0

@@ -63,11 +63,11 @@ export async function saveDeployData(env: Env, requestUrl: URL, codeUrl: string)
     return new Response('Missing Code Parameter', { status: 400 });
   }
 
-  const result = await fetchToken(env.OAUTH, {
+  const result: TokenResponse = await fetchToken(env.OAUTH, {
     grant_type: 'authorization_code',
     code,
   });
-  (result as TokenResponse).save_time = Date.now();
+  result.save_time = Date.now();
   await env.FODI_CACHE.put('token_data', JSON.stringify(result));
 
   return Response.redirect(`${requestUrl.origin}/fodi`);

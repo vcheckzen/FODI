@@ -20,7 +20,7 @@ export async function handleWebdav(request: Request, env: Env, requestUrl: URL):
 
   const isProxyRequest =
     !!env.PROTECTED.PROXY_KEYWORD &&
-    requestUrl.pathname.startsWith(`/${env.PROTECTED.PROXY_KEYWORD}`);
+    requestUrl.pathname.startsWith(`/${env.PROTECTED.PROXY_KEYWORD}/`);
   const filePath = parsePath(
     decodeURIComponent(requestUrl.pathname),
     isProxyRequest ? `/${env.PROTECTED.PROXY_KEYWORD}` : undefined,

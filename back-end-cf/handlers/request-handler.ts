@@ -14,21 +14,21 @@ export async function cacheRequest(
   const rawBody = method === 'POST' ? await request.clone().text() : '{}';
   const scopes = await resolveAuthorizedScopes(request, env, rawBody);
 
-  const cacheTTL = env.CACHE_TTLMAP[method as keyof typeof env.CACHE_TTLMAP] ?? 0;
+  const cacheTTL = env.CACHE_TTLMAP[method] ?? 0;
   if (cacheTTL <= 0) {
     return handleRequest(request, env, scopes);
   }
 
-  // WebDAV bypass
   const cacheUrl = new URL(request.url);
-  const isDavGetCache =
+  // Bypass cache for WebDAV requests unless the subdomain ends with PROXY_KEYWORD
+  const isDavCacheEligible =
     !!env.PROTECTED.PROXY_KEYWORD &&
     cacheUrl.hostname.split('.')[0].endsWith(env.PROTECTED.PROXY_KEYWORD);
-  if (request.headers.get('Authorization') && !isDavGetCache) {
+  if (request.headers.get('Authorization') && !isDavCacheEligible) {
     return handleRequest(request, env, scopes);
   }
 
-  const scopeKey = scopes.toString();
+  const scopeKey = Array.from(scopes).sort().toString();
   const pathKey =
     rawBody === '{}' ? await sha256(cacheUrl.pathname.toLowerCase()) : await sha256(rawBody);
 
@@ -39,21 +39,24 @@ export async function cacheRequest(
   const cache = (caches as any).default;
   const cachedResponse: Response | null = await cache.match(cacheKey);
 
-  const cacheCreatedTime =
+  const now = Date.now();
+  const cacheCreatedAt =
     new Date(cachedResponse?.headers.get('Expires') || 0).getTime() - cacheTTL * 1000;
-  const cachedAgeSec = (Date.now() - cacheCreatedTime) / 1000;
+  const calculatedAgeSec = (now - cacheCreatedAt) / 1000;
+  const cachedAge = parseInt(cachedResponse?.headers.get('Age') || '0') ?? calculatedAgeSec;
   // 302 OneDrive download links are valid for 1 hour
-  const isLinkExpired = method === 'GET' && cachedResponse?.status === 302 && cachedAgeSec > 3600;
-  // expired or forced refresh
-  const isCacheExpired = cachedAgeSec > cacheTTL || isLinkExpired;
+  const isLinkExpired = method === 'GET' && cachedResponse?.status === 302 && cachedAge > 3600;
+
+  // expired or force refresh
+  const isCacheExpired = cachedAge > cacheTTL || isLinkExpired;
   const isForceRefresh = scopes.has('refresh');
 
   if (!cachedResponse || isCacheExpired || isForceRefresh) {
     const upstreamResponse = await handleRequest(request, env, scopes);
     const freshResponse = new Response(upstreamResponse.body, upstreamResponse);
 
-    freshResponse.headers.set('Expires', new Date(Date.now() + cacheTTL * 1000).toUTCString());
     freshResponse.headers.set('Cache-Control', `max-age=${cacheTTL}`);
+    freshResponse.headers.set('Expires', new Date(now + cacheTTL * 1000).toUTCString());
 
     ctx.waitUntil(cache.put(cacheKey, freshResponse.clone()));
     return freshResponse;
@@ -113,10 +116,20 @@ async function handleRequest(
 
 async function resolveAuthorizedScopes(request: Request, env: Env, rawBody: string) {
   const url = new URL(request.url);
-  const requiredScopes = ['download', 'list'] as TokenScope[];
+  const requiredScopes = new Set(
+    url.searchParams.get('ts')?.toLowerCase().split(',') as TokenScope[],
+  );
 
-  if (url.searchParams.has('uplaod')) {
-    requiredScopes.push('upload');
+  if (request.method === 'GET') {
+    requiredScopes.add('download');
+  }
+
+  if (request.method === 'POST' && url.pathname === '/') {
+    requiredScopes.add('list');
+  }
+
+  if (request.method === 'POST' && url.searchParams.has('upload')) {
+    requiredScopes.add('upload');
   }
 
   const jsonBody = parseJson<PostPayload>(rawBody);

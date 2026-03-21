@@ -10,10 +10,8 @@ export async function fetchFiles(
 ): Promise<FetchFilesRes> {
   const parent = path || '/';
   const uri = [
-    buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl),
+    buildUriPath(path, runtimeEnv.OAUTH.apiUrl),
     '/children?select=name,size,lastModifiedDateTime,@microsoft.graph.downloadUrl',
-    // maximum 1000, may change https://github.com/OneDrive/onedrive-api-docs/issues/319
-    '&top=1000',
     orderby ? `&orderby=${encodeURIComponent(orderby)}` : '',
     skipToken ? `&skiptoken=${skipToken}` : '',
   ].join('');
@@ -48,7 +46,7 @@ export async function fetchUploadLinks(fileList: UploadPayload[]) {
     requests: fileList.map((file, index) => ({
       id: `${index + 1}`,
       method: file['fileSize'] ? 'POST' : 'PUT',
-      url: `/me/drive/root${buildUriPath(file['remotePath'], runtimeEnv.PROTECTED.EXPOSE_PATH, '')}${file['fileSize'] ? '/createUploadSession' : '/content'}`,
+      url: `/me/drive/root${buildUriPath(file['remotePath'], '')}${file['fileSize'] ? '/createUploadSession' : '/content'}`,
       headers: { 'Content-Type': 'application/json' },
       body: {},
     })),
@@ -65,7 +63,7 @@ export async function fetchUploadLinks(fileList: UploadPayload[]) {
 
 export async function downloadFile(
   filePath: string,
-  stream?: boolean,
+  proxy?: boolean,
   format?: string | null,
   reqHeaders?: Headers,
 ) {
@@ -75,7 +73,7 @@ export async function downloadFile(
   }
 
   const uri = [
-    buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) + '/content',
+    buildUriPath(filePath, runtimeEnv.OAUTH.apiUrl) + '/content',
     format ? `?format=${format}` : '',
     format === 'jpg' ? '&width=30000&height=30000' : '',
   ].join('');
@@ -91,7 +89,7 @@ export async function downloadFile(
   }
 
   // proxy download
-  if (stream) {
+  if (proxy) {
     const headers = new Headers(reqHeaders);
     headers.delete('Authorization');
     if (headers.get('Range')?.toLowerCase() === 'bytes=0-') {

@@ -3,6 +3,16 @@ declare global {
     FODI_CACHE?: KVNamespace;
     USERNAME?: string;
     PASSWORD?: string;
+    PROTECTED: {
+      EXPOSE_PATH: string;
+      REQUIRE_AUTH: boolean;
+      AUTH_PATHS: string[];
+      PASSWD_FILENAME: string;
+      PROXY_KEYWORD: string;
+    };
+    CACHE_TTLMAP: {
+      [key: string]: number;
+    };
   }
 }
 

@@ -29,12 +29,13 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
   }
 
   const savedData = await getSaveDelta(path);
-  const itemPathWrapped = buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, '');
+  const itemPathWrapped = buildUriPath(path, '');
   const baseEndpoint = `/me/drive/root${itemPathWrapped}`;
   const select = '?select=id,name,size,lastModifiedDateTime,file,@odata.etag';
   const reqUrl = new URL(
     savedData?.['@odata.nextLink'] ??
       savedData?.['@odata.deltaLink'] ??
+      // maximum 1000, https://github.com/OneDrive/onedrive-api-docs/issues/319
       `${runtimeEnv.OAUTH.apiUrl}${itemPathWrapped}/children${select}&top=1000`,
   );
   const reqEndpoint = (reqUrl.pathname + reqUrl.search).replace('v1.0', '');
@@ -83,9 +84,7 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
   // nextlink fetch finished, init delta link
   if (savedData && !data['@odata.nextLink'] && !data['@odata.deltaLink']) {
     const deltaPrams = `${select},parentReference,deleted&token=latest`;
-    const deltaUrl =
-      buildUriPath(path, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) +
-      `/delta${deltaPrams}`;
+    const deltaUrl = buildUriPath(path, runtimeEnv.OAUTH.apiUrl) + `/delta${deltaPrams}`;
     const newDeltaResp = await fetchWithAuth(deltaUrl);
     if (!newDeltaResp.ok) {
       return {
@@ -128,9 +127,7 @@ async function handlePropfind(filePath: string, depth: DavDepth) {
 
 async function handleCopyMove(filePath: string, method: 'COPY' | 'MOVE', destination: string) {
   const { parent: newParent, tail: newTail } = parsePath(destination);
-  const uri =
-    buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) +
-    (method === 'COPY' ? '/copy' : '');
+  const uri = buildUriPath(filePath, runtimeEnv.OAUTH.apiUrl) + (method === 'COPY' ? '/copy' : '');
 
   const resp = await fetchWithAuth(uri, {
     method: method === 'COPY' ? 'POST' : 'PATCH',
@@ -138,7 +135,7 @@ async function handleCopyMove(filePath: string, method: 'COPY' | 'MOVE', destina
     body: JSON.stringify({
       name: newTail,
       parentReference: {
-        path: `/drive/root:${runtimeEnv.PROTECTED.EXPOSE_PATH}${newParent}`,
+        path: `/drive/root:${buildUriPath(newParent, '').replaceAll(':', '')}`,
       },
     }),
   });
@@ -151,7 +148,7 @@ async function handleCopyMove(filePath: string, method: 'COPY' | 'MOVE', destina
 }
 
 async function handleDelete(filePath: string) {
-  const uri = buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl);
+  const uri = buildUriPath(filePath, runtimeEnv.OAUTH.apiUrl);
   const res = await fetchWithAuth(uri, { method: 'DELETE' });
   const davStatus = res.status;
   const responseXML =
@@ -162,7 +159,7 @@ async function handleDelete(filePath: string) {
 
 async function handleHead(filePath: string) {
   const uri = [
-    buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl),
+    buildUriPath(filePath, runtimeEnv.OAUTH.apiUrl),
     '?select=size,file,folder,lastModifiedDateTime',
   ].join('');
   const resp = await fetchWithAuth(uri);
@@ -183,8 +180,7 @@ async function handleHead(filePath: string) {
 
 async function handleMkcol(filePath: string) {
   const { parent, tail } = parsePath(filePath);
-  const uri =
-    buildUriPath(parent, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) + '/children';
+  const uri = buildUriPath(parent, runtimeEnv.OAUTH.apiUrl) + '/children';
 
   const res = await fetchWithAuth(uri, {
     method: 'POST',
@@ -211,9 +207,7 @@ async function handlePut(filePath: string, request: Request) {
 
   if (fileSize <= simpleUploadLimit) {
     const body = await request.arrayBuffer();
-    const uri =
-      buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) +
-      '/content';
+    const uri = buildUriPath(filePath, runtimeEnv.OAUTH.apiUrl) + '/content';
     const res = await fetchWithAuth(uri, { method: 'PUT', body });
 
     const davXml = res.ok ? null : createReturnXml(filePath, res.status, res.statusText);
@@ -221,9 +215,7 @@ async function handlePut(filePath: string, request: Request) {
     return { davXml, davStatus };
   }
 
-  const uri =
-    buildUriPath(filePath, runtimeEnv.PROTECTED.EXPOSE_PATH, runtimeEnv.OAUTH.apiUrl) +
-    '/createUploadSession';
+  const uri = buildUriPath(filePath, runtimeEnv.OAUTH.apiUrl) + '/createUploadSession';
   const uploadSessionRes = await fetchWithAuth(uri, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

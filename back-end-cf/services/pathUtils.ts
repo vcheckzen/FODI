@@ -1,3 +1,5 @@
+import { runtimeEnv } from '../types/env';
+
 /**
  * Parses a file path into its components.
  * @param filePath The file path to parse.
@@ -32,7 +34,9 @@ export function parsePath(filePath: string, prefixToRemove?: string, keepTrailin
  * @param apiUrl The API base URL, if empty string return `:path:`
  * @returns The constructed URI path.
  */
-export function buildUriPath(filePath: string, exposePath: string, apiUrl: string) {
+export function buildUriPath(filePath: string, apiUrl: string) {
+  const exposePath =
+    runtimeEnv.PROTECTED.EXPOSE_PATH === '/' ? '' : runtimeEnv.PROTECTED.EXPOSE_PATH;
   const itemPath = exposePath + parsePath(filePath).path;
   // if PROTECTED.EXPOSE_PATH + path equals to an empty string or ends with '/', ':' will lead to an error.
   const uri = itemPath
