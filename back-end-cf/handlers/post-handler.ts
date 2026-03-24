@@ -37,7 +37,7 @@ export async function handlePostRequest(
       !scopes.has('upload') ||
       body.files?.some(
         (file) =>
-          (file.remotePath.split('/').pop() ?? '').toLowerCase() ===
+          file.remotePath.slice(file.remotePath.lastIndexOf('/') + 1).toLowerCase() ===
           env.PROTECTED.PASSWD_FILENAME.toLowerCase(),
       )
     ) {

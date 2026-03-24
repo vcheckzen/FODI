@@ -43,7 +43,7 @@ export async function cacheRequest(
   const cacheCreatedAt =
     new Date(cachedResponse?.headers.get('Expires') || 0).getTime() - cacheTTL * 1000;
   const calculatedAgeSec = (now - cacheCreatedAt) / 1000;
-  const cachedAge = parseInt(cachedResponse?.headers.get('Age') || '0') ?? calculatedAgeSec;
+  const cachedAge = parseInt(cachedResponse?.headers.get('Age') || '0') || calculatedAgeSec;
   // 302 OneDrive download links are valid for 1 hour
   const isLinkExpired = method === 'GET' && cachedResponse?.status === 302 && cachedAge > 3600;
 

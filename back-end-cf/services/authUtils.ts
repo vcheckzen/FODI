@@ -145,11 +145,20 @@ export async function authorizeScopes(
   const isExceptionPath = authPaths.includes(path.toLowerCase());
   // REQUIRE_AUTH flips AUTH_PATHS between whitelist and blacklist behavior.
   const canSkipAuth = env.PROTECTED.REQUIRE_AUTH ? isExceptionPath : !isExceptionPath;
-  const hasEnvPasswordAccess = secureEqual(credentials, env.PASSWORD);
+
+  let pwAuth: boolean | undefined;
+  const hasEnvPasswordAccess = () => {
+    pwAuth ??= secureEqual(credentials, env.PASSWORD);
+    return pwAuth;
+  };
 
   let postAuth: Promise<boolean> | undefined;
   const hasPostAccess = () => {
-    if (canSkipAuth || hasEnvPasswordAccess) {
+    if (canSkipAuth) {
+      return Promise.resolve(true);
+    }
+
+    if (hasEnvPasswordAccess()) {
       return Promise.resolve(true);
     }
 
@@ -178,7 +187,7 @@ export async function authorizeScopes(
     let ok = false;
     switch (scope) {
       case 'download':
-        ok = canSkipAuth || authenticateWebdav(credentials ?? null, env.USERNAME, env.PASSWORD);
+        ok = canSkipAuth || authenticateWebdav(credentials, env.USERNAME, env.PASSWORD);
         break;
 
       case 'list':
@@ -190,7 +199,7 @@ export async function authorizeScopes(
         break;
 
       default:
-        ok = hasEnvPasswordAccess;
+        ok = hasEnvPasswordAccess();
         break;
     }
 
