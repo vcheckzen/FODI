@@ -1,6 +1,40 @@
-import { sha256, secureEqual, hmacSha256 } from './utils';
+import { sha256 } from './utils';
 import { downloadFile } from './fileMethods';
 import type { TokenScope } from '../types/apiType';
+
+async function hmacSha256(key: string, message: string): Promise<string> {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(key),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const buffer = await crypto.subtle.sign('HMAC', cryptoKey, data);
+  return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function secureEqual(input: string | undefined, expected: string | undefined): boolean {
+  if (!input || !expected) {
+    return false;
+  }
+
+  try {
+    // Compare in constant time to reduce timing side-channel leakage.
+    const encoder = new TextEncoder();
+    const inputData = encoder.encode(input);
+    const expectedData = encoder.encode(expected);
+    return (
+      inputData.byteLength === expectedData.byteLength &&
+      // @ts-ignore
+      crypto.subtle.timingSafeEqual(inputData, expectedData)
+    );
+  } catch (e) {
+    return false;
+  }
+}
 
 async function authenticatePost(env: Env, path: string, passwd?: string): Promise<boolean> {
   // empty input password, improve loading speed
@@ -8,7 +42,7 @@ async function authenticatePost(env: Env, path: string, passwd?: string): Promis
     return false;
   }
 
-  // check password files in onedrive
+  // A path can inherit the root password file, so check both current path and root.
   const hashedPasswd = await sha256(passwd || '');
   const candidatePaths = new Set<string>();
   candidatePaths.add(path === '/' ? '' : path);
@@ -27,6 +61,8 @@ async function authenticatePost(env: Env, path: string, passwd?: string): Promis
       return true;
     }
   }
+
+  // No password file means the path is treated as public for POST access.
   return downloads.every((content) => content === undefined);
 }
 
@@ -57,6 +93,7 @@ async function authorizeToken(
   const authPath = searchParams.get('tb') ?? '/';
   const tokenArgString = [tokenScope, expires].filter(Boolean).join(',');
 
+  // A token may be valid for the file itself, its parent, or an explicit recursive base path.
   const candidatePaths = new Set<string>();
   candidatePaths.add(reqPath);
 
@@ -106,7 +143,31 @@ export async function authorizeScopes(
 
   const authPaths = env.PROTECTED.AUTH_PATHS.map((item) => item.toLowerCase());
   const isExceptionPath = authPaths.includes(path.toLowerCase());
-  const requiresAuthForPath = env.PROTECTED.REQUIRE_AUTH ? !isExceptionPath : isExceptionPath;
+  // REQUIRE_AUTH flips AUTH_PATHS between whitelist and blacklist behavior.
+  const canSkipAuth = env.PROTECTED.REQUIRE_AUTH ? isExceptionPath : !isExceptionPath;
+  const hasEnvPasswordAccess = secureEqual(credentials, env.PASSWORD);
+
+  let postAuth: Promise<boolean> | undefined;
+  const hasPostAccess = () => {
+    if (canSkipAuth || hasEnvPasswordAccess) {
+      return Promise.resolve(true);
+    }
+
+    // Reuse the async password-file check when multiple scopes are evaluated in one request.
+    postAuth ??= authenticatePost(env, path, credentials);
+    return postAuth;
+  };
+
+  let uploadAuth: Promise<boolean> | undefined;
+  const hasUploadAccess = async () => {
+    if (!(await hasPostAccess())) {
+      return false;
+    }
+
+    // Upload requires POST access plus an explicit .upload marker at the target path.
+    uploadAuth ??= downloadFile(`${path}/.upload`).then((resp) => resp.status === 302);
+    return uploadAuth;
+  };
 
   for (const scope of requiredScopes) {
     if (tokenScopes.has(scope)) {
@@ -117,27 +178,19 @@ export async function authorizeScopes(
     let ok = false;
     switch (scope) {
       case 'download':
-        ok =
-          !requiresAuthForPath ||
-          authenticateWebdav(credentials ?? null, env.USERNAME, env.PASSWORD);
+        ok = canSkipAuth || authenticateWebdav(credentials ?? null, env.USERNAME, env.PASSWORD);
         break;
 
       case 'list':
-        ok =
-          !requiresAuthForPath ||
-          secureEqual(credentials, env.PASSWORD) ||
-          (await authenticatePost(env, path, credentials));
+        ok = await hasPostAccess();
         break;
 
       case 'upload':
-        ok =
-          (secureEqual(credentials, env.PASSWORD) ||
-            (await authenticatePost(env, path, credentials))) &&
-          (await downloadFile(`${path}/.upload`)).status === 302;
+        ok = await hasUploadAccess();
         break;
 
       default:
-        ok = secureEqual(credentials, env.PASSWORD);
+        ok = hasEnvPasswordAccess;
         break;
     }
 
